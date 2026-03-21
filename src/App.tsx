@@ -1,9 +1,16 @@
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import LoginPage from "./pages/LoginPage";
+
 const App = () => {
 	return (
-		<h1 className="text-3x1 front-bold text-blue-500">
-			RedCheck
-		</h1>
-	);
+		<BrowserRouter>
+			<Routes>
+				<Route path="/login" element={<LoginPage />} />
+				<Route path ="/dashboard" element={"<div>Dashboard comming soon...</div>"} />
+				<Route path ="/" element={<LoginPage />} />
+			</Routes>
+		</BrowserRouter>
+	)
 };
 
 export default App;
