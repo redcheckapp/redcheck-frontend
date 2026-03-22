@@ -6,3 +6,9 @@ export interface LoginForm {
 export interface AuthResponse {
     token: string;
 }
+
+export interface RegisterForm {
+    username: string;
+    email: string;
+    password: string;
+}
