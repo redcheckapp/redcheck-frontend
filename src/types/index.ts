@@ -41,3 +41,7 @@ export interface TaskRequest {
 export interface SubjectWithTasks extends SubjectResponse {
     tasks: TaskResponse[];
 }
+
+export interface UserResponse {
+    username: string;
+}
