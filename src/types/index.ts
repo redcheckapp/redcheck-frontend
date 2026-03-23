@@ -32,6 +32,12 @@ export interface TaskResponse {
     subjectId: boolean;
 }
 
+export interface TaskRequest {
+    title: string;
+    description: string | null;
+    deadline: string | null;
+}
+
 export interface SubjectWithTasks extends SubjectResponse {
     tasks: TaskResponse[];
 }
