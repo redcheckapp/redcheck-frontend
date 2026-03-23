@@ -197,6 +197,11 @@ const DashboardPage = () => {
         acc + subject.tasks.filter(t => !t.completed).length, 0
     );
 
+    // Cuenta las tareas pendientes totales (fuera de plazo)
+    const totalPendingOverdue = subjects.reduce((acc, subject) =>
+        acc + subject.tasks.filter(t => !t.completed && t.overdue).length, 0
+    );
+
     if (loading) return (
         <div className="flex min-h-screen items-center justify-center bg-[#e3e7e2]">
             <p className="text-green-700 font-semibold">Cargando...</p>
@@ -211,7 +216,7 @@ const DashboardPage = () => {
 
     return (
 
-        <div className="flex min-h-screen bg-[#e3e7e2] p-4 gap-4">
+        <div className="flex h-screen bg-[#e3e7e2] p-4 gap-4 overflow-hidden">
 
             {/* Sidebar */}
             <div className={`transition-all duration-300 ${sidebarOpen ? "w-72" : "w-20"}
@@ -279,7 +284,7 @@ const DashboardPage = () => {
             </div>
 
             {/* Contenido principal */}
-            <div className="flex-1 rounded-2xl bg-white shadow-md p-6 flex flex-col">
+            <div className="flex-1 rounded-2xl bg-white shadow-md p-6 flex flex-col overflow-y-auto">
 
                 {/* Cabecera */}
                 <div className="mb-6">
@@ -294,7 +299,7 @@ const DashboardPage = () => {
                 </div>
 
                 {/* Lista de asignaturas con tareas */}
-                <div className="flex flex-col gap-8 overflow-y-auto">
+                <div className="flex flex-col gap-8">
                     {subjects.map(subject => (
                         <div key={subject.id}>
 
@@ -306,12 +311,21 @@ const DashboardPage = () => {
 
                             {/* Tareas */}
                             <div className="flex flex-col gap-2">
-                                {subject.tasks.length === 0 ? (
-                                    <p className="text-sm text-gray-300 italic">
-                                        No hay tareas para hoy
-                                    </p>
-                                ) : (
-                                    subject.tasks.map(task => (
+                                {/* Primero filtramos las tareas normales */}
+                                {(() => {
+                                    const normalTasks = subject.tasks.filter(task => !task.overdue);
+
+                                    // Si no hay tareas en general, o si todas las que hay son atrasadas
+                                    if (normalTasks.length === 0) {
+                                        return (
+                                            <p className="text-sm text-gray-400 italic mb-2">
+                                                No hay tareas normales para hoy.
+                                            </p>
+                                        );
+                                    }
+
+                                    // Si sí hay tareas normales, las dibujamos
+                                    return normalTasks.map(task => (
                                         <div key={task.id}
                                             className="flex items-center gap-3 p-3
                                                 rounded-xl hover:bg-gray-50 transition group">
@@ -336,6 +350,14 @@ const DashboardPage = () => {
                                                         : "text-gray-700"
                                                     }`}>
                                                     {task.title}
+                                                    
+                                                    {/* Descripción justo al lado (si existe) */}
+                                                    {task.description && (
+                                                        <span className={`ml-2 font-normal transition 
+                                                            ${task.completed ? "text-gray-300" : "text-gray-400"}`}>
+                                                            — {task.description}
+                                                        </span>
+                                                    )}
                                                 </p>
                                                     <p className="text-xs text-gray-400 mt-0.5">
                                                         {task.deadline 
@@ -362,6 +384,7 @@ const DashboardPage = () => {
                                                 <span>Editar tarea</span>
                                             </button>
 
+                                            {/* Formulario de edición (oculto) */}
                                             {openFormSubjectIdTaskId?.subjectId === subject.id && openFormSubjectIdTaskId?.taskId === task.id && (
                                                 <form onSubmit={(e) => handleUpdateTask(e, subject.id, task.id)}
                                                     className="flex flex-col gap-2 mt-2 p-3 bg-gray-50 rounded-xl">
@@ -441,8 +464,8 @@ const DashboardPage = () => {
                                                 <span>Borrar tarea</span>
                                             </button>
                                         </div>
-                                    ))
-                                )}
+                                    ));
+                                })()}
 
                                 {/* Botón añadir tarea */}
                                 <button className="flex items-center gap-2 text-green-600 hover:bg-green-50 rounded-xl px-3 py-2 text-sm transition w-fit"
@@ -526,6 +549,101 @@ const DashboardPage = () => {
                         </div>
                     ))}
                 </div>
+
+                {/* Sección de Tareas Fuera de Plazo */}
+                <div className="mb-6 mt-8 border-t border-gray-100 pt-4">
+                    <p className="text-sm text-gray-500 mt-1 mb-4">
+                        {totalPendingOverdue === 0
+                            ? "¡No tienes tareas fuera de plazo! 🎉"
+                            : `Tienes ${totalPendingOverdue} tarea${totalPendingOverdue > 1 ? "s" : ""} fuera de plazo`
+                        }
+                    </p>
+
+                    {/* Renderizamos solo si hay tareas atrasadas */}
+                    {totalPendingOverdue > 0 && (
+                        <div className="flex flex-col gap-6">
+                            {subjects
+                                // 1. Filtramos para quedarnos solo con asignaturas que tengan alguna tarea atrasada y no completada
+                                .filter(subject => subject.tasks.some(task => !task.completed && task.overdue))
+                                .map(subject => (
+                                    <div key={`overdue-${subject.id}`}>
+                                        
+                                        {/* Nombre de la asignatura (en rojo para destacar) */}
+                                        <h2 className="text-md font-semibold text-red-600 mb-3 border-b border-red-100 pb-2">
+                                            {subject.name}
+                                        </h2>
+
+                                        <div className="flex flex-col gap-2">
+                                            {subject.tasks
+                                                // 2. Filtramos las tareas para mostrar solo las atrasadas
+                                                .filter(task => !task.completed && task.overdue)
+                                                .map(task => (
+                                                    <div key={`overdue-task-${task.id}`}
+                                                        className="flex items-center gap-3 p-3
+                                                            rounded-xl bg-red-50 hover:bg-red-100 transition group border border-red-100">
+
+                                                        {/* Checkbox */}
+                                                        <button
+                                                            onClick={() => handleToggleTask(subject.id, task.id)}
+                                                            className="w-6 h-6 squared-full border-2 flex items-center justify-center transition border-red-300 hover:border-red-500 bg-white">
+                                                            {task.completed && <Check size={12} color="red" />}
+                                                        </button>
+
+                                                        {/* Título y deadline */}
+                                                        <div className="flex-1">
+                                                            <p className="text-sm font-medium text-red-900">
+                                                                {task.title}
+
+                                                                {/* Descripción justo al lado (si existe) */}
+                                                                {task.description && (
+                                                                    <span className={`ml-2 font-normal transition 
+                                                                        ${task.completed ? "text-gray-300" : "text-red-700"}`}>
+                                                                        — {task.description}
+                                                                    </span>
+                                                                )}
+                                                            </p>
+                                                            <p className="text-xs text-red-500 mt-0.5 font-medium">
+                                                                {task.deadline 
+                                                                    ? `Caducó el ${new Date(task.deadline).toLocaleString("es-ES", { 
+                                                                        day: "2-digit", 
+                                                                        month: "2-digit", 
+                                                                        year: "numeric",
+                                                                        hour: "2-digit", 
+                                                                        minute: "2-digit" 
+                                                                    })}`
+                                                                    : "Sin fecha límite"
+                                                                }
+                                                            </p>
+                                                        </div>
+
+                                                        {/* Botón editar (Opcional, puedes añadir los botones de borrar y editar aquí igual que arriba) */}
+                                                        <button type="button" className="flex items-center gap-2 text-yellow-600 hover:bg-white rounded-xl px-3 py-2 text-sm transition w-fit"
+                                                            onClick={() => { setOpenFormSubjectIdTaskId({subjectId: subject.id, taskId: task.id}); }}
+                                                        >
+                                                            <div className="w-5 h-5 bg-yellow-600 text-white rounded-full flex items-center justify-center">
+                                                                <Pencil size={12} />
+                                                            </div>
+                                                        </button>
+
+                                                        {/* Botón borrar */}
+                                                        <button type="button" className="flex items-center gap-2 text-red-600 hover:bg-white rounded-xl px-3 py-2 text-sm transition w-fit"
+                                                            onClick={() => { handleDeleteTask(subject.id, task.id); }}  
+                                                        >
+                                                            <div className="w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center">
+                                                                <X size={12} />
+                                                            </div>
+                                                        </button>
+
+                                                    </div>
+                                                ))
+                                            }
+                                        </div>
+                                    </div>
+                                ))}
+                        </div>
+                    )}
+                </div>
+
             </div>
         </div>
     );
