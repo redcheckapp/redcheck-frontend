@@ -1,5 +1,5 @@
 import api from "./axiosConfig";
-import type { TaskResponse } from "../types";
+import type { TaskRequest, TaskResponse } from "../types";
 
 export const getTodayTasks = async (subjectId: number): Promise<TaskResponse[]> => {
     const response = await api.get(`/subjects/${subjectId}/tasks?completed=false`);
@@ -15,5 +15,13 @@ export const toggleTask = async (
         `/subjects/${subjectId}/tasks/${taskId}/complete`,
         { completed }
     );
+    return response.data;
+}
+
+export const addNewTask = async (subjectId: number, taskData: TaskRequest): Promise<TaskResponse> => {
+    const response = await api.post(
+        `subjects/${subjectId}/tasks`,
+        taskData
+    )
     return response.data;
 }
