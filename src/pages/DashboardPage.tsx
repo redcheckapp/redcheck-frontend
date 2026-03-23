@@ -1,15 +1,56 @@
 import { useState, useEffect } from "react";
 import { Plus, LogOut, Check } from "lucide-react";
 import { getSubjects } from "../api/subjectApi";
-import { getTodayTasks, toggleTask } from "../api/taskApi";
+import { addNewTask, getTodayTasks, toggleTask } from "../api/taskApi";
 import type { SubjectWithTasks } from "../types";
+import { useNavigate } from "react-router-dom";
 
 const DashboardPage = () => {
     // Datos de la API
+    const navigate = useNavigate();
     const [subjects, setSubjects] = useState<SubjectWithTasks[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [openFormSubjectId, setOpenFormSubjectId] = useState<number | null>(null);
+
+    const [newTask, setNewTask] = useState({
+        title: "",
+        description: "",
+        deadline: ""
+    });
+
+    // Updates corresponding field when the user writes
+    const handleChangeTask = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setNewTask({ ...newTask, [e.target.name]: e.target.value});
+    };
+
+    const handleSubmitTask = async (e: React.FormEvent, subjectId: number) => {
+        e.preventDefault(); // prevent the page from reloading
+        setError(null);
+        setLoading(true);
+    
+        try {
+            const response = await addNewTask(subjectId, newTask);
+
+            setSubjects(subjects.map(subject => {
+                if(subject.id !== subjectId) return subject;
+                return {
+                    ...subject, 
+                    tasks: [...subject.tasks, response]
+                };
+            }));
+            
+            setOpenFormSubjectId(null);
+
+            setNewTask({title: "", description: "", deadline: ""});
+
+        } catch(err) {
+            setError("Error");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const today = new Date().toLocaleDateString("es-ES", {
         weekday: "long",
@@ -146,8 +187,12 @@ const DashboardPage = () => {
                 )}
 
                 {/* Cerrar sesión */}
-                <button className="mt-auto flex items-center gap-2 text-gray-400
-                    hover:text-red-500 transition text-sm p-2 rounded-lg hover:bg-red-50">
+                <button className="mt-auto flex items-center gap-2 text-gray-400 hover:text-red-500 transition text-sm p-2 rounded-lg hover:bg-red-50"
+                    onClick={() => {
+                        localStorage.removeItem("token"); 
+                        navigate("/login");
+                    }}
+                >
                     <LogOut size={18} />
                     {sidebarOpen && <span>Cerrar sesión</span>}
                 </button>
@@ -224,15 +269,83 @@ const DashboardPage = () => {
                                 )}
 
                                 {/* Botón añadir tarea */}
-                                <button className="flex items-center gap-2 text-green-600
-                                    hover:bg-green-50 rounded-xl px-3 py-2 text-sm
-                                    transition w-fit">
+                                <button className="flex items-center gap-2 text-green-600 hover:bg-green-50 rounded-xl px-3 py-2 text-sm transition w-fit"
+                                    onClick={() => { setOpenFormSubjectId(subject.id); }}  
+                                >
                                     <div className="w-5 h-5 bg-green-600 text-white
                                         rounded-full flex items-center justify-center">
                                         <Plus size={12} />
                                     </div>
                                     <span>Añadir tarea</span>
                                 </button>
+
+                                {openFormSubjectId === subject.id && (
+                                    <form onSubmit={(e) => handleSubmitTask(e, subject.id)}
+                                        className="flex flex-col gap-2 mt-2 p-3 bg-gray-50 rounded-xl">
+        
+                                        {/* input title */}
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-sm text-gray-600">Title</label>
+                                                <input
+                                                    type="text"
+                                                    name="title"
+                                                    value={newTask.title}
+                                                    onChange={handleChangeTask}
+                                                    placeholder="Título"
+                                                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    required
+                                                />
+                                        </div>
+
+                                        {/* input description */}
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-sm text-gray-600">Description</label>
+                                                <input
+                                                    type="text"
+                                                    name="description"
+                                                    value={newTask.description}
+                                                    onChange={handleChangeTask}
+                                                    placeholder="Descripción"
+                                                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                        </div>
+
+                                        {/* input deadline */}
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-sm text-gray-600">Deadline</label>
+                                                <input
+                                                    type="text"
+                                                    name="deadline"
+                                                    value={newTask.deadline}
+                                                    onChange={handleChangeTask}
+                                                    placeholder="Fecha límite"
+                                                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                        </div>
+
+                                        {/* botones Guardar y Cancelar */}
+                                        {error && (
+                                            <p className="text-red-500 text-sm text-center">{error}</p>
+                                        )}
+
+                                        <div className="flex gap-2 mt-2">
+                                            <button
+                                                type="submit"
+                                                disabled={loading}
+                                                className="bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50"
+                                            >
+                                                Guardar
+                                            </button>
+    
+                                            <button type="button" 
+                                                onClick={() => {setOpenFormSubjectId(null)}}
+                                                className="border border-gray-300 text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition"
+                                            >
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
                             </div>
                         </div>
                     ))}
