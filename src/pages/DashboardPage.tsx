@@ -1,20 +1,31 @@
 import { useState, useEffect } from "react";
-import { Plus, LogOut, Check, X } from "lucide-react";
+import { Plus, LogOut, Check, X, Pencil, CheckSquare } from "lucide-react";
 import { getSubjects } from "../api/subjectApi";
-import { addNewTask, deleteTask, getTodayTasks, toggleTask } from "../api/taskApi";
+import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
 import type { SubjectWithTasks } from "../types";
 import { useNavigate } from "react-router-dom";
+import { getUsername } from "../api/userApi";
 
 const DashboardPage = () => {
     // Datos de la API
     const navigate = useNavigate();
     const [subjects, setSubjects] = useState<SubjectWithTasks[]>([]);
     const [loading, setLoading] = useState(true);
+
     const [error, setError] = useState<string | null>(null);
+
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [openFormSubjectId, setOpenFormSubjectId] = useState<number | null>(null);
+    const [openFormSubjectIdTaskId, setOpenFormSubjectIdTaskId] = useState<{subjectId: number; taskId: number} | null>(null);
+    const [username, setUsername] = useState("");
 
     const [newTask, setNewTask] = useState({
+        title: "",
+        description: "",
+        deadline: ""
+    });
+
+    const [updatedTask, setUpdatedTask] = useState({
         title: "",
         description: "",
         deadline: ""
@@ -23,6 +34,11 @@ const DashboardPage = () => {
     // Updates corresponding field when the user writes
     const handleChangeTask = (e: React.ChangeEvent<HTMLInputElement>) => {
         setNewTask({ ...newTask, [e.target.name]: e.target.value});
+    };
+
+    // Updates corresponding field when the user writes
+    const handleChangeUpdateTask = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setUpdatedTask({ ...updatedTask, [e.target.name]: e.target.value});
     };
 
     const handleSubmitTask = async (e: React.FormEvent, subjectId: number) => {
@@ -52,6 +68,36 @@ const DashboardPage = () => {
         }
     };
 
+    const handleUpdateTask = async (e: React.FormEvent, subjectId: number, taskId: number) => {
+        e.preventDefault(); // prevent the page from reloading
+        setError(null);
+        setLoading(true);
+
+        try {
+            const response = await updateTask(subjectId, taskId, updatedTask);
+
+            setSubjects(subjects.map(subject => {
+                if (subject.id !== subjectId) return subject;
+                return {
+                    ...subject,
+                    tasks: subject.tasks.map(task => {
+                        if (task.id !== taskId) return task;
+                        return response; // reemplaza la tarea con la respuesta de la API
+                    })
+                };
+            }));
+            
+            setOpenFormSubjectIdTaskId(null);
+
+            setUpdatedTask({title: "", description: "", deadline: ""});
+
+        } catch(err) {
+            setError("Error");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleDeleteTask = async (subjectId: number, taskId: number) => {
         setError(null);
         setLoading(true);
@@ -72,7 +118,14 @@ const DashboardPage = () => {
         } finally {
             setLoading(false);
         }
-    }
+    };
+
+    const getGreeting = (username: string): string => {
+        const hour = new Date().getHours();
+        if (hour >= 6 && hour < 14) return `Buenos días, ${username}`;
+        if (hour >= 14 && hour < 21) return `Buenas tardes, ${username}`;
+        return `Buenas noches, ${username}`;
+    };
 
     const today = new Date().toLocaleDateString("es-ES", {
         weekday: "long",
@@ -84,6 +137,10 @@ const DashboardPage = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
+
+                const profile = await getUsername();
+                setUsername(profile.username);
+
                 // 1. Coge todas las asignaturas
                 const subjectsData = await getSubjects();
                 console.log("Respuesta de la API:", subjectsData); // añade esto
@@ -163,9 +220,10 @@ const DashboardPage = () => {
                 {/* Logo — abre y cierra el sidebar */}
                 <button
                     onClick={() => setSidebarOpen(!sidebarOpen)}
-                    className="text-xl font-bold text-green-700 mb-6 text-center"
+                    className="text-xl font-bold text-red-700 mb-6 text-center flex items-center justify-center gap-2"
                 >
-                    {sidebarOpen ? "RedCheck" : "RC"}
+                    <CheckSquare size={24} />
+                    {sidebarOpen && <span className="text-black">RedCheck</span>}
                 </button>
 
                 {/* Progreso del día */}
@@ -225,7 +283,7 @@ const DashboardPage = () => {
 
                 {/* Cabecera */}
                 <div className="mb-6">
-                    <h1 className="text-3xl font-bold text-gray-800">RedCheck</h1>
+                    <h1 className="text-3xl font-bold text-gray-800">{ getGreeting(username) }</h1>
                     <p className="text-gray-400 mt-1 capitalize">{today}</p>
                     <p className="text-sm text-gray-500 mt-1">
                         {totalPending === 0
@@ -261,11 +319,11 @@ const DashboardPage = () => {
                                             {/* Checkbox */}
                                             <button
                                                 onClick={() => handleToggleTask(subject.id, task.id)}
-                                                className={`w-6 h-6 rounded-full border-2 flex
+                                                className={`w-6 h-6 squared-full border-2 flex
                                                     items-center justify-center transition
                                                     ${task.completed
-                                                        ? "bg-green-500 border-green-500"
-                                                        : "border-gray-300 hover:border-green-400"
+                                                        ? "bg-red-500 border-red-500"
+                                                        : "border-gray-300 hover:border-red-400"
                                                     }`}>
                                                 {task.completed && <Check size={12} color="white" />}
                                             </button>
@@ -279,19 +337,104 @@ const DashboardPage = () => {
                                                     }`}>
                                                     {task.title}
                                                 </p>
-                                                <p className="text-xs text-gray-400 mt-0.5">
-                                                    {task.deadline 
-                                                        ? new Date(task.deadline).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
-                                                        : "Sin fecha límite"
+                                                    <p className="text-xs text-gray-400 mt-0.5">
+                                                        {task.deadline 
+                                                            ? new Date(task.deadline).toLocaleString("es-ES", { 
+                                                                day: "2-digit", 
+                                                                month: "2-digit", 
+                                                                year: "numeric",
+                                                                hour: "2-digit", 
+                                                                minute: "2-digit" 
+                                                            })
+                                                            : "Sin fecha límite"
                                                         }
-                                                </p>
+                                                    </p>
                                             </div>
 
+                                            {/* Botón editar tarea */}
+                                            <button type="button" className="flex items-center gap-2 text-yellow-600 hover:bg-yellow-50 rounded-xl px-3 py-2 text-sm transition w-fit"
+                                                onClick={() => { setOpenFormSubjectIdTaskId({subjectId: subject.id, taskId: task.id}); }}
+                                            >
+                                                <div className="w-5 h-5 bg-yellow-600 text-white
+                                                    rounded-full flex items-center justify-center">
+                                                    <Pencil size={12} />
+                                                </div>
+                                                <span>Editar tarea</span>
+                                            </button>
+
+                                            {openFormSubjectIdTaskId?.subjectId === subject.id && openFormSubjectIdTaskId?.taskId === task.id && (
+                                                <form onSubmit={(e) => handleUpdateTask(e, subject.id, task.id)}
+                                                    className="flex flex-col gap-2 mt-2 p-3 bg-gray-50 rounded-xl">
+                                                        
+                                                    {/* input title */}
+                                                    <div className="flex flex-col gap-1">
+                                                        <label className="text-sm text-gray-600">Título</label>
+                                                            <input
+                                                                type="text"
+                                                                name="title"
+                                                                value={updatedTask.title}
+                                                                onChange={handleChangeUpdateTask}
+                                                                placeholder="Título"
+                                                                className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                required
+                                                            />
+                                                    </div>
+
+                                                    {/* input description */}
+                                                    <div className="flex flex-col gap-1">
+                                                        <label className="text-sm text-gray-600">Descripción</label>
+                                                            <input
+                                                                type="text"
+                                                                name="description"
+                                                                value={updatedTask.description}
+                                                                onChange={handleChangeUpdateTask}
+                                                                placeholder="Descripción"
+                                                                className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                            />
+                                                    </div>
+
+                                                    {/* input deadline */}
+                                                    <div className="flex flex-col gap-1">
+                                                        <label className="text-sm text-gray-600">Fecha límite</label>
+                                                            <input
+                                                                type="datetime-local"
+                                                                name="deadline"
+                                                                value={updatedTask.deadline}
+                                                                onChange={handleChangeUpdateTask}
+                                                                placeholder="Fecha límite"
+                                                                className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                            />
+                                                    </div>
+
+                                                    {/* botones Guardar y Cancelar */}
+                                                    {error && (
+                                                        <p className="text-red-500 text-sm text-center">{error}</p>
+                                                    )}
+
+                                                    <div className="flex gap-2 mt-2">
+                                                        <button
+                                                            type="submit"
+                                                            disabled={loading}
+                                                            className="bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50"
+                                                        >
+                                                            Guardar
+                                                        </button>
+    
+                                                        <button type="button" 
+                                                            onClick={() => {setOpenFormSubjectIdTaskId(null)}}
+                                                            className="border border-gray-300 text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition"
+                                                        >
+                                                            Cancelar
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            )}
+
                                             {/* Botón borrar tarea */}
-                                            <button type="button" className="flex items-center gap-2 text-red-600 hover:bg-red-50 rounded-xl px-3 py-2 text-sm transition w-fit"
+                                            <button type="button" className="flex items-center gap-2 text-gray-600 hover:bg-gray-50 rounded-xl px-3 py-2 text-sm transition w-fit"
                                                 onClick={() => { handleDeleteTask(subject.id, task.id); }}  
                                             >
-                                                <div className="w-5 h-5 bg-red-600 text-white
+                                                <div className="w-5 h-5 bg-gray-600 text-white
                                                     rounded-full flex items-center justify-center">
                                                     <X size={12} />
                                                 </div>
@@ -347,7 +490,7 @@ const DashboardPage = () => {
                                         <div className="flex flex-col gap-1">
                                             <label className="text-sm text-gray-600">Deadline</label>
                                                 <input
-                                                    type="text"
+                                                    type="datetime-local"
                                                     name="deadline"
                                                     value={newTask.deadline}
                                                     onChange={handleChangeTask}
