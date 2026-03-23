@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Plus, LogOut, Check } from "lucide-react";
+import { Plus, LogOut, Check, X } from "lucide-react";
 import { getSubjects } from "../api/subjectApi";
-import { addNewTask, getTodayTasks, toggleTask } from "../api/taskApi";
+import { addNewTask, deleteTask, getTodayTasks, toggleTask } from "../api/taskApi";
 import type { SubjectWithTasks } from "../types";
 import { useNavigate } from "react-router-dom";
 
@@ -51,6 +51,28 @@ const DashboardPage = () => {
             setLoading(false);
         }
     };
+
+    const handleDeleteTask = async (subjectId: number, taskId: number) => {
+        setError(null);
+        setLoading(true);
+
+        try {
+            await deleteTask(subjectId, taskId);
+
+            setSubjects(subjects.map(subject => {
+                if(subject.id !== subjectId) return subject;
+                return {
+                    ...subject, 
+                    tasks: subject.tasks.filter(task => task.id !== taskId)
+                };
+            }));
+            
+        } catch(err) {
+            setError("Error");
+        } finally {
+            setLoading(false);
+        }
+    }
 
     const today = new Date().toLocaleDateString("es-ES", {
         weekday: "long",
@@ -264,6 +286,17 @@ const DashboardPage = () => {
                                                         }
                                                 </p>
                                             </div>
+
+                                            {/* Botón borrar tarea */}
+                                            <button type="button" className="flex items-center gap-2 text-red-600 hover:bg-red-50 rounded-xl px-3 py-2 text-sm transition w-fit"
+                                                onClick={() => { handleDeleteTask(subject.id, task.id); }}  
+                                            >
+                                                <div className="w-5 h-5 bg-red-600 text-white
+                                                    rounded-full flex items-center justify-center">
+                                                    <X size={12} />
+                                                </div>
+                                                <span>Borrar tarea</span>
+                                            </button>
                                         </div>
                                     ))
                                 )}
