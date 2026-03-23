@@ -29,3 +29,11 @@ export const addNewTask = async (subjectId: number, taskData: TaskRequest): Prom
 export const deleteTask = async (subjectId: number, taskId: number): Promise<void> => {
     await api.delete(`subjects/${subjectId}/tasks/${taskId}`);
 }
+
+export const updateTask = async (subjectId: number, taskId: number, taskData: TaskRequest): Promise<TaskResponse> => {
+    const response = await api.put(
+        `subjects/${subjectId}/tasks/${taskId}`,
+        taskData
+    );
+    return response.data;
+}
