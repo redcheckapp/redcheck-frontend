@@ -27,12 +27,6 @@ export const TaskItem = ({
 }: TaskItemProps) => {
 
     return (
-        // TODO: Pega aquí TODO el <div className="flex items-center gap-3 p-3..."> 
-        // que corresponde a una tarea individual (incluyendo los botones y el <form> oculto).
-        //
-        // ⚠️ MUY IMPORTANTE: Quítale la propiedad `key={task.id}` al <div> que pegues aquí. 
-        // Las keys se ponen cuando llamas al componente, no dentro de él.
-
         <div key={task.id}
             className="flex items-center gap-3 p-3
                 rounded-xl hover:bg-gray-50 transition group">
