@@ -1,6 +1,7 @@
 import { Sidebar } from "../components/Sidebar";
 import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
+import { SettingsModal } from "../components/SettingsModal";
 import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
@@ -20,6 +21,7 @@ const DashboardPage = () => {
     const [openFormSubjectIdTaskId, setOpenFormSubjectIdTaskId] = useState<{subjectId: number; taskId: number} | null>(null);
     const [openFormUpdateSubject, setOpenFormUpdateSubject] = useState<number | null>(null);
     const [openFormNewSubject, setOpenFormNewSubject] = useState<boolean>(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     const [username, setUsername] = useState("");
 
@@ -103,6 +105,15 @@ const DashboardPage = () => {
         } catch (err) { setError("Error"); } finally { setLoading(false); }
     };
 
+    const handleDeleteAccount = () => {
+    if(window.confirm("¿Estás seguro de que quieres borrar tu cuenta permanentemente?")) {
+        console.log("Llamando a la API para borrar cuenta...");
+        // TODO: Implementar la llamada real a tu API
+        // localStorage.removeItem("token");
+        // navigate("/login");
+        }
+    };
+
     const getGreeting = (username: string): string => {
         const hour = new Date().getHours();
         if (hour >= 6 && hour < 14) return `Buenos días, ${username}`;
@@ -150,7 +161,13 @@ const DashboardPage = () => {
 
     return (
         <div className="flex h-screen bg-[#e3e7e2] p-4 gap-4 overflow-hidden">
-            <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} totalPending={totalPending} subjects={subjects} />
+            <Sidebar 
+                sidebarOpen={sidebarOpen} 
+                setSidebarOpen={setSidebarOpen} 
+                totalPending={totalPending} 
+                subjects={subjects} 
+                onOpenSettings={() => setIsSettingsOpen(true)} 
+            />
 
             <div className="flex-1 rounded-2xl bg-white shadow-md p-6 flex flex-col overflow-y-auto">
                 <div className="mb-6">
@@ -190,9 +207,12 @@ const DashboardPage = () => {
                         />
                     ))}
 
-                    <button className="flex items-center gap-2 text-blue-600 hover:bg-blue-50 rounded-xl px-3 py-2 text-sm transition w-fit" onClick={() => { setOpenFormNewSubject(true); }}>
-                        <div className="w-5 h-5 bg-blue-600 text-white squared-full flex items-center justify-center"><Plus size={12} /></div>
-                        <span>Añadir asignatura</span>
+                    <button 
+                        className="w-full mt-4 flex items-center justify-center gap-2 text-gray-500 bg-transparent border-2 border-dashed border-gray-300 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 rounded-xl py-4 text-sm font-medium transition-all group" 
+                        onClick={() => { setOpenFormNewSubject(true); }}
+                    >
+                        <Plus size={18} className="transition-transform group-hover:scale-110" />
+                        <span>Añadir nueva asignatura</span>
                     </button>
 
                     {openFormNewSubject && (
@@ -222,6 +242,14 @@ const DashboardPage = () => {
                     setOpenFormSubjectIdTaskId={setOpenFormSubjectIdTaskId}
                 />
             </div>
+
+            <SettingsModal 
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+                subjects={subjects}
+                handleArchiveSubject={handleArchiveSubject}
+                handleDeleteAccount={handleDeleteAccount}
+            />
         </div>
     );
 };

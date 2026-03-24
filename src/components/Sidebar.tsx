@@ -1,4 +1,4 @@
-import { CheckSquare, LogOut } from "lucide-react";
+import { CheckSquare, LogOut, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { SubjectWithTasks } from "../types";
 
@@ -7,10 +7,10 @@ interface SidebarProps {
     setSidebarOpen: (isOpen: boolean) => void;
     totalPending: number;
     subjects: SubjectWithTasks[];
+    onOpenSettings: () => void;
 }
 
-export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects }: SidebarProps) => {
-    const navigate = useNavigate();
+export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, onOpenSettings }: SidebarProps) => {    const navigate = useNavigate();
 
     return (
         <div className={`transition-all duration-300 ${sidebarOpen ? "w-72" : "w-20"}
@@ -64,6 +64,15 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects }:
                     ))}
                 </div>
             )}
+
+            {/* Ajustes */}
+            <button 
+                onClick={onOpenSettings}
+                className="flex items-center gap-2 text-gray-500 hover:text-gray-800 transition text-sm p-2 rounded-lg hover:bg-gray-200"
+            >
+                <Settings size={18} />
+                {sidebarOpen && <span>Ajustes</span>}
+            </button>
 
             {/* Cerrar sesión */}
             <button className="mt-auto flex items-center gap-2 text-gray-400 hover:text-red-500 transition text-sm p-2 rounded-lg hover:bg-red-50"
