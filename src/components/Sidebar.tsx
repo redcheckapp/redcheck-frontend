@@ -13,6 +13,16 @@ interface SidebarProps {
 export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, onOpenSettings }: SidebarProps) => {
     const navigate = useNavigate();
 
+    // Calculamos el total de tareas contando las tareas de cada asignatura
+    const totalTasks = subjects.reduce((acc, subject) => acc + subject.tasks.length, 0);
+    
+    // Calculamos el porcentaje de progreso (de 0 a 1)
+    // Si no hay tareas en total, el progreso es 0. Si no, (total - pendientes) / total.
+    const progress = totalTasks === 0 ? 0 : (totalTasks - totalPending) / totalTasks;
+    
+    // El perímetro del círculo es 176. Calculamos cuánto trazo ocultar.
+    const strokeDashoffset = 176 - (176 * progress);
+
     return (
         <div className={`transition-all duration-300 ${sidebarOpen ? "w-72" : "w-20"}
             rounded-2xl bg-gray-50 shadow-md p-4 flex flex-col`}>
@@ -30,15 +40,20 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
             {/* Progreso del día */}
             <div className="flex justify-center mb-6">
                 <div className="relative w-16 h-16">
-                    <svg width="64" height="64">
+                    <svg width="64" height="64" className="transform -rotate-90">
+                        {/* Círculo de fondo (gris clarito/verde pálido) */}
                         <circle cx="32" cy="32" r="28"
                             stroke="#c3e0ce" strokeWidth="6" fill="#eaf6ed" />
+                        
+                        {/* Círculo de progreso (verde fuerte) */}
                         <circle cx="32" cy="32" r="28"
                             stroke="#16a34a" strokeWidth="6" fill="none"
                             strokeDasharray="176"
-                            strokeDashoffset={176 - (176 * (totalPending === 0 ? 1 : 0))}
-                            transform="rotate(-90 32 32)"
-                            strokeLinecap="round" />
+                            strokeDashoffset={strokeDashoffset}
+                            strokeLinecap="round"
+                            /* Añadimos una transición para que se anime al completarse tareas */
+                            className="transition-all duration-500 ease-out" 
+                        />
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center text-sm font-semibold text-green-700">
                         {totalPending}
