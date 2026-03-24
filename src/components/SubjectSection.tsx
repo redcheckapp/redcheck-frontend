@@ -1,5 +1,6 @@
 import { Pencil, Archive, X, Plus } from "lucide-react";
 import { TaskItem } from "./TaskItem";
+import { AnimatedVisibility } from "./AnimatedVisibility";
 import type { SubjectWithTasks } from "../types";
 
 interface SubjectSectionProps {
@@ -209,75 +210,40 @@ export const SubjectSection = ({
                     <span>Añadir tarea</span>
                 </button>
 
-                {openFormSubjectId === subject.id && (
-                    <form
-                        onSubmit={(e) => handleSubmitTask(e, subject.id)}
-                        className="flex flex-col gap-2 mt-2 p-3 bg-gray-50 rounded-xl"
-                    >
-                        {/* input title */}
-                        <div className="flex flex-col gap-1">
-                            <label className="text-sm text-gray-600">Title</label>
-                            <input
-                                type="text"
-                                name="title"
-                                value={newTask.title}
-                                onChange={handleChangeTask}
-                                placeholder="Título"
-                                className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                            />
+                {/* USAMOS EL COMPONENTE ANIMATED VISIBILITY */}
+                <AnimatedVisibility isVisible={openFormSubjectId === subject.id}>
+                    {/* QUITAR LA CLASE animate-slide-down DEL FORM, LA MANEJA EL ENVOLTORIO */}
+                    <form onSubmit={(e) => handleSubmitTask(e, subject.id)} className="flex flex-col gap-4 mt-3 p-5 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                        
+                        <h3 className="text-sm font-bold text-gray-800 border-b border-gray-50 pb-2">Nueva tarea para {subject.name}</h3>
+
+                        <div className="flex flex-col gap-3">
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Título de la tarea</label>
+                                <input type="text" name="title" value={newTask.title} onChange={handleChangeTask} placeholder="Ej. Hacer el diagrama de base de datos" className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-400 transition-all" required />
+                            </div>
+                            
+                            {/* Fila compacta para Descripción y Fecha */}
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <div className="flex-1 flex flex-col gap-1.5">
+                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Descripción</label>
+                                    <input type="text" name="description" value={newTask.description} onChange={handleChangeTask} placeholder="Añade detalles..." className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-400 transition-all" />
+                                </div>
+                                <div className="flex-1 flex flex-col gap-1.5">
+                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Fecha límite</label>
+                                    <input type="datetime-local" name="deadline" value={newTask.deadline} onChange={handleChangeTask} className="w-full bg-gray-50 border border-gray-200 text-gray-600 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-400 transition-all" />
+                                </div>
+                            </div>
                         </div>
 
-                        {/* input description */}
-                        <div className="flex flex-col gap-1">
-                            <label className="text-sm text-gray-600">Description</label>
-                            <input
-                                type="text"
-                                name="description"
-                                value={newTask.description}
-                                onChange={handleChangeTask}
-                                placeholder="Descripción"
-                                className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
+                        {error && <p className="text-red-600 text-sm bg-red-50 p-2 rounded-lg text-center">{error}</p>}
 
-                        {/* input deadline */}
-                        <div className="flex flex-col gap-1">
-                            <label className="text-sm text-gray-600">Deadline</label>
-                            <input
-                                type="datetime-local"
-                                name="deadline"
-                                value={newTask.deadline}
-                                onChange={handleChangeTask}
-                                placeholder="Fecha límite"
-                                className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-
-                        {/* botones Guardar y Cancelar */}
-                        {error && (
-                            <p className="text-red-500 text-sm text-center">{error}</p>
-                        )}
-
-                        <div className="flex gap-2 mt-2">
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50"
-                            >
-                                Guardar
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => { setOpenFormSubjectId(null); }}
-                                className="border border-gray-300 text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition"
-                            >
-                                Cancelar
-                            </button>
+                        <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50">
+                            <button type="button" onClick={() => { setOpenFormSubjectId(null); }} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all">Cancelar</button>
+                            <button type="submit" disabled={loading} className="px-5 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50">Guardar tarea</button>
                         </div>
                     </form>
-                )}
+                </AnimatedVisibility>
             </div>
         </div>
     );

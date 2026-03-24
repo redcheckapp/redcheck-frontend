@@ -2,6 +2,7 @@ import { Sidebar } from "../components/Sidebar";
 import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
 import { SettingsModal } from "../components/SettingsModal";
+import { AnimatedVisibility } from "../components/AnimatedVisibility";
 import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
@@ -105,19 +106,16 @@ const DashboardPage = () => {
         } catch (err) { setError("Error"); } finally { setLoading(false); }
     };
 
-const handleDeleteAccount = async () => {
+    const handleDeleteAccount = async () => {
         if (window.confirm("¿Estás seguro de que quieres borrar tu cuenta permanentemente? Esta acción no se puede deshacer.")) {
                         
             try {
                 console.log("Llamando a la API para borrar cuenta...");
                 
-                // ESPERAMOS a que el servidor confirme que se ha borrado
                 await deleteUser(); 
                 
-                // Si llegamos aquí, es que ha ido bien. Borramos el rastro local.
                 localStorage.removeItem("token");
                 
-                // Redirigimos al login
                 navigate("/login");
                 
             } catch (err) {
@@ -228,23 +226,39 @@ const handleDeleteAccount = async () => {
                         <span>Añadir nueva asignatura</span>
                     </button>
 
-                    {openFormNewSubject && (
-                        <form onSubmit={(e) => handleSubmitSubject(e)} className="flex flex-col gap-2 mt-2 p-3 bg-gray-50 rounded-xl">
-                            <div className="flex flex-col gap-1">
-                                <label className="text-sm text-gray-600">Nombre</label>
-                                <input type="text" name="name" value={newSubject.name} onChange={handleChangeSubject} placeholder="Título" className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+                    {/* USAMOS EL COMPONENTE ANIMATED VISIBILITY */}
+                    <AnimatedVisibility isVisible={openFormNewSubject}>
+                        {/* QUITAR LA CLASE animate-slide-down DEL FORM, LA MANEJA EL ENVOLTORIO */}
+                        <form onSubmit={(e) => handleSubmitSubject(e)} className="flex flex-col gap-4 mt-4 p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                            
+                            {/* Cabecera del formulario */}
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-800">Nueva asignatura</h3>
+                                <p className="text-xs text-gray-500 mt-1">Añade una nueva materia para organizar tus tareas.</p>
                             </div>
-                            <div className="flex flex-col gap-1">
-                                <label className="text-sm text-gray-600">Descripción</label>
-                                <input type="text" name="description" value={newSubject.description} onChange={handleChangeSubject} placeholder="Descripción" className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+
+                            {/* Inputs */}
+                            <div className="flex flex-col gap-3">
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nombre</label>
+                                    <input type="text" name="name" value={newSubject.name} onChange={handleChangeSubject} placeholder="Ej. Desarrollo de Interfaces" className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all" required />
+                                </div>
+                                
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Descripción <span className="text-gray-400 font-normal lowercase">(opcional)</span></label>
+                                    <input type="text" name="description" value={newSubject.description} onChange={handleChangeSubject} placeholder="Ej. Asignatura de 3º de carrera" className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all" />
+                                </div>
                             </div>
-                            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-                            <div className="flex gap-2 mt-2">
-                                <button type="submit" disabled={loading} className="bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50">Guardar</button>
-                                <button type="button" onClick={() => { setOpenFormNewSubject(false) }} className="border border-gray-300 text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition">Cancelar</button>
+
+                            {error && <p className="text-red-600 text-sm bg-red-50 p-2 rounded-lg text-center">{error}</p>}
+
+                            {/* Botones */}
+                            <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50">
+                                <button type="button" onClick={() => { setOpenFormNewSubject(false) }} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all">Cancelar</button>
+                                <button type="submit" disabled={loading} className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50">Guardar asignatura</button>
                             </div>
                         </form>
-                    )}        
+                    </AnimatedVisibility>       
                 </div>
 
                 <OverdueSection
