@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { X, Trash2, Power, PowerOff, Pencil } from "lucide-react";
-import { getRecurringTasks, toggleRecurringTaskActive, deleteRecurringTask, updateRecurringTask } from "../api/taskApi";
+import { getRecurringTasks, toggleRecurringTaskActive, deleteRecurringTask, updateRecurringTask } from "../api/recurringTaskApi";
 
 interface RecurringTasksModalProps {
     isOpen: boolean;
