@@ -61,8 +61,8 @@ export const SubjectSection = ({
 }: SubjectSectionProps) => {
     return (
         <div key={subject.id}>
-            {/* Nombre de la asignatura */}
-            <h2 className="text-lg font-semibold text-gray-700 mb-3 border-b border-gray-100 pb-2">
+            {/* Nombre de la asignatura (le añadimos "group" para detectar el hover) */}
+            <h2 className="group text-lg font-semibold text-gray-700 mb-3 border-b border-gray-100 pb-2">
                 <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                         <span>{subject.name}</span>
@@ -72,38 +72,34 @@ export const SubjectSection = ({
                             </span>
                         )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    
+                    {/* Contenedor de botones: invisible por defecto, aparece en hover */}
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                         <button
                             type="button"
-                            className="flex items-center gap-2 text-yellow-600 hover:bg-yellow-50 rounded-xl px-3 py-2 text-sm transition"
+                            className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition"
                             onClick={() => { setOpenFormUpdateSubject(subject.id); }}
+                            title="Editar asignatura"
                         >
-                            <div className="w-5 h-5 bg-yellow-600 text-white rounded-full flex items-center justify-center">
-                                <Pencil size={12} />
-                            </div>
-                            {/* <span className="hidden sm:inline">Editar</span> */}
+                            <Pencil size={16} />
                         </button>
 
                         <button
                             type="button"
-                            className="flex items-center gap-2 text-blue-600 hover:bg-blue-50 rounded-xl px-3 py-2 text-sm transition"
+                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
                             onClick={() => { handleArchiveSubject(subject.id); }}
+                            title="Archivar asignatura"
                         >
-                            <div className="w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center">
-                                <Archive size={12} />
-                            </div>
-                            {/* <span className="hidden sm:inline">{subject.archived ? "Desarchivar" : "Archivar"}</span> */}
+                            <Archive size={16} />
                         </button>
 
                         <button
                             type="button"
-                            className="flex items-center gap-2 text-red-600 hover:bg-red-50 rounded-xl px-3 py-2 text-sm transition"
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
                             onClick={() => { handleDeleteSubject(subject.id); }}
+                            title="Eliminar asignatura"
                         >
-                            <div className="w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center">
-                                <X size={12} />
-                            </div>
-                            {/* <span className="hidden sm:inline">Eliminar</span> */}
+                            <X size={16} />
                         </button>
                     </div>
                 </div>
@@ -112,7 +108,7 @@ export const SubjectSection = ({
                 {openFormUpdateSubject === subject.id && (
                     <form
                         onSubmit={(e) => handleUpdateSubject(e, subject.id)}
-                        className="flex flex-col gap-2 mt-2 p-3 bg-gray-50 rounded-xl"
+                        className="flex flex-col gap-2 mt-2 p-3 bg-gray-50 rounded-xl font-normal"
                     >
                         {/* input name */}
                         <div className="flex flex-col gap-1">
@@ -185,7 +181,7 @@ export const SubjectSection = ({
                     // Si sí hay tareas normales, las dibujamos
                     return normalTasks.map((task) => (
                         <TaskItem
-                            key={task.id} // Aquí es donde va la key
+                            key={task.id} 
                             subjectId={subject.id}
                             task={task}
                             handleToggleTask={handleToggleTask}
@@ -204,12 +200,12 @@ export const SubjectSection = ({
                 {/* Botón añadir tarea */}
                 <button
                     type="button"
-                    className="flex items-center gap-2 text-green-600 hover:bg-green-50 rounded-xl px-3 py-2 text-sm transition w-fit"
+                    className="flex items-center gap-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg px-3 py-1.5 text-sm transition w-fit group"
                     onClick={() => { setOpenFormSubjectId(subject.id); }}
+                    title="Añadir nueva tarea a esta asignatura"
                 >
-                    <div className="w-5 h-5 bg-green-600 text-white rounded-full flex items-center justify-center">
-                        <Plus size={12} />
-                    </div>
+                    {/* Icono más sutil, sin fondo sólido y un poco más grande */}
+                    <Plus size={16} className="transition-colors group-hover:text-green-600" />
                     <span>Añadir tarea</span>
                 </button>
 

@@ -36,9 +36,13 @@ export const OverdueSection = ({
                                         .filter(task => !task.completed && task.overdue)
                                         .map(task => (
                                             <div key={`overdue-task-${task.id}`} className="flex items-center gap-3 p-3 rounded-xl bg-red-50 hover:bg-red-100 transition group border border-red-100">
+                                                
+                                                {/* Checkbox */}
                                                 <button onClick={() => handleToggleTask(subject.id, task.id)} className="w-6 h-6 squared-full border-2 flex items-center justify-center transition border-red-300 hover:border-red-500 bg-white">
                                                     {task.completed && <Check size={12} color="red" />}
                                                 </button>
+                                                
+                                                {/* Textos */}
                                                 <div className="flex-1">
                                                     <p className="text-sm font-medium text-red-900">
                                                         {task.title}
@@ -48,12 +52,27 @@ export const OverdueSection = ({
                                                         {task.deadline ? `Caducó el ${new Date(task.deadline).toLocaleString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}` : "Sin fecha límite"}
                                                     </p>
                                                 </div>
-                                                <button type="button" className="flex items-center gap-2 text-yellow-600 hover:bg-white rounded-xl px-3 py-2 text-sm transition w-fit" onClick={() => { setOpenFormSubjectIdTaskId({ subjectId: subject.id, taskId: task.id }); }}>
-                                                    <div className="w-5 h-5 bg-yellow-600 text-white rounded-full flex items-center justify-center"><Pencil size={12} /></div>
-                                                </button>
-                                                <button type="button" className="flex items-center gap-2 text-red-600 hover:bg-white rounded-xl px-3 py-2 text-sm transition w-fit" onClick={() => { handleDeleteTask(subject.id, task.id); }}>
-                                                    <div className="w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center"><X size={12} /></div>
-                                                </button>
+
+                                                {/* Contenedor de botones: invisible por defecto, aparece en hover */}
+                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                    <button 
+                                                        type="button" 
+                                                        className="p-1.5 text-red-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition" 
+                                                        onClick={() => { setOpenFormSubjectIdTaskId({ subjectId: subject.id, taskId: task.id }); }}
+                                                        title="Editar tarea atrasada"
+                                                    >
+                                                        <Pencil size={16} />
+                                                    </button>
+                                                    <button 
+                                                        type="button" 
+                                                        className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-200 rounded-lg transition" 
+                                                        onClick={() => { handleDeleteTask(subject.id, task.id); }}
+                                                        title="Eliminar tarea atrasada"
+                                                    >
+                                                        <X size={16} />
+                                                    </button>
+                                                </div>
+
                                             </div>
                                         ))
                                     }
