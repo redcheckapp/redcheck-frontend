@@ -6,10 +6,11 @@ import { AnimatedVisibility } from "../components/AnimatedVisibility";
 import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
-import { addNewTask, addRecurringTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi"; // <- Asegúrate de crear addRecurringTask en tu API
+import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
 import type { SubjectWithTasks } from "../types";
 import { useNavigate } from "react-router-dom";
 import { deleteUser, getUsername } from "../api/userApi";
+import { addRecurringTask } from "../api/recurringTaskApi";
 
 const DashboardPage = () => {
     const navigate = useNavigate();

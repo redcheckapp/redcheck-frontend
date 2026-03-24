@@ -1,6 +1,8 @@
-import { Pencil, Archive, X, Plus } from "lucide-react";
+import { Pencil, Archive, X, Plus, Repeat } from "lucide-react";
 import { TaskItem } from "./TaskItem";
 import { AnimatedVisibility } from "./AnimatedVisibility";
+import { RecurringTasksModal } from "./RecurringTasksModal";
+import { useState } from "react";
 import type { SubjectWithTasks } from "../types";
 
 interface SubjectSectionProps {
@@ -28,8 +30,8 @@ interface SubjectSectionProps {
     setOpenFormSubjectId: (id: number | null) => void;
     openFormSubjectId: number | null;
     handleSubmitTask: (e: React.FormEvent, subjectId: number) => void;
-    newTask: { title: string; description: string; deadline: string; recurrence: string }; // Actualizado con recurrence
-    handleChangeTask: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void; // Acepta selects
+    newTask: { title: string; description: string; deadline: string; recurrence: string }; 
+    handleChangeTask: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void; 
 
     // Globales
     error: string | null;
@@ -60,6 +62,9 @@ export const SubjectSection = ({
     error,
     loading,
 }: SubjectSectionProps) => {
+
+    const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
+
     return (
         <div key={subject.id}>
             {/* Nombre de la asignatura */}
@@ -76,6 +81,17 @@ export const SubjectSection = ({
                     
                     {/* Contenedor de botones: invisible por defecto, aparece en hover */}
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        
+                        {/* BOTÓN NUEVO PARA GESTIONAR RUTINAS */}
+                        <button
+                            type="button"
+                            className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition"
+                            onClick={() => setIsRecurringModalOpen(true)}
+                            title="Gestionar rutinas recurrentes"
+                        >
+                            <Repeat size={16} />
+                        </button>
+
                         <button
                             type="button"
                             className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition"
@@ -263,6 +279,14 @@ export const SubjectSection = ({
                     </form>
                 </AnimatedVisibility>
             </div>
+
+            {/* MODAL PARA TAREAS RECURRENTES */}
+            <RecurringTasksModal 
+                isOpen={isRecurringModalOpen}
+                onClose={() => setIsRecurringModalOpen(false)}
+                subjectId={subject.id}
+                subjectName={subject.name}
+            />
         </div>
     );
 };
