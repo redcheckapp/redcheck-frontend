@@ -6,7 +6,7 @@ import { AnimatedVisibility } from "../components/AnimatedVisibility";
 import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
-import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
+import { addNewTask, addRecurringTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi"; // <- Asegúrate de crear addRecurringTask en tu API
 import type { SubjectWithTasks } from "../types";
 import { useNavigate } from "react-router-dom";
 import { deleteUser, getUsername } from "../api/userApi";
@@ -27,11 +27,13 @@ const DashboardPage = () => {
     const [username, setUsername] = useState("");
 
     const [updatedSubject, setUpdatedSubject] = useState({ name: "", description: "" });
-    const [newTask, setNewTask] = useState({ title: "", description: "", deadline: "" });
+    // Añadido 'recurrence' al estado inicial
+    const [newTask, setNewTask] = useState({ title: "", description: "", deadline: "", recurrence: "NONE" });
     const [updatedTask, setUpdatedTask] = useState({ title: "", description: "", deadline: "" });
     const [newSubject, setNewSubject] = useState({ name: "", description: "" });
 
-    const handleChangeTask = (e: React.ChangeEvent<HTMLInputElement>) => { setNewTask({ ...newTask, [e.target.name]: e.target.value}); };
+    // Actualizado para aceptar inputs y selects
+    const handleChangeTask = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { setNewTask({ ...newTask, [e.target.name]: e.target.value}); };
     const handleChangeUpdateTask = (e: React.ChangeEvent<HTMLInputElement>) => { setUpdatedTask({ ...updatedTask, [e.target.name]: e.target.value}); };
     const handleChangeUpdateSubject = (e: React.ChangeEvent<HTMLInputElement>) => { setUpdatedSubject({ ...updatedSubject, [e.target.name]: e.target.value}); };
     const handleChangeSubject = (e: React.ChangeEvent<HTMLInputElement>) => { setNewSubject({ ...newSubject, [e.target.name]: e.target.value}); }
@@ -51,11 +53,31 @@ const DashboardPage = () => {
         e.preventDefault();
         setError(null); setLoading(true);
         try {
-            const response = await addNewTask(subjectId, newTask);
-            setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: [...subject.tasks, response] }));
+            if (newTask.recurrence === "NONE") {
+                // Tarea Normal
+                const response = await addNewTask(subjectId, {
+                    title: newTask.title,
+                    description: newTask.description,
+                    deadline: newTask.deadline
+                });
+                setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: [...subject.tasks, response] }));
+            } else {
+                // Tarea Recurrente
+                await addRecurringTask(subjectId, {
+                    title: newTask.title,
+                    description: newTask.description,
+                    periodicidad: newTask.recurrence
+                });
+                alert("Tarea recurrente creada. Aparecerá según su periodicidad a partir de mañana.");
+            }
+            
             setOpenFormSubjectId(null);
-            setNewTask({title: "", description: "", deadline: ""});
-        } catch(err) { setError("Error"); } finally { setLoading(false); }
+            setNewTask({title: "", description: "", deadline: "", recurrence: "NONE"});
+        } catch(err) { 
+            setError("Error al crear la tarea"); 
+        } finally { 
+            setLoading(false); 
+        }
     };
 
     const handleUpdateTask = async (e: React.FormEvent, subjectId: number, taskId: number) => {
@@ -108,16 +130,11 @@ const DashboardPage = () => {
 
     const handleDeleteAccount = async () => {
         if (window.confirm("¿Estás seguro de que quieres borrar tu cuenta permanentemente? Esta acción no se puede deshacer.")) {
-                        
             try {
                 console.log("Llamando a la API para borrar cuenta...");
-                
                 await deleteUser(); 
-                
                 localStorage.removeItem("token");
-                
                 navigate("/login");
-                
             } catch (err) {
                 console.error("Error al borrar la cuenta:", err);
                 alert("Hubo un problema al intentar borrar la cuenta. Inténtalo de nuevo.");
@@ -226,18 +243,13 @@ const DashboardPage = () => {
                         <span>Añadir nueva asignatura</span>
                     </button>
 
-                    {/* USAMOS EL COMPONENTE ANIMATED VISIBILITY */}
                     <AnimatedVisibility isVisible={openFormNewSubject}>
-                        {/* QUITAR LA CLASE animate-slide-down DEL FORM, LA MANEJA EL ENVOLTORIO */}
                         <form onSubmit={(e) => handleSubmitSubject(e)} className="flex flex-col gap-4 mt-4 p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
-                            
-                            {/* Cabecera del formulario */}
                             <div>
                                 <h3 className="text-lg font-bold text-gray-800">Nueva asignatura</h3>
                                 <p className="text-xs text-gray-500 mt-1">Añade una nueva materia para organizar tus tareas.</p>
                             </div>
 
-                            {/* Inputs */}
                             <div className="flex flex-col gap-3">
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nombre</label>
@@ -252,7 +264,6 @@ const DashboardPage = () => {
 
                             {error && <p className="text-red-600 text-sm bg-red-50 p-2 rounded-lg text-center">{error}</p>}
 
-                            {/* Botones */}
                             <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50">
                                 <button type="button" onClick={() => { setOpenFormNewSubject(false) }} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all">Cancelar</button>
                                 <button type="submit" disabled={loading} className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50">Guardar asignatura</button>
