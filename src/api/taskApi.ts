@@ -37,16 +37,3 @@ export const updateTask = async (subjectId: number, taskId: number, taskData: Ta
     );
     return response.data;
 }
-
-export const addRecurringTask = async (
-    subjectId: number, 
-    taskData: { title: string; description?: string; periodicidad: string }
-) => {
-    const response = await api.post(`/subjects/${subjectId}/recurring-tasks`, {
-        title: taskData.title,
-        description: taskData.description,
-        frequency: taskData.periodicidad,
-        subjectId: subjectId
-    });
-    return response.data;
-};
