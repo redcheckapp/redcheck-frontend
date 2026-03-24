@@ -1,4 +1,4 @@
-import { Check, Pencil, X } from "lucide-react";
+import { AlertCircle, Check, Pencil, X } from "lucide-react";
 import type { SubjectWithTasks } from "../types";
 
 interface OverdueSectionProps {
@@ -15,12 +15,15 @@ export const OverdueSection = ({
 
     return (
         <div className="mb-6 mt-8 border-t border-gray-100 pt-4">
-            <p className="text-sm text-gray-500 mt-1 mb-4">
-                {totalPendingOverdue === 0
-                    ? "¡No tienes tareas fuera de plazo! 🎉"
-                    : `Tienes ${totalPendingOverdue} tarea${totalPendingOverdue > 1 ? "s" : ""} fuera de plazo`
-                }
-            </p>
+            <div className="flex items-center gap-2 mb-6">
+                <AlertCircle size={20} className="text-red-500" />
+                <h2 className="text-lg font-bold text-gray-800">Fuera de plazo</h2>
+                {totalPendingOverdue > 0 && (
+                    <span className="bg-red-100 text-red-600 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                        {totalPendingOverdue}
+                    </span>
+                )}
+            </div>
 
             {totalPendingOverdue > 0 && (
                 <div className="flex flex-col gap-6">
@@ -37,8 +40,11 @@ export const OverdueSection = ({
                                         .map(task => (
                                             <div key={`overdue-task-${task.id}`} className="flex items-center gap-3 p-3 rounded-xl bg-red-50 hover:bg-red-100 transition group border border-red-100">
                                                 
-                                                {/* Checkbox */}
-                                                <button onClick={() => handleToggleTask(subject.id, task.id)} className="w-6 h-6 squared-full border-2 flex items-center justify-center transition border-red-300 hover:border-red-500 bg-white">
+                                                {/* Checkbox con efecto hover:scale-110 */}
+                                                <button 
+                                                    onClick={() => handleToggleTask(subject.id, task.id)} 
+                                                    className="w-6 h-6 squared-full border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 border-red-300 hover:border-red-500 bg-white"
+                                                >
                                                     {task.completed && <Check size={12} color="red" />}
                                                 </button>
                                                 

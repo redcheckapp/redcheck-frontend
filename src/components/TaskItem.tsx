@@ -34,8 +34,7 @@ export const TaskItem = ({
                 {/* Checkbox */}
                 <button
                     onClick={() => handleToggleTask(subjectId, task.id)}
-                    className={`w-6 h-6 squared-full border-2 flex
-                        items-center justify-center transition
+                    className={`w-6 h-6 squared-full border-2 flex items-center justify-center transition-all duration-200 hover:scale-110
                         ${task.completed
                             ? "bg-red-500 border-red-500"
                             : "border-gray-300 hover:border-red-400"
