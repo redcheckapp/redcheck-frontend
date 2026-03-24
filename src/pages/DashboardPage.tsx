@@ -8,7 +8,7 @@ import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject 
 import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
 import type { SubjectWithTasks } from "../types";
 import { useNavigate } from "react-router-dom";
-import { getUsername } from "../api/userApi";
+import { deleteUser, getUsername } from "../api/userApi";
 
 const DashboardPage = () => {
     const navigate = useNavigate();
@@ -105,12 +105,25 @@ const DashboardPage = () => {
         } catch (err) { setError("Error"); } finally { setLoading(false); }
     };
 
-    const handleDeleteAccount = () => {
-    if(window.confirm("¿Estás seguro de que quieres borrar tu cuenta permanentemente?")) {
-        console.log("Llamando a la API para borrar cuenta...");
-        // TODO: Implementar la llamada real a tu API
-        // localStorage.removeItem("token");
-        // navigate("/login");
+const handleDeleteAccount = async () => {
+        if (window.confirm("¿Estás seguro de que quieres borrar tu cuenta permanentemente? Esta acción no se puede deshacer.")) {
+                        
+            try {
+                console.log("Llamando a la API para borrar cuenta...");
+                
+                // ESPERAMOS a que el servidor confirme que se ha borrado
+                await deleteUser(); 
+                
+                // Si llegamos aquí, es que ha ido bien. Borramos el rastro local.
+                localStorage.removeItem("token");
+                
+                // Redirigimos al login
+                navigate("/login");
+                
+            } catch (err) {
+                console.error("Error al borrar la cuenta:", err);
+                alert("Hubo un problema al intentar borrar la cuenta. Inténtalo de nuevo.");
+            }
         }
     };
 
