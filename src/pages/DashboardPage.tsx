@@ -1,5 +1,6 @@
 import { Sidebar } from "../components/Sidebar";
 import { TaskItem } from "../components/TaskItem";
+import { SubjectSection } from "../components/SubjectSection";
 import { useState, useEffect } from "react";
 import { Plus, LogOut, Check, X, Pencil, CheckSquare, Archive, ArchiveX, FolderOpen } from "lucide-react";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
@@ -348,222 +349,33 @@ const DashboardPage = () => {
                     {subjects
                         .filter(subject => !subject.archived)
                         .map(subject => (
-                        <div key={subject.id}>
-
-                            {/* Nombre de la asignatura */}
-                            <h2 className="text-lg font-semibold text-gray-700 mb-3 border-b border-gray-100 pb-2">
-                                <div className="flex items-center justify-between gap-2">
-                                    <div className="flex items-center gap-2">
-                                        <span>{subject.name}</span>
-                                        {subject.description && (
-                                            <span className="text-gray-500 font-normal">
-                                                — {subject.description}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <button type="button" className="flex items-center gap-2 text-yellow-600 hover:bg-yellow-50 rounded-xl px-3 py-2 text-sm transition"
-                                            onClick={() => { setOpenFormUpdateSubject(subject.id); }}
-                                        >
-                                            <div className="w-5 h-5 bg-yellow-600 text-white rounded-full flex items-center justify-center">
-                                                <Pencil size={12} />
-                                            </div>
-                                            {/* <span className="hidden sm:inline">Editar</span> */}
-                                        </button>
-
-                                        <button type="button" className="flex items-center gap-2 text-blue-600 hover:bg-blue-50 rounded-xl px-3 py-2 text-sm transition"
-                                            onClick={() => { handleArchiveSubject(subject.id); }}
-                                        >
-                                            <div className="w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center">
-                                                <Archive size={12} />
-                                            </div>
-                                            {/* <span className="hidden sm:inline">{subject.archived ? "Desarchivan" : "Archivar"}</span> */}
-                                        </button>
-
-                                        <button type="button" className="flex items-center gap-2 text-red-600 hover:bg-red-50 rounded-xl px-3 py-2 text-sm transition"
-                                            onClick={() => { handleDeleteSubject(subject.id); }}
-                                        >
-                                            <div className="w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center">
-                                                <X size={12} />
-                                            </div>
-                                            {/* <span className="hidden sm:inline">Eliminar</span> */}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Formulario de edición (oculto) */}
-                                {openFormUpdateSubject === subject.id && (
-                                    <form onSubmit={(e) => handleUpdateSubject(e, subject.id)}
-                                        className="flex flex-col gap-2 mt-2 p-3 bg-gray-50 rounded-xl">
-                                                        
-                                        {/* input name */}
-                                        <div className="flex flex-col gap-1">
-                                            <label className="text-sm text-gray-600">Nombre</label>
-                                                <input
-                                                    type="text"
-                                                    name="name"
-                                                    value={updatedSubject.name}
-                                                    onChange={handleChangeUpdateSubject}
-                                                    placeholder="Título"
-                                                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    required
-                                                />
-                                        </div>
-
-                                        {/* input description */}
-                                        <div className="flex flex-col gap-1">
-                                            <label className="text-sm text-gray-600">Descripción</label>
-                                                <input
-                                                    type="text"
-                                                    name="description"
-                                                    value={updatedSubject.description}
-                                                    onChange={handleChangeUpdateSubject}
-                                                    placeholder="Descripción"
-                                                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                />
-                                        </div>
-
-                                            {/* botones Guardar y Cancelar */}
-                                            {error && (
-                                                <p className="text-red-500 text-sm text-center">{error}</p>
-                                            )}
-
-                                            <div className="flex gap-2 mt-2">
-                                                <button
-                                                    type="submit"
-                                                    disabled={loading}
-                                                    className="bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50"
-                                                >
-                                                    Guardar
-                                                </button>
-    
-                                                <button type="button" 
-                                                    onClick={() => {setOpenFormUpdateSubject(null)}}
-                                                    className="border border-gray-300 text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition"
-                                                >
-                                                    Cancelar
-                                                </button>
-                                            </div>
-                                        </form>
-                                    )}
-
-                            </h2>
-
-                            {/* Tareas */}
-                            <div className="flex flex-col gap-2">
-                                {/* Primero filtramos las tareas normales */}
-                                {(() => {
-                                    const normalTasks = subject.tasks.filter(task => !task.overdue);
-
-                                    // Si no hay tareas en general, o si todas las que hay son atrasadas
-                                    if (normalTasks.length === 0) {
-                                        return (
-                                            <p className="text-sm text-gray-400 italic mb-2">
-                                                No hay tareas normales para hoy.
-                                            </p>
-                                        );
-                                    }
-
-                                    // Si sí hay tareas normales, las dibujamos
-                                    return normalTasks.map(task => (
-                                        <TaskItem
-                                            key={task.id} // Aquí es donde va la key
-                                            subjectId={subject.id}
-                                            task={task}
-                                            handleToggleTask={handleToggleTask}
-                                            handleDeleteTask={handleDeleteTask}
-                                            setOpenFormSubjectIdTaskId={setOpenFormSubjectIdTaskId}
-                                            openFormSubjectIdTaskId={openFormSubjectIdTaskId}
-                                            handleUpdateTask={handleUpdateTask}
-                                            updatedTask={updatedTask}
-                                            handleChangeUpdateTask={handleChangeUpdateTask}
-                                            loading={loading}
-                                            error={error}
-                                        />
-                                    ));
-                                })()}
-
-                                {/* Botón añadir tarea */}
-                                <button className="flex items-center gap-2 text-green-600 hover:bg-green-50 rounded-xl px-3 py-2 text-sm transition w-fit"
-                                    onClick={() => { setOpenFormSubjectId(subject.id); }}  
-                                >
-                                    <div className="w-5 h-5 bg-green-600 text-white
-                                        rounded-full flex items-center justify-center">
-                                        <Plus size={12} />
-                                    </div>
-                                    <span>Añadir tarea</span>
-                                </button>
-
-                                {openFormSubjectId === subject.id && (
-                                    <form onSubmit={(e) => handleSubmitTask(e, subject.id)}
-                                        className="flex flex-col gap-2 mt-2 p-3 bg-gray-50 rounded-xl">
-        
-                                        {/* input title */}
-                                        <div className="flex flex-col gap-1">
-                                            <label className="text-sm text-gray-600">Title</label>
-                                                <input
-                                                    type="text"
-                                                    name="title"
-                                                    value={newTask.title}
-                                                    onChange={handleChangeTask}
-                                                    placeholder="Título"
-                                                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    required
-                                                />
-                                        </div>
-
-                                        {/* input description */}
-                                        <div className="flex flex-col gap-1">
-                                            <label className="text-sm text-gray-600">Description</label>
-                                                <input
-                                                    type="text"
-                                                    name="description"
-                                                    value={newTask.description}
-                                                    onChange={handleChangeTask}
-                                                    placeholder="Descripción"
-                                                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                />
-                                        </div>
-
-                                        {/* input deadline */}
-                                        <div className="flex flex-col gap-1">
-                                            <label className="text-sm text-gray-600">Deadline</label>
-                                                <input
-                                                    type="datetime-local"
-                                                    name="deadline"
-                                                    value={newTask.deadline}
-                                                    onChange={handleChangeTask}
-                                                    placeholder="Fecha límite"
-                                                    className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                />
-                                        </div>
-
-                                        {/* botones Guardar y Cancelar */}
-                                        {error && (
-                                            <p className="text-red-500 text-sm text-center">{error}</p>
-                                        )}
-
-                                        <div className="flex gap-2 mt-2">
-                                            <button
-                                                type="submit"
-                                                disabled={loading}
-                                                className="bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50"
-                                            >
-                                                Guardar
-                                            </button>
-    
-                                            <button type="button" 
-                                                onClick={() => {setOpenFormSubjectId(null)}}
-                                                className="border border-gray-300 text-gray-600 py-2 rounded-lg hover:bg-gray-50 transition"
-                                            >
-                                                Cancelar
-                                            </button>
-                                        </div>
-                                    </form>
-                                )}
-                            </div>
-                        </div>
-                    ))}
+                            <SubjectSection
+                                key={subject.id}
+                                subject={subject}
+                                setOpenFormUpdateSubject={setOpenFormUpdateSubject}
+                                openFormUpdateSubject={openFormUpdateSubject}
+                                handleUpdateSubject={handleUpdateSubject}
+                                handleArchiveSubject={handleArchiveSubject}
+                                handleDeleteSubject={handleDeleteSubject}
+                                updatedSubject={updatedSubject}
+                                handleChangeUpdateSubject={handleChangeUpdateSubject}
+                                handleToggleTask={handleToggleTask}
+                                handleDeleteTask={handleDeleteTask}
+                                setOpenFormSubjectIdTaskId={setOpenFormSubjectIdTaskId}
+                                openFormSubjectIdTaskId={openFormSubjectIdTaskId}
+                                handleUpdateTask={handleUpdateTask}
+                                updatedTask={updatedTask}
+                                handleChangeUpdateTask={handleChangeUpdateTask}
+                                setOpenFormSubjectId={setOpenFormSubjectId}
+                                openFormSubjectId={openFormSubjectId}
+                                handleSubmitTask={handleSubmitTask}
+                                newTask={newTask}
+                                handleChangeTask={handleChangeTask}
+                                error={error}
+                                loading={loading}
+                            />
+                        ))
+                    }
 
                     {/* Botón añadir asignatura */}
                     <button className="flex items-center gap-2 text-blue-600 hover:bg-blue-50 rounded-xl px-3 py-2 text-sm transition w-fit"
