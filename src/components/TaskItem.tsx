@@ -1,7 +1,7 @@
 import { Check, Pencil, X } from "lucide-react";
+import { AnimatedVisibility } from "./AnimatedVisibility";
 import type { SubjectWithTasks } from "../types";
 
-// Un pequeño truco de TypeScript para extraer el tipo "Task" a partir de tu SubjectWithTasks
 type Task = SubjectWithTasks["tasks"][0]; 
 
 interface TaskItemProps {
@@ -28,7 +28,7 @@ export const TaskItem = ({
 
     return (
         <div className="flex flex-col w-full">
-            {/* Fila principal de la tarea (le añadimos "group" para el hover) */}
+            {/* Fila principal de la tarea */}
             <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition group">
 
                 {/* Checkbox */}
@@ -51,7 +51,6 @@ export const TaskItem = ({
                         }`}>
                         {task.title}
                                                             
-                        {/* Descripción justo al lado (si existe) */}
                         {task.description && (
                             <span className={`ml-2 font-normal transition 
                                 ${task.completed ? "text-gray-300" : "text-gray-400"}`}>
@@ -73,10 +72,8 @@ export const TaskItem = ({
                     </p>
                 </div>
 
-                {/* Botones de acción: transparentes por defecto, aparecen al hacer hover */}
+                {/* Botones de acción */}
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    
-                    {/* Botón editar tarea */}
                     <button type="button" 
                         className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition"
                         onClick={() => { setOpenFormSubjectIdTaskId({subjectId: subjectId, taskId: task.id}); }}
@@ -85,7 +82,6 @@ export const TaskItem = ({
                         <Pencil size={16} />
                     </button>
 
-                    {/* Botón borrar tarea */}
                     <button type="button" 
                         className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
                         onClick={() => { handleDeleteTask(subjectId, task.id); }}  
@@ -96,75 +92,76 @@ export const TaskItem = ({
                 </div>
             </div>
 
-            {/* Formulario de edición (ahora debajo de la fila, no dentro del mismo flex) */}
-            {openFormSubjectIdTaskId?.subjectId === subjectId && openFormSubjectIdTaskId?.taskId === task.id && (
+            {/* Formulario de edición de tarea */}
+            <AnimatedVisibility isVisible={openFormSubjectIdTaskId?.subjectId === subjectId && openFormSubjectIdTaskId?.taskId === task.id}>
                 <form onSubmit={(e) => handleUpdateTask(e, subjectId, task.id)}
-                    className="flex flex-col gap-2 mt-2 ml-10 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                                            
-                    {/* input title */}
-                    <div className="flex flex-col gap-1">
-                        <label className="text-sm text-gray-600">Título</label>
-                        <input
-                            type="text"
-                            name="title"
-                            value={updatedTask.title}
-                            onChange={handleChangeUpdateTask}
-                            placeholder="Título"
-                            className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                        />
+                    className="flex flex-col gap-4 mt-2 mb-4 ml-10 p-5 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                                                        
+                    <h3 className="text-sm font-bold text-gray-800 border-b border-gray-50 pb-2">Editar tarea</h3>
+
+                    <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Título de la tarea</label>
+                            <input
+                                type="text"
+                                name="title"
+                                value={updatedTask.title}
+                                onChange={handleChangeUpdateTask}
+                                placeholder="Título de la tarea"
+                                className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow-100 focus:border-yellow-400 transition-all"
+                                required
+                            />
+                        </div>
+
+                        {/* Fila compacta para Descripción y Fecha */}
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <div className="flex-1 flex flex-col gap-1.5">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Descripción</label>
+                                <input
+                                    type="text"
+                                    name="description"
+                                    value={updatedTask.description}
+                                    onChange={handleChangeUpdateTask}
+                                    placeholder="Añade detalles..."
+                                    className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow-100 focus:border-yellow-400 transition-all"
+                                />
+                            </div>
+                            
+                            <div className="flex-1 flex flex-col gap-1.5">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Fecha límite</label>
+                                <input
+                                    type="datetime-local"
+                                    name="deadline"
+                                    value={updatedTask.deadline}
+                                    onChange={handleChangeUpdateTask}
+                                    className="w-full bg-gray-50 border border-gray-200 text-gray-600 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow-100 focus:border-yellow-400 transition-all"
+                                />
+                            </div>
+                        </div>
                     </div>
 
-                    {/* input description */}
-                    <div className="flex flex-col gap-1">
-                        <label className="text-sm text-gray-600">Descripción</label>
-                        <input
-                            type="text"
-                            name="description"
-                            value={updatedTask.description}
-                            onChange={handleChangeUpdateTask}
-                            placeholder="Descripción"
-                            className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-
-                    {/* input deadline */}
-                    <div className="flex flex-col gap-1">
-                        <label className="text-sm text-gray-600">Fecha límite</label>
-                        <input
-                            type="datetime-local"
-                            name="deadline"
-                            value={updatedTask.deadline}
-                            onChange={handleChangeUpdateTask}
-                            placeholder="Fecha límite"
-                            className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-
-                    {/* Errores */}
                     {error && (
-                        <p className="text-red-500 text-sm text-center mt-2">{error}</p>
+                        <p className="text-red-500 text-sm text-center mt-2 bg-red-50 p-2 rounded-lg">{error}</p>
                     )}
 
-                    {/* Botones Guardar y Cancelar */}
-                    <div className="flex gap-2 mt-3">
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="bg-blue-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50"
-                        >
-                            Guardar
-                        </button>
-        
+                    <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50">
                         <button type="button" 
                             onClick={() => {setOpenFormSubjectIdTaskId(null)}}
-                            className="border border-gray-300 text-gray-600 py-2 px-4 rounded-lg hover:bg-gray-50 transition"
+                            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
                         >
                             Cancelar
                         </button>
+                        
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="px-5 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50"
+                        >
+                            Guardar cambios
+                        </button>
                     </div>
                 </form>
-            )}
+            </AnimatedVisibility>
         </div>
     );
 };
