@@ -55,7 +55,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
 
                         {/* PANEL DE NOTIFICACIONES */}
                         {showNotifications && (
-                            <div className="absolute left-0 sm:left-auto sm:right-0 top-12 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 origin-top-left sm:origin-top-right animate-in fade-in zoom-in-95 duration-200 z-50">
+                            <div className="absolute left-0 top-12 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 origin-top-left animate-in fade-in zoom-in-95 duration-200 z-50">
                                 <div className="p-4 border-b border-gray-50 flex justify-between items-center">
                                     <h3 className="text-sm font-bold text-gray-800">Notificaciones</h3>
                                     <span className="text-xs text-gray-400 cursor-pointer hover:text-gray-600 transition-colors">Marcar leídas</span>
