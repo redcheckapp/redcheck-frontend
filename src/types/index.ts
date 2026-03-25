@@ -50,3 +50,10 @@ export interface SubjectRequest {
     name: string;
     description: string | null;
 }
+
+export interface ProgressRecord {
+    date: string; // "YYYY-MM-DD"
+    totalTasks: number;
+    completedTasks: number;
+    completionRate: number;
+}
