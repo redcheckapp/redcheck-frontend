@@ -4,7 +4,7 @@ import { OverdueSection } from "../components/OverdueSection";
 import { SettingsModal } from "../components/SettingsModal";
 import { AnimatedVisibility } from "../components/AnimatedVisibility";
 import { useState, useEffect } from "react";
-import { Plus } from "lucide-react";
+import { Coffee, Plus } from "lucide-react";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
 import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
 import type { SubjectWithTasks } from "../types";
@@ -203,7 +203,7 @@ const DashboardPage = () => {
                     <h1 className="text-3xl font-bold text-gray-800">{ getGreeting(username) }</h1>
                     <p className="text-gray-400 mt-1 capitalize">{today}</p>
                     <p className="text-sm text-gray-500 mt-1">
-                        {totalPending === 0 ? "¡No tienes tareas pendientes hoy! 🎉" : `Tienes ${totalPending} tarea${totalPending > 1 ? "s" : ""} pendiente${totalPending > 1 ? "s" : ""} hoy`}
+                        {totalPending === 0 ? `¡No tienes tareas pendientes hoy! ${Coffee}` : ``}
                     </p>
                 </div>
 
