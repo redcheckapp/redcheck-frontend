@@ -2,6 +2,7 @@ import { CheckSquare, LogOut, Settings, Bell, Bot } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { SubjectWithTasks } from "../types";
 import { ProgressHeatmap } from "./ProgressHeatmap";
+import { useState } from "react";
 
 interface SidebarProps {
     sidebarOpen: boolean;
@@ -14,6 +15,9 @@ interface SidebarProps {
 export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, onOpenSettings }: SidebarProps) => {
     const navigate = useNavigate();
 
+    // Estado de la pestaña de notificaciones
+    const [showNotifications, setShowNotifications] = useState(false);
+
     // Cálculo para el círculo de progreso
     const totalTasks = subjects.reduce((acc, subject) => acc + subject.tasks.length, 0);
     const progress = totalTasks === 0 ? 0 : (totalTasks - totalPending) / totalTasks;
@@ -22,13 +26,16 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
     const strokeDashoffset = 226 - (226 * progress);
 
     return (
-        <div className={`transition-all duration-300 ${sidebarOpen ? "w-[280px]" : "w-20"}
-            rounded-2xl bg-gray-50 shadow-md p-5 flex flex-col overflow-hidden`}>
+        <div className={`relative z-20 transition-all duration-300 ${sidebarOpen ? "w-[280px]" : "w-20"}
+            rounded-2xl bg-gray-50 shadow-md p-5 flex flex-col`}>
 
             {/* Cabecera: Logo + Notificaciones */}
             <div className="flex items-center justify-between mb-8">
                 <button
-                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                    onClick={() => { 
+                        setSidebarOpen(!sidebarOpen); 
+                        setShowNotifications(false); 
+                    }}
                     className="text-xl font-bold text-red-700 flex items-center gap-2"
                     title={sidebarOpen ? "Cerrar menú" : "Abrir menú"}
                 >
@@ -37,11 +44,30 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                 </button>
 
                 {sidebarOpen && (
-                    <button className="relative p-1 text-gray-400 hover:text-gray-700 transition" title="Notificaciones">
-                        <Bell size={20} />
-                        {/* Puntito rojo de notificación (simulado) */}
-                        <span className="absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                    </button>
+                    <div className="relative">
+                        <button 
+                            onClick={() => setShowNotifications(!showNotifications)}
+                            className="relative p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-200 rounded-xl transition-all duration-200 active:scale-90" 
+                            title="Notificaciones"
+                        >
+                            <Bell size={20} />
+                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-gray-50"></span>
+                        </button>
+
+                        {/* PANEL FLOTANTE CORREGIDO */}
+                        {showNotifications && (
+                            <div className="absolute left-0 top-12 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 origin-top-left animate-in fade-in zoom-in-95 duration-200 z-50">
+                                <div className="p-4 border-b border-gray-50 flex justify-between items-center">
+                                    <h3 className="text-sm font-bold text-gray-800">Notificaciones</h3>
+                                    <span className="text-xs text-gray-400 cursor-pointer hover:text-gray-600 transition-colors">Marcar leídas</span>
+                                </div>
+                                <div className="p-6 text-center text-sm text-gray-400">
+                                    <Bell size={24} className="mx-auto mb-2 text-gray-300" />
+                                    No tienes notificaciones nuevas.
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 )}
             </div>
 
