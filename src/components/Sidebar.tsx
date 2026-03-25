@@ -1,28 +1,27 @@
 import { CheckSquare, LogOut, Settings, Bell, Bot } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import type { SubjectWithTasks } from "../types";
 import { ProgressHeatmap } from "./ProgressHeatmap";
-import { useState } from "react";
 
 interface SidebarProps {
     sidebarOpen: boolean;
     setSidebarOpen: (isOpen: boolean) => void;
     totalPending: number;
-    subjects: SubjectWithTasks[]; // Lo mantenemos para calcular el totalTasks del círculo
+    subjects: SubjectWithTasks[];
     onOpenSettings: () => void;
 }
 
 export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, onOpenSettings }: SidebarProps) => {
     const navigate = useNavigate();
-
-    // Estado de la pestaña de notificaciones
     const [showNotifications, setShowNotifications] = useState(false);
 
     // Cálculo para el círculo de progreso
     const totalTasks = subjects.reduce((acc, subject) => acc + subject.tasks.length, 0);
-    const progress = totalTasks === 0 ? 0 : (totalTasks - totalPending) / totalTasks;
+    const completedTasks = totalTasks - totalPending; // <--- Nueva variable calculada
+    const progress = totalTasks === 0 ? 0 : completedTasks / totalTasks;
     
-    // Si el radio es 36, el perímetro (2 * PI * r) es ~226
+    // Si el radio es 36, el perímetro es ~226
     const strokeDashoffset = 226 - (226 * progress);
 
     return (
@@ -30,11 +29,11 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
             rounded-2xl bg-gray-50 shadow-md p-5 flex flex-col`}>
 
             {/* Cabecera: Logo + Notificaciones */}
-            <div className="flex items-center justify-between mb-8">
+            <div className={`flex items-center mb-8 ${sidebarOpen ? "justify-between" : "justify-center"}`}>
                 <button
-                    onClick={() => { 
-                        setSidebarOpen(!sidebarOpen); 
-                        setShowNotifications(false); 
+                    onClick={() => {
+                        setSidebarOpen(!sidebarOpen);
+                        setShowNotifications(false);
                     }}
                     className="text-xl font-bold text-red-700 flex items-center gap-2"
                     title={sidebarOpen ? "Cerrar menú" : "Abrir menú"}
@@ -54,9 +53,9 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-gray-50"></span>
                         </button>
 
-                        {/* PANEL FLOTANTE CORREGIDO */}
+                        {/* PANEL DE NOTIFICACIONES */}
                         {showNotifications && (
-                            <div className="absolute left-0 top-12 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 origin-top-left animate-in fade-in zoom-in-95 duration-200 z-50">
+                            <div className="absolute left-0 sm:left-auto sm:right-0 top-12 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 origin-top-left sm:origin-top-right animate-in fade-in zoom-in-95 duration-200 z-50">
                                 <div className="p-4 border-b border-gray-50 flex justify-between items-center">
                                     <h3 className="text-sm font-bold text-gray-800">Notificaciones</h3>
                                     <span className="text-xs text-gray-400 cursor-pointer hover:text-gray-600 transition-colors">Marcar leídas</span>
@@ -71,10 +70,10 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                 )}
             </div>
 
-            {/* Progreso del día (Círculo más grande) */}
+            {/* Progreso del día */}
             <div className="flex justify-center mb-10">
-                <div className="relative w-24 h-24">
-                    <svg width="96" height="96" className="transform -rotate-90">
+                <div className={`relative transition-all duration-300 ${sidebarOpen ? "w-24 h-24" : "w-10 h-10"}`}>
+                    <svg viewBox="0 0 96 96" className="w-full h-full transform -rotate-90">
                         <circle cx="48" cy="48" r="36"
                             stroke="#c3e0ce" strokeWidth="8" fill="#eaf6ed" />
                         <circle cx="48" cy="48" r="36"
@@ -85,8 +84,9 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                             className="transition-all duration-500 ease-out" 
                         />
                     </svg>
-                    <div className="absolute inset-0 flex items-center justify-center text-xl font-bold text-green-700">
-                        {totalPending}
+                    {/* AQUI SE MUESTRA LA FRACCIÓN. Ajuste de texto para que quepa bien cerrado */}
+                    <div className={`absolute inset-0 flex items-center justify-center font-bold text-green-700 transition-all duration-300 ${sidebarOpen ? "text-xl tracking-tight" : "text-xs"}`}>
+                        {completedTasks}/{totalTasks}
                     </div>
                 </div>
             </div>
@@ -110,7 +110,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
             )}
 
             {/* Contenedor inferior agrupado */}
-            <div className="mt-auto flex flex-col gap-1 border-t border-gray-200 pt-4">
+            <div className={`mt-auto flex flex-col gap-1 pt-4 transition-all duration-300 ${sidebarOpen ? "border-t border-gray-200" : "border-transparent"}`}>
                 <button 
                     onClick={onOpenSettings}
                     className={`flex items-center gap-3 text-gray-500 hover:text-gray-800 transition text-sm p-2 rounded-xl hover:bg-gray-200 
