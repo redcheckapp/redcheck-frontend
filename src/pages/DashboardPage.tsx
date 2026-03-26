@@ -3,7 +3,7 @@ import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
 import { SettingsModal } from "../components/SettingsModal";
 import { AnimatedVisibility } from "../components/AnimatedVisibility";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type SubmitEvent } from "react";
 import { Coffee, Plus } from "lucide-react";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
 import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
@@ -11,6 +11,8 @@ import type { SubjectWithTasks } from "../types";
 import { useNavigate } from "react-router-dom";
 import { deleteUser, getUsername } from "../api/userApi";
 import { addRecurringTask } from "../api/recurringTaskApi";
+import SmartCheckModal from "../components/SmartCheckModal";
+import { dailyAnalysis, getTodaysAnalysis, pollForAnalysis } from "../api/smartCheckApi";
 
 const DashboardPage = () => {
     const navigate = useNavigate();
@@ -28,34 +30,71 @@ const DashboardPage = () => {
     const [username, setUsername] = useState("");
 
     const [updatedSubject, setUpdatedSubject] = useState({ name: "", description: "" });
-    // Añadido 'recurrence' al estado inicial
     const [newTask, setNewTask] = useState({ title: "", description: "", deadline: "", recurrence: "NONE" });
     const [updatedTask, setUpdatedTask] = useState({ title: "", description: "", deadline: "" });
     const [newSubject, setNewSubject] = useState({ name: "", description: "" });
 
-    // Actualizado para aceptar inputs y selects
     const handleChangeTask = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { setNewTask({ ...newTask, [e.target.name]: e.target.value}); };
     const handleChangeUpdateTask = (e: React.ChangeEvent<HTMLInputElement>) => { setUpdatedTask({ ...updatedTask, [e.target.name]: e.target.value}); };
     const handleChangeUpdateSubject = (e: React.ChangeEvent<HTMLInputElement>) => { setUpdatedSubject({ ...updatedSubject, [e.target.name]: e.target.value}); };
     const handleChangeSubject = (e: React.ChangeEvent<HTMLInputElement>) => { setNewSubject({ ...newSubject, [e.target.name]: e.target.value}); }
 
-    const handleSubmitSubject = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError(null); setLoading(true);
+    // --- ESTADOS DE LA IA ---
+    const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+    const [aiPlanData, setAiPlanData] = useState(null);
+    const [isAiLoading, setIsAiLoading] = useState(false);
+
+    // Nuevo estado que sube desde Sidebar a Dashboard
+    const [aiNotificationReady, setAiNotificationReady] = useState(false);
+
+    // Este solo lanza el POST y arranca el polling en background
+    // NO bloquea la UI, el usuario puede seguir trabajando
+    const handleGenerateAiPlan = async () => {
+        setIsAiLoading(true);
+        
+        // Avisamos al usuario nada más pulsar
+        alert("🧠 SmartCheck está analizando tus tareas. Te avisaremos cuando esté listo (Suele tardar unos 15-20 segundos).");
+
         try {
-            const response = await postSubject(newSubject);
-            setSubjects([...subjects, { ...response, tasks: [] }]);
-            setOpenFormNewSubject(false);
-            setNewSubject({name: "", description: ""});
-        } catch(err) { setError("Error"); } finally { setLoading(false); }
-    }
+            // Lanzamos el POST para que Llama empiece
+            await dailyAnalysis();
+        } catch (error) {
+            console.warn("dailyAnalysis() lanzó error, pero continuamos el polling:", error);
+        }
+
+        // Empezamos a preguntar al backend cada 3 segundos
+        pollForAnalysis()
+            .then((analysis) => {
+                setAiPlanData(analysis);
+                setAiNotificationReady(true); // ¡Enciende la campana!
+            })
+            .catch((err) => {
+                if (err?.message === "TIMEOUT") {
+                    alert("SmartCheck tardó demasiado en responder. Inténtalo de nuevo.");
+                } else {
+                    console.error("Error en polling:", err);
+                    alert("Error al obtener el análisis.");
+                }
+            })
+            .finally(() => {
+                // APAGAMOS EL BOTÓN AQUÍ, cuando todo haya terminado
+                setIsAiLoading(false);
+            });
+    };
+
+    // Este abre el modal (lo llama la notificación de la campana)
+    const handleOpenAiModal = () => {
+        if (aiPlanData) {
+            setIsAiModalOpen(true);
+            setAiNotificationReady(false); // Marca notificación como leída
+        }
+    };
 
     const handleSubmitTask = async (e: React.FormEvent, subjectId: number) => {
         e.preventDefault();
         setError(null); setLoading(true);
         try {
             if (newTask.recurrence === "NONE") {
-                // Tarea Normal
                 const response = await addNewTask(subjectId, {
                     title: newTask.title,
                     description: newTask.description,
@@ -63,7 +102,6 @@ const DashboardPage = () => {
                 });
                 setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: [...subject.tasks, response] }));
             } else {
-                // Tarea Recurrente
                 await addRecurringTask(subjectId, {
                     title: newTask.title,
                     description: newTask.description,
@@ -132,12 +170,10 @@ const DashboardPage = () => {
     const handleDeleteAccount = async () => {
         if (window.confirm("¿Estás seguro de que quieres borrar tu cuenta permanentemente? Esta acción no se puede deshacer.")) {
             try {
-                console.log("Llamando a la API para borrar cuenta...");
                 await deleteUser(); 
                 localStorage.removeItem("token");
                 navigate("/login");
             } catch (err) {
-                console.error("Error al borrar la cuenta:", err);
                 alert("Hubo un problema al intentar borrar la cuenta. Inténtalo de nuevo.");
             }
         }
@@ -187,6 +223,33 @@ const DashboardPage = () => {
 
     if (loading) return <div className="flex min-h-screen items-center justify-center bg-[#e3e7e2]"><p className="text-green-700 font-semibold">Cargando...</p></div>;
     if (error) return <div className="flex min-h-screen items-center justify-center bg-[#e3e7e2]"><p className="text-red-500 font-semibold">{error}</p></div>;
+    
+    const handleSubmitSubject = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault(); // Evita que la página se recargue al enviar el formulario
+        setError(null); 
+        setLoading(true);
+        
+        try {
+            // 1. Mandamos la nueva asignatura a tu backend (Spring Boot)
+            const response = await postSubject(newSubject);
+            
+            // 2. Actualizamos el estado visual añadiendo la nueva asignatura al final.
+            // Le metemos un array de tareas vacío (tasks: []) porque acaba de nacer.
+            setSubjects([...subjects, { ...response, tasks: [] }]);
+            
+            // 3. Cerramos el desplegable animado
+            setOpenFormNewSubject(false);
+            
+            // 4. Limpiamos los campos del formulario para la próxima vez
+            setNewSubject({ name: "", description: "" });
+            
+        } catch(err) { 
+            console.error("Error al crear asignatura:", err);
+            setError("No se pudo crear la asignatura. Inténtalo de nuevo."); 
+        } finally { 
+            setLoading(false); 
+        }
+    };
 
     return (
         <div className="flex h-screen bg-[#e3e7e2] p-4 gap-4 overflow-hidden">
@@ -195,7 +258,12 @@ const DashboardPage = () => {
                 setSidebarOpen={setSidebarOpen} 
                 totalPending={totalPending} 
                 subjects={subjects} 
-                onOpenSettings={() => setIsSettingsOpen(true)} 
+                onOpenSettings={() => setIsSettingsOpen(true)}
+                // PÁSALE ESTA FUNCIÓN AL SIDEBAR PARA QUE EL BOTÓN PUEDA USARLA:
+                onAiPlanClick={handleGenerateAiPlan} 
+                isAiLoading={isAiLoading}
+                aiNotificationReady={aiNotificationReady}   // <-- nuevo
+                onOpenAiModal={handleOpenAiModal} 
             />
 
             <div className="flex-1 rounded-2xl bg-white shadow-md p-6 flex flex-col overflow-y-auto">
@@ -288,6 +356,14 @@ const DashboardPage = () => {
                 subjects={subjects}
                 handleArchiveSubject={handleArchiveSubject}
                 handleDeleteAccount={handleDeleteAccount}
+            />
+
+            {/* --- MODAL DE IA AL FINAL DE LA PÁGINA --- */}
+            <SmartCheckModal 
+                isOpen={isAiModalOpen} 
+                onClose={() => setIsAiModalOpen(false)} 
+                aiData={aiPlanData} 
+                subjects={subjects} 
             />
         </div>
     );

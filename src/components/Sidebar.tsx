@@ -3,16 +3,24 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import type { SubjectWithTasks } from "../types";
 import { ProgressHeatmap } from "./ProgressHeatmap";
+import { SmartCheckButton } from "./SmartCheckButton";
+// import { dailyAnalysis } from "../api/smartCheckApi"; <-- ESTO LO QUITAMOS
 
+// AÑADIMOS LAS DOS NUEVAS PROPS DE LA IA AQUÍ:
 interface SidebarProps {
     sidebarOpen: boolean;
     setSidebarOpen: (isOpen: boolean) => void;
     totalPending: number;
     subjects: SubjectWithTasks[];
     onOpenSettings: () => void;
+    onAiPlanClick: () => void;     // <-- Nueva prop
+    isAiLoading: boolean;          // <-- Nueva prop
+    aiNotificationReady: boolean;  // <-- nuevo (viene de Dashboard)
+    onOpenAiModal: () => void;
 }
 
-export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, onOpenSettings }: SidebarProps) => {
+// LAS RECIBIMOS AQUÍ:
+export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, onOpenSettings, onAiPlanClick, isAiLoading, aiNotificationReady, onOpenAiModal }: SidebarProps) => {
     const navigate = useNavigate();
     const [showNotifications, setShowNotifications] = useState(false);
 
@@ -25,7 +33,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
         <div className={`relative z-20 transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[280px] overflow-visible" : "w-20 overflow-hidden"}
             rounded-2xl bg-gray-50 shadow-md p-5 flex flex-col`}>
 
-            {/* --- CABECERA (Ancho fijo, la persiana lo recorta) --- */}
+            {/* --- CABECERA --- */}
             <div className="flex items-center mb-8 w-[240px] shrink-0">
                 <button
                     onClick={() => {
@@ -51,7 +59,9 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                         title="Notificaciones"
                     >
                         <Bell size={20} />
-                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-gray-50"></span>
+                        {aiNotificationReady && (
+                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-purple-500 rounded-full border border-gray-50 animate-pulse"></span>
+                        )}
                     </button>
 
                     {showNotifications && (
@@ -60,16 +70,36 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                                 <h3 className="text-sm font-bold text-gray-800">Notificaciones</h3>
                                 <span className="text-xs text-gray-400 cursor-pointer hover:text-gray-600 transition-colors">Marcar leídas</span>
                             </div>
-                            <div className="p-6 text-center text-sm text-gray-400">
-                                <Bell size={24} className="mx-auto mb-2 text-gray-300" />
-                                No tienes notificaciones nuevas.
+
+                            <div className="max-h-64 overflow-y-auto">
+                                {aiNotificationReady ? (
+                                    <div 
+                                        onClick={() => {
+                                            onOpenAiModal();
+                                            setShowNotifications(false);
+                                        }}
+                                        className="p-4 hover:bg-zinc-50 cursor-pointer border-b border-zinc-100 flex flex-col gap-1 transition-all"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>
+                                            <span className="text-xs font-bold text-purple-600 uppercase tracking-wider italic">SmartCheck listo</span>
+                                        </div>
+                                        <p className="text-sm text-gray-700 font-semibold">¡Tu plan diario ya está disponible!</p>
+                                        <p className="text-[11px] text-gray-400">Haz clic para ver tu plan priorizado.</p>
+                                    </div>
+                                ) : (
+                                    <div className="p-8 text-center text-sm text-gray-400">
+                                        <Bell size={24} className="mx-auto mb-2 text-gray-300" />
+                                        No tienes notificaciones nuevas.
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* --- ZONA CENTRAL (Ancho dinámico w-full, se centra solo de forma matemática) --- */}
+            {/* --- ZONA CENTRAL --- */}
             <div className="flex flex-col items-center w-full mb-auto">
 
                 {/* Progreso del día */}
@@ -102,7 +132,6 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
 
                 {/* SmartCheck AI */}
                 <div className="flex flex-col items-center text-center opacity-80 hover:opacity-100 transition-all duration-300 ease-in-out cursor-pointer group mt-4 mb-2 w-full" title="SmartCheck AI">
-                    {/* El contenedor del icono mantiene 40x40 para no recalcular márgenes */}
                     <div className="bg-white rounded-xl shadow-sm text-gray-700 group-hover:text-purple-600 transition-colors flex items-center justify-center w-10 h-10 shrink-0">
                         <BotMessageSquare size={32} strokeWidth={1.5} className={`transition-all duration-300 ease-in-out transform origin-center ${sidebarOpen ? "scale-100" : "scale-[0.7]"}`} />
                     </div>
@@ -112,6 +141,34 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                     </div>
                 </div>
 
+                {/* --- BOTONES DE LA IA --- */}
+                <div className={`
+                        flex flex-col space-y-3 px-4 overflow-hidden
+                        transition-all duration-500 ease-out
+                        ${sidebarOpen 
+                            ? 'max-h-96 opacity-100 translate-y-0 mt-6' 
+                            : 'max-h-0 opacity-0 translate-y-4 mt-0 pointer-events-none'
+                        }
+                    `}>
+  
+                {/* CONECTAMOS EL BOTÓN AQUÍ */}
+                <SmartCheckButton
+                    icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>}
+                    title="Análisis Diario de Tareas"
+                    // Cambiamos el subtítulo si está pensando la IA
+                    subtitle={isAiLoading ? "Consultando a SmartCheck..." : "Genera un resumen de tus prioridades para hoy."}
+                    // Le asignamos la función que viene del DashboardPage
+                    onClick={onAiPlanClick}
+                />
+
+                <SmartCheckButton 
+                    icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
+                    title="Analizar riesgos"
+                    subtitle="Identifica posibles bloqueos o retrasos."
+                    onClick={() => console.log("Clic en el análisis de riesgos")}
+                />
+                </div>
+                    
             </div>
 
             {/* --- PIE DE PÁGINA --- */}
@@ -120,7 +177,6 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                     <div className="flex items-center justify-center shrink-0 w-6 h-6">
                         <Settings size={20} />
                     </div>
-                    {/* El contenedor se encoge, pero el margen interno (ml-3) se queda quieto, evitando tirones */}
                     <div className={`flex items-center overflow-hidden transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[120px] opacity-100" : "w-0 opacity-0"}`}>
                         <span className="text-sm font-medium whitespace-nowrap ml-3">
                             Ajustes
