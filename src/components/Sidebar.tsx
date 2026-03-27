@@ -1,4 +1,4 @@
-import { CheckSquare, LogOut, Settings, Bell, BotMessageSquare, Activity } from "lucide-react";
+import { CheckSquare, LogOut, Settings, Bell, BotMessageSquare, Activity, Check, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import type { SubjectWithTasks } from "../types";
@@ -43,12 +43,14 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                     className="flex items-center justify-center shrink-0 w-10 h-10 text-red-700 hover:bg-red-50 rounded-xl transition-colors"
                     title={sidebarOpen ? "Cerrar menú" : "Abrir menú"}
                 >
-                    <CheckSquare size={24} />
+                    <div className="bg-[#cc2229] w-9 h-9 rounded-[10px] flex items-center justify-center shadow-sm flex-shrink-0">
+                        <Check size={22} strokeWidth={4} className="text-white" />
+                    </div>
                 </button>
                 
                 <div className={`flex items-center overflow-hidden transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[150px] opacity-100 ml-2" : "w-0 opacity-0 ml-0"}`}>
-                    <span className="text-black tracking-tight whitespace-nowrap font-bold text-xl">
-                        RedCheck
+                    <span className="text-[22px] font-black text-gray-900 tracking-tight leading-none mt-1">
+                        REDCHECK
                     </span>
                 </div>
 
@@ -132,12 +134,17 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
 
                 {/* SmartCheck AI */}
                 <div className="flex flex-col items-center text-center opacity-80 hover:opacity-100 transition-all duration-300 ease-in-out cursor-pointer group mt-4 mb-2 w-full" title="SmartCheck AI">
-                    <div className="bg-white rounded-xl shadow-sm text-gray-700 group-hover:text-purple-600 transition-colors flex items-center justify-center w-10 h-10 shrink-0">
-                        <BotMessageSquare size={32} strokeWidth={1.5} className={`transition-all duration-300 ease-in-out transform origin-center ${sidebarOpen ? "scale-100" : "scale-[0.7]"}`} />
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 flex items-center justify-center shadow-sm mb-2.5">
+                        {/* Usamos Sparkles (o Brain) y el rojo de tu marca */}
+                        <Sparkles size={22} strokeWidth={2} className="text-red-600" />
                     </div>
                     <div className={`flex flex-col items-center overflow-hidden transition-all duration-300 ease-in-out w-full ${sidebarOpen ? "max-h-[60px] opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"}`}>
-                        <h3 className="font-bold text-gray-800 text-sm whitespace-nowrap">SmartCheck AI</h3>
-                        <p className="text-[11px] text-gray-500 mt-0.5 whitespace-nowrap">IA de apoyo para tus tareas</p>
+                        <h3 className="text-sm font-bold text-gray-800 tracking-wide">
+                            SmartCheck AI
+                        </h3>
+                        <p className="text-[11px] text-gray-400 font-medium mt-0.5 tracking-wide uppercase">
+                            Motor de análisis
+                        </p>
                     </div>
                 </div>
 
