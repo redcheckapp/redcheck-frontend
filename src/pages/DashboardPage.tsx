@@ -3,7 +3,7 @@ import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
 import { SettingsModal } from "../components/SettingsModal";
 import { AnimatedVisibility } from "../components/AnimatedVisibility";
-import { useState, useEffect, type SubmitEvent } from "react";
+import { useState, useEffect } from "react";
 import { Coffee, Plus } from "lucide-react";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
 import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { deleteUser, getUsername } from "../api/userApi";
 import { addRecurringTask } from "../api/recurringTaskApi";
 import SmartCheckModal from "../components/SmartCheckModal";
-import { dailyAnalysis, getTodaysAnalysis, pollForAnalysis } from "../api/smartCheckApi";
+import { dailyAnalysis, pollForAnalysis } from "../api/smartCheckApi";
 
 const DashboardPage = () => {
     const navigate = useNavigate();
@@ -26,6 +26,10 @@ const DashboardPage = () => {
     const [openFormUpdateSubject, setOpenFormUpdateSubject] = useState<number | null>(null);
     const [openFormNewSubject, setOpenFormNewSubject] = useState<boolean>(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+    // ESTADOS PARA LAS ANIMACIONES DE BORRADO
+    const [deletingSubjects, setDeletingSubjects] = useState<number[]>([]);
+    const [deletingTasks, setDeletingTasks] = useState<number[]>([]);
 
     const [username, setUsername] = useState("");
 
@@ -43,30 +47,21 @@ const DashboardPage = () => {
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
     const [aiPlanData, setAiPlanData] = useState(null);
     const [isAiLoading, setIsAiLoading] = useState(false);
-
-    // Nuevo estado que sube desde Sidebar a Dashboard
     const [aiNotificationReady, setAiNotificationReady] = useState(false);
 
-    // Este solo lanza el POST y arranca el polling en background
-    // NO bloquea la UI, el usuario puede seguir trabajando
     const handleGenerateAiPlan = async () => {
         setIsAiLoading(true);
-        
-        // Avisamos al usuario nada más pulsar
         alert("🧠 SmartCheck está analizando tus tareas. Te avisaremos cuando esté listo (Suele tardar unos 15-20 segundos).");
-
         try {
-            // Lanzamos el POST para que Llama empiece
             await dailyAnalysis();
         } catch (error) {
             console.warn("dailyAnalysis() lanzó error, pero continuamos el polling:", error);
         }
 
-        // Empezamos a preguntar al backend cada 3 segundos
         pollForAnalysis()
             .then((analysis) => {
                 setAiPlanData(analysis);
-                setAiNotificationReady(true); // ¡Enciende la campana!
+                setAiNotificationReady(true); 
             })
             .catch((err) => {
                 if (err?.message === "TIMEOUT") {
@@ -77,22 +72,20 @@ const DashboardPage = () => {
                 }
             })
             .finally(() => {
-                // APAGAMOS EL BOTÓN AQUÍ, cuando todo haya terminado
                 setIsAiLoading(false);
             });
     };
 
-    // Este abre el modal (lo llama la notificación de la campana)
     const handleOpenAiModal = () => {
         if (aiPlanData) {
             setIsAiModalOpen(true);
-            setAiNotificationReady(false); // Marca notificación como leída
+            setAiNotificationReady(false);
         }
     };
 
     const handleSubmitTask = async (e: React.FormEvent, subjectId: number) => {
         e.preventDefault();
-        setError(null); setLoading(true);
+        setError(null);
         try {
             if (newTask.recurrence === "NONE") {
                 const response = await addNewTask(subjectId, {
@@ -114,57 +107,82 @@ const DashboardPage = () => {
             setNewTask({title: "", description: "", deadline: "", recurrence: "NONE"});
         } catch(err) { 
             setError("Error al crear la tarea"); 
-        } finally { 
-            setLoading(false); 
         }
     };
 
     const handleUpdateTask = async (e: React.FormEvent, subjectId: number, taskId: number) => {
         e.preventDefault();
-        setError(null); setLoading(true);
+        setError(null);
         try {
             const response = await updateTask(subjectId, taskId, updatedTask);
             setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: subject.tasks.map(task => task.id !== taskId ? task : response) }));
             setOpenFormSubjectIdTaskId(null);
             setUpdatedTask({title: "", description: "", deadline: ""});
-        } catch(err) { setError("Error"); } finally { setLoading(false); }
+        } catch(err) { setError("Error"); }
     };
 
     const handleDeleteTask = async (subjectId: number, taskId: number) => {
-        setError(null); setLoading(true);
+        setError(null);
         try {
+            setDeletingTasks(prev => [...prev, taskId]);
             await deleteTask(subjectId, taskId);
-            setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: subject.tasks.filter(task => task.id !== taskId) }));
-        } catch(err) { setError("Error"); } finally { setLoading(false); }
+            setTimeout(() => {
+                setSubjects(current => current.map(subject => 
+                    subject.id !== subjectId 
+                        ? subject 
+                        : { ...subject, tasks: subject.tasks.filter(task => task.id !== taskId) }
+                ));
+                setDeletingTasks(prev => prev.filter(id => id !== taskId));
+            }, 400);
+        } catch(err) { 
+            console.error("Error al eliminar la tarea:", err);
+            setDeletingTasks(prev => prev.filter(id => id !== taskId));
+        } 
     };
 
     const handleDeleteSubject = async (subjectId: number) => {
-        setError(null); setLoading(true);
+        if (!window.confirm("¿Seguro que quieres borrar esta asignatura y todas sus tareas?")) return;
+        setError(null); 
         try {
+            setDeletingSubjects(prev => [...prev, subjectId]);
             await deleteSubject(subjectId);
-            setSubjects(subjects.filter(subject => subjectId !== subject.id));
-        } catch(err) { setError("Error"); } finally { setLoading(false); }
+            setTimeout(() => {
+                setSubjects(current => current.filter(subject => subject.id !== subjectId));
+                setDeletingSubjects(prev => prev.filter(id => id !== subjectId));
+            }, 400);
+            
+        } catch(err) { 
+            console.error("Error al borrar asignatura:", err);
+            setError("No se pudo eliminar la asignatura."); 
+            setDeletingSubjects(prev => prev.filter(id => id !== subjectId));
+        } 
     };
 
     const handleUpdateSubject = async (e: React.FormEvent, subjectId: number) => {
         e.preventDefault();
-        setError(null); setLoading(true);
+        setError(null);
         try {
             const response = await updateSubject(subjectId, updatedSubject);
-            setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, ...response }));
+            setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, ...response, tasks: subject.tasks }));
             setOpenFormUpdateSubject(null);
             setUpdatedSubject({ name: "", description: "" });
-        } catch (err) { setError("Error"); } finally { setLoading(false); }
+        } catch (err) { setError("Error"); }
     };
 
     const handleArchiveSubject = async (subjectId: number) => {
-        setError(null); setLoading(true);
         try {
             const subject = subjects.find(s => s.id === subjectId);
             const isCurrentlyArchived = subject?.archived || false;
             const response = await archiveSubject(subjectId, !isCurrentlyArchived);
-            setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, ...response }));
-        } catch (err) { setError("Error"); } finally { setLoading(false); }
+            setSubjects(subjects.map(subject => 
+                subject.id !== subjectId 
+                    ? subject 
+                    : { ...subject, ...response, tasks: subject.tasks } 
+            ));
+        } catch (err) { 
+            console.error("Error al archivar/desarchivar:", err);
+            alert("No se pudo cambiar el estado de la asignatura.");
+        }
     };
 
     const handleDeleteAccount = async () => {
@@ -181,8 +199,8 @@ const DashboardPage = () => {
 
     const getGreeting = (username: string): string => {
         const hour = new Date().getHours();
-        if (hour >= 6 && hour < 14) return `Buenos días, ${username}`;
-        if (hour >= 14 && hour < 21) return `Buenas tardes, ${username}`;
+        if (hour >= 6 && hour < 12) return `Buenos días, ${username}`;
+        if (hour >= 12 && hour < 21) return `Buenas tardes, ${username}`;
         return `Buenas noches, ${username}`;
     };
 
@@ -218,38 +236,25 @@ const DashboardPage = () => {
         } catch (err) { console.error("Error al actualizar la tarea"); }
     };
 
+    const handleSubmitSubject = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault(); 
+        setError(null); 
+        try {
+            const response = await postSubject(newSubject);
+            setSubjects([...subjects, { ...response, tasks: [] }]);
+            setOpenFormNewSubject(false);
+            setNewSubject({ name: "", description: "" });
+        } catch(err) { 
+            console.error("Error al crear asignatura:", err);
+            setError("No se pudo crear la asignatura. Inténtalo de nuevo."); 
+        } 
+    };
+
     const totalPending = subjects.reduce((acc, subject) => acc + subject.tasks.filter(t => !t.completed).length, 0);
     const totalPendingOverdue = subjects.reduce((acc, subject) => acc + subject.tasks.filter(t => !t.completed && t.overdue).length, 0);
 
     if (loading) return <div className="flex min-h-screen items-center justify-center bg-[#e3e7e2]"><p className="text-green-700 font-semibold">Cargando...</p></div>;
     if (error) return <div className="flex min-h-screen items-center justify-center bg-[#e3e7e2]"><p className="text-red-500 font-semibold">{error}</p></div>;
-    
-    const handleSubmitSubject = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault(); // Evita que la página se recargue al enviar el formulario
-        setError(null); 
-        setLoading(true);
-        
-        try {
-            // 1. Mandamos la nueva asignatura a tu backend (Spring Boot)
-            const response = await postSubject(newSubject);
-            
-            // 2. Actualizamos el estado visual añadiendo la nueva asignatura al final.
-            // Le metemos un array de tareas vacío (tasks: []) porque acaba de nacer.
-            setSubjects([...subjects, { ...response, tasks: [] }]);
-            
-            // 3. Cerramos el desplegable animado
-            setOpenFormNewSubject(false);
-            
-            // 4. Limpiamos los campos del formulario para la próxima vez
-            setNewSubject({ name: "", description: "" });
-            
-        } catch(err) { 
-            console.error("Error al crear asignatura:", err);
-            setError("No se pudo crear la asignatura. Inténtalo de nuevo."); 
-        } finally { 
-            setLoading(false); 
-        }
-    };
 
     return (
         <div className="flex h-screen bg-[#e3e7e2] p-4 gap-4 overflow-hidden">
@@ -259,10 +264,9 @@ const DashboardPage = () => {
                 totalPending={totalPending} 
                 subjects={subjects} 
                 onOpenSettings={() => setIsSettingsOpen(true)}
-                // PÁSALE ESTA FUNCIÓN AL SIDEBAR PARA QUE EL BOTÓN PUEDA USARLA:
                 onAiPlanClick={handleGenerateAiPlan} 
                 isAiLoading={isAiLoading}
-                aiNotificationReady={aiNotificationReady}   // <-- nuevo
+                aiNotificationReady={aiNotificationReady}
                 onOpenAiModal={handleOpenAiModal} 
             />
 
@@ -276,33 +280,46 @@ const DashboardPage = () => {
                 </div>
 
                 <div className="flex flex-col gap-8">
-                    {subjects.filter(subject => !subject.archived).map(subject => (
-                        <SubjectSection
-                            key={subject.id}
-                            subject={subject}
-                            setOpenFormUpdateSubject={setOpenFormUpdateSubject}
-                            openFormUpdateSubject={openFormUpdateSubject}
-                            handleUpdateSubject={handleUpdateSubject}
-                            handleArchiveSubject={handleArchiveSubject}
-                            handleDeleteSubject={handleDeleteSubject}
-                            updatedSubject={updatedSubject}
-                            handleChangeUpdateSubject={handleChangeUpdateSubject}
-                            handleToggleTask={handleToggleTask}
-                            handleDeleteTask={handleDeleteTask}
-                            setOpenFormSubjectIdTaskId={setOpenFormSubjectIdTaskId}
-                            openFormSubjectIdTaskId={openFormSubjectIdTaskId}
-                            handleUpdateTask={handleUpdateTask}
-                            updatedTask={updatedTask}
-                            handleChangeUpdateTask={handleChangeUpdateTask}
-                            setOpenFormSubjectId={setOpenFormSubjectId}
-                            openFormSubjectId={openFormSubjectId}
-                            handleSubmitTask={handleSubmitTask}
-                            newTask={newTask}
-                            handleChangeTask={handleChangeTask}
-                            error={error}
-                            loading={loading}
-                        />
-                    ))}
+                    {subjects.filter(subject => !subject.archived).map(subject => {
+                        const isDeleting = deletingSubjects.includes(subject.id);
+                        return (
+                            <div 
+                                key={`subject-wrapper-${subject.id}`}
+                                className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
+                                    isDeleting 
+                                        ? "opacity-0 scale-95 max-h-0 !mb-[-2rem]"
+                                        : "opacity-100 scale-100 max-h-[2000px]"
+                                }`}
+                            >
+                                <SubjectSection
+                                    key={subject.id}
+                                    subject={subject}
+                                    setOpenFormUpdateSubject={setOpenFormUpdateSubject}
+                                    openFormUpdateSubject={openFormUpdateSubject}
+                                    handleUpdateSubject={handleUpdateSubject}
+                                    handleArchiveSubject={handleArchiveSubject}
+                                    handleDeleteSubject={handleDeleteSubject}
+                                    updatedSubject={updatedSubject}
+                                    handleChangeUpdateSubject={handleChangeUpdateSubject}
+                                    handleToggleTask={handleToggleTask}
+                                    handleDeleteTask={handleDeleteTask}
+                                    setOpenFormSubjectIdTaskId={setOpenFormSubjectIdTaskId}
+                                    openFormSubjectIdTaskId={openFormSubjectIdTaskId}
+                                    handleUpdateTask={handleUpdateTask}
+                                    updatedTask={updatedTask}
+                                    handleChangeUpdateTask={handleChangeUpdateTask}
+                                    setOpenFormSubjectId={setOpenFormSubjectId}
+                                    openFormSubjectId={openFormSubjectId}
+                                    handleSubmitTask={handleSubmitTask}
+                                    newTask={newTask}
+                                    handleChangeTask={handleChangeTask}
+                                    error={error}
+                                    loading={loading}
+                                    deletingTasks={deletingTasks} // CABLE CONECTADO
+                                />
+                            </div>
+                        );
+                    })}
 
                     <button 
                         className="w-full mt-4 flex items-center justify-center gap-2 text-gray-500 bg-transparent border-2 border-dashed border-gray-300 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 rounded-xl py-4 text-sm font-medium transition-all group" 
@@ -313,7 +330,7 @@ const DashboardPage = () => {
                     </button>
 
                     <AnimatedVisibility isVisible={openFormNewSubject}>
-                        <form onSubmit={(e) => handleSubmitSubject(e)} className="flex flex-col gap-4 mt-4 p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                        <form onSubmit={handleSubmitSubject} className="flex flex-col gap-4 mt-4 p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
                             <div>
                                 <h3 className="text-lg font-bold text-gray-800">Nueva asignatura</h3>
                                 <p className="text-xs text-gray-500 mt-1">Añade una nueva materia para organizar tus tareas.</p>
@@ -347,6 +364,12 @@ const DashboardPage = () => {
                     handleToggleTask={handleToggleTask}
                     handleDeleteTask={handleDeleteTask}
                     setOpenFormSubjectIdTaskId={setOpenFormSubjectIdTaskId}
+                    openFormSubjectIdTaskId={openFormSubjectIdTaskId}
+                    handleUpdateTask={handleUpdateTask}
+                    updatedTask={updatedTask}
+                    handleChangeUpdateTask={handleChangeUpdateTask}
+                    setUpdatedTask={setUpdatedTask}
+                    deletingTasks={deletingTasks} // CABLE CONECTADO
                 />
             </div>
 
@@ -358,7 +381,6 @@ const DashboardPage = () => {
                 handleDeleteAccount={handleDeleteAccount}
             />
 
-            {/* --- MODAL DE IA AL FINAL DE LA PÁGINA --- */}
             <SmartCheckModal 
                 isOpen={isAiModalOpen} 
                 onClose={() => setIsAiModalOpen(false)} 
