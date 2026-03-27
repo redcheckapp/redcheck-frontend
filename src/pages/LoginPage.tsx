@@ -20,12 +20,12 @@ const BackgroundParticles = memo(({ init }: { init: boolean }) => {
                 },
                 fpsLimit: 120,
                 particles: {
-                    color: { value: "#ffffff" },
+                    color: { value: "#9ca3af" }, // <-- Gris suave
                     links: {
-                        color: "#ffffff",
+                        color: "#9ca3af",      // <-- Enlaces gris suave
                         distance: 150,
                         enable: true,
-                        opacity: 0.4,
+                        opacity: 0.2,          // <-- Más transparente para que no moleste
                         width: 1,
                     },
                     move: {
@@ -33,16 +33,16 @@ const BackgroundParticles = memo(({ init }: { init: boolean }) => {
                         enable: true,
                         outModes: { default: "bounce" },
                         random: false,
-                        speed: 1.5,
+                        speed: 1.0,            // <-- Un poco más lentas y relajantes
                         straight: false,
                     },
                     number: {
                         density: { enable: true, area: 800 },
-                        value: 80,
+                        value: 60,             // <-- Un poco menos densas
                     },
-                    opacity: { value: 0.6 },
+                    opacity: { value: 0.3 },
                     shape: { type: "circle" },
-                    size: { value: { min: 1, max: 3 } },
+                    size: { value: { min: 1, max: 2 } },
                 },
                 detectRetina: true,
             }}
@@ -86,14 +86,14 @@ const LoginPage = () => {
             localStorage.setItem("token", response.token); 
             navigate("/dashboard");
         } catch(err) {
-            setError("Incorrect email or password");
+            setError("Correo o contraseña incorrectos");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="relative min-h-screen flex items-center justify-center bg-slate-500 overflow-hidden p-4">
+        <div className="relative min-h-screen flex items-center justify-center bg-[#e3e7e2] overflow-hidden p-4">
             
             {/* Usamos el nuevo componente memoizado */}
             <BackgroundParticles init={init} />
@@ -110,52 +110,52 @@ const LoginPage = () => {
                     </h2>
                 </div>
 
-                <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-6">
 
-                    <div className="flex flex-col gap-1">
-                        <label className="text-sm text-gray-600">Email</label>
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Correo electrónico</label>
                         <input
                             type="email"
                             name="email"
                             value={form.email}
                             onChange={handleChange}
-                            placeholder="your@email.com"
-                            className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="tu@email.com"
+                            className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-3 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100 focus:border-red-400 transition-all"
                             required
                         />
                     </div>
 
-                    <div className="flex flex-col gap-1">
-                        <label className="text-sm text-gray-600">Password</label>
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Contraseña</label>
                         <input
                             type="password"
                             name="password"
                             value={form.password}
                             onChange={handleChange}
                             placeholder="••••••••"
-                            className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-3 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100 focus:border-red-400 transition-all"
                             required
                         />
                     </div>
 
                     {error && (
-                        <p className="text-red-500 text-sm text-center">{error}</p>
+                        <p className="text-red-500 text-sm text-center bg-red-50 py-2 rounded-lg font-medium">{error}</p>
                     )}
 
                     <button
                         type="submit"
                         disabled={loading}
-                        className="bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50 mt-2"
+                        className="w-full bg-gray-900 text-white py-3 rounded-xl font-medium hover:bg-black transition-all shadow-sm hover:shadow disabled:opacity-50 mt-2"
                     >
-                        {loading ? "Loading..." : "Enter"}
+                        {loading ? "Cargando..." : "Entrar a RedCheck"}
                     </button>
 
                 </form>
 
-                <p className="text-center text-sm text-gray-500 mt-6">
-                    Don't have an account?{" "}
-                    <a href="/register" className="text-blue-500 font-medium hover:underline">
-                        Sign-in
+                <p className="text-center text-sm text-gray-500 mt-8">
+                    ¿Aún no tienes una cuenta?{" "}
+                    <a href="/register" className="text-red-600 font-semibold hover:text-red-700 hover:underline transition-colors">
+                        Regístrate aquí
                     </a>
                 </p>
 
