@@ -19,15 +19,20 @@ interface TaskItemProps {
     
     loading: boolean;
     error: string | null;
+    isDeleting?: boolean;
 }
 
 export const TaskItem = ({
     subjectId, task, handleToggleTask, handleDeleteTask, setOpenFormSubjectIdTaskId,
-    openFormSubjectIdTaskId, handleUpdateTask, updatedTask, handleChangeUpdateTask, loading, error
+    openFormSubjectIdTaskId, handleUpdateTask, updatedTask, handleChangeUpdateTask, loading, error, isDeleting
 }: TaskItemProps) => {
 
     return (
-        <div className="flex flex-col w-full">
+        <div className={`flex flex-col w-full transition-all duration-500 ease-in-out origin-top overflow-hidden ${
+            isDeleting 
+                ? "opacity-0 scale-95 max-h-0 !mb-[-0.5rem] border-transparent" // Se encoge y desaparece
+                : "opacity-100 scale-100 max-h-[1000px]" // Estado normal
+        }`}>
             {/* Fila principal de la tarea */}
             <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition group">
 
