@@ -24,6 +24,71 @@ interface TaskItemProps {
     isDeleting?: boolean;
 }
 
+    // Función que formatea la fecha y le da diseño de "burbuja" según la cercanía
+    const renderDeadline = (deadlineStr: string | null, isCompleted: boolean) => {
+        if (!deadlineStr) return "Sin fecha límite";
+
+        const deadlineDate = new Date(deadlineStr);
+        
+        const taskDate = new Date(deadlineDate);
+        taskDate.setHours(0, 0, 0, 0);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const dayAfter = new Date(today);
+        dayAfter.setDate(dayAfter.getDate() + 2);
+
+        const timeStr = deadlineDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+
+        // Si la tarea NO está completada, aplicamos las burbujas de colores
+        if (!isCompleted) {
+            if (taskDate.getTime() === today.getTime()) {
+                return (
+                    <span className="inline-flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                        <span className="bg-red-100 text-red-900 px-2 py-0.5 rounded-md font-medium tracking-wide">
+                            Hoy, {timeStr}
+                        </span>
+                    </span>
+                );
+            }
+            if (taskDate.getTime() === tomorrow.getTime()) {
+                return (
+                    <span className="inline-flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+                        <span className="bg-yellow-100 text-yellow-900 px-2 py-0.5 rounded-md font-medium tracking-wide">
+                            Mañana, {timeStr}
+                        </span>
+                    </span>
+                );
+            }
+            if (taskDate.getTime() === dayAfter.getTime()) {
+                return (
+                    <span className="inline-flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        <span className="bg-green-100 text-green-900 px-2 py-0.5 rounded-md font-medium tracking-wide">
+                            Pasado mañana, {timeStr}
+                        </span>
+                    </span>
+                );
+            }
+        }
+
+        // Formato por defecto (lejanas o completadas) sin puntito ni fondo
+        return (
+            <span>
+                {deadlineDate.toLocaleString("es-ES", { 
+                    day: "2-digit", month: "2-digit", year: "numeric", 
+                    hour: "2-digit", minute: "2-digit" 
+                })}
+            </span>
+        );
+    };
+
 export const TaskItem = ({
     subjectId, task, handleToggleTask, handleDeleteTask, setOpenFormSubjectIdTaskId,
     openFormSubjectIdTaskId, handleUpdateTask, updatedTask, handleChangeUpdateTask, setUpdatedTask, loading, error, isDeleting
@@ -65,17 +130,8 @@ export const TaskItem = ({
                             </span>
                         )}
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                        {task.deadline 
-                            ? new Date(task.deadline).toLocaleString("es-ES", { 
-                                day: "2-digit", 
-                                month: "2-digit", 
-                                year: "numeric",
-                                hour: "2-digit", 
-                                minute: "2-digit" 
-                            })
-                            : "Sin fecha límite"
-                        }
+                    <p className={`text-xs mt-0.5 font-medium transition-all ${task.completed ? "text-gray-400" : "text-gray-500"}`}>
+                        {renderDeadline(task.deadline, task.completed)}
                     </p>
                 </div>
 
