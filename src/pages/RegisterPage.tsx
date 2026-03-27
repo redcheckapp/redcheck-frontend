@@ -1,7 +1,7 @@
 import { useState, useEffect, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { register } from "../api/registerApi";
-import { CheckSquare } from "lucide-react"; 
+import { Check, CheckSquare } from "lucide-react"; 
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
 import { PageTransition } from "../components/PageTransition";
@@ -102,12 +102,35 @@ const RegisterPage = () => {
 
             <div className="relative z-10 bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
 
-                <div className="flex flex-col items-center gap-1 mb-8">
-                    <div className="flex items-center justify-center gap-2">
-                        <CheckSquare size={32} className="text-red-700" />
-                        <span className="text-2xl font-bold text-black">RedCheck</span>
+                <div className="flex flex-col items-center mb-8">
+                    
+                    <div className="flex items-center justify-center gap-4">
+                        
+                        {/* El cuadrado rojo con el check blanco */}
+                        <div className="bg-[#cc2229] w-[52px] h-[52px] rounded-[14px] flex items-center justify-center shadow-sm flex-shrink-0">
+                            <Check size={36} strokeWidth={4} className="text-white" />
+                        </div>
+                        
+                        {/* BLOQUE DE TEXTO: w-max hace que el ancho lo marque "REDCHECK" */}
+                        <div className="flex flex-col justify-center w-max">
+                            
+                            <span className="text-[34px] font-black text-gray-900 leading-none tracking-tight">
+                                REDCHECK
+                            </span>
+                            
+                            {/* flex justify-between empuja la primera palabra a la izquierda y la última a la derecha */}
+                            <div className="flex justify-between w-full text-[11px] font-bold text-gray-800 mt-1.5 tracking-wide">
+                                <span>Agenda</span>
+                                <span>Inteligente</span>
+                                <span>Interactiva</span>
+                            </div>
+
+                        </div>
                     </div>
-                    <h2 className="text-gray-500 font-medium mt-1">
+
+                    <div className="w-full h-px bg-gray-100 my-6"></div>
+
+                    <h2 className="text-gray-500 font-medium">
                         Crear cuenta
                     </h2>
                 </div>
