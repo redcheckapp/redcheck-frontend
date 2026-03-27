@@ -4,6 +4,7 @@ import { login } from "../api/authApi";
 import { CheckSquare } from "lucide-react"; 
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
+import { PageTransition } from "../components/PageTransition";
 
 // --- NUEVO: Extraemos las partículas a un componente inmutable ---
 // Al usar memo(), React solo lo dibujará 1 vez y no lo recargará al escribir
@@ -93,7 +94,8 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="relative min-h-screen flex items-center justify-center bg-[#e3e7e2] overflow-hidden p-4">
+        <PageTransition>
+            <div className="relative min-h-screen flex items-center justify-center bg-[#e3e7e2] overflow-hidden p-4">
             
             {/* Usamos el nuevo componente memoizado */}
             <BackgroundParticles init={init} />
@@ -160,7 +162,8 @@ const LoginPage = () => {
                 </p>
 
             </div>
-        </div>
+            </div>
+        </PageTransition>
     );
 };
 

@@ -4,7 +4,7 @@ import { OverdueSection } from "../components/OverdueSection";
 import { SettingsModal } from "../components/SettingsModal";
 import { AnimatedVisibility } from "../components/AnimatedVisibility";
 import { useState, useEffect } from "react";
-import { Coffee, Plus } from "lucide-react";
+import { CheckSquare, Coffee, Plus } from "lucide-react";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
 import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
 import type { SubjectWithTasks } from "../types";
@@ -13,6 +13,7 @@ import { deleteUser, getUsername } from "../api/userApi";
 import { addRecurringTask } from "../api/recurringTaskApi";
 import SmartCheckModal from "../components/SmartCheckModal";
 import { dailyAnalysis, pollForAnalysis } from "../api/smartCheckApi";
+import { PageTransition } from "../components/PageTransition";
 
 const DashboardPage = () => {
     const navigate = useNavigate();
@@ -253,11 +254,26 @@ const DashboardPage = () => {
     const totalPending = subjects.reduce((acc, subject) => acc + subject.tasks.filter(t => !t.completed).length, 0);
     const totalPendingOverdue = subjects.reduce((acc, subject) => acc + subject.tasks.filter(t => !t.completed && t.overdue).length, 0);
 
-    if (loading) return <div className="flex min-h-screen items-center justify-center bg-[#e3e7e2]"><p className="text-green-700 font-semibold">Cargando...</p></div>;
+    //if (loading) return <div className="flex min-h-screen items-center justify-center bg-[#e3e7e2]"><p className="text-green-700 font-semibold">Cargando...</p></div>;
+    
+    if (loading) {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-[#e3e7e2]">
+            <div className="flex flex-col items-center gap-4 animate-pulse">
+                <CheckSquare size={48} className="text-red-700" />
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                    Cargando tu espacio...
+                </span>
+            </div>
+        </div>
+    );
+}
+
     if (error) return <div className="flex min-h-screen items-center justify-center bg-[#e3e7e2]"><p className="text-red-500 font-semibold">{error}</p></div>;
 
     return (
-        <div className="flex h-screen bg-[#e3e7e2] p-4 gap-4 overflow-hidden">
+        <PageTransition>
+            <div className="flex h-screen bg-[#e3e7e2] p-4 gap-4 overflow-hidden">
             <Sidebar 
                 sidebarOpen={sidebarOpen} 
                 setSidebarOpen={setSidebarOpen} 
@@ -389,7 +405,8 @@ const DashboardPage = () => {
                 aiData={aiPlanData} 
                 subjects={subjects} 
             />
-        </div>
+            </div>
+        </PageTransition>
     );
 };
 

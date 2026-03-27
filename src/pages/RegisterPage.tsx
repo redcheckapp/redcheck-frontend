@@ -4,6 +4,7 @@ import { register } from "../api/registerApi";
 import { CheckSquare } from "lucide-react"; 
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
+import { PageTransition } from "../components/PageTransition";
 
 // --- Partículas relajantes y adaptadas al fondo claro ---
 const BackgroundParticles = memo(({ init }: { init: boolean }) => {
@@ -93,8 +94,9 @@ const RegisterPage = () => {
     };
 
     return (
-        // Mismo fondo gris clarito que el Dashboard y Login
-        <div className="relative min-h-screen flex items-center justify-center bg-[#e3e7e2] overflow-hidden p-4">
+        <PageTransition>
+            {/* Mismo fondo gris clarito que el Dashboard y Login */}
+            <div className="relative min-h-screen flex items-center justify-center bg-[#e3e7e2] overflow-hidden p-4">
             
             <BackgroundParticles init={init} />
 
@@ -174,7 +176,8 @@ const RegisterPage = () => {
                 </p>
 
             </div>
-        </div>
+            </div>
+        </PageTransition>
     );
 };
 
