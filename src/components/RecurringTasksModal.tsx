@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom"; // <-- NUEVO: Importamos el portal
 import { X, Trash2, Power, PowerOff, Pencil } from "lucide-react";
 import { getRecurringTasks, toggleRecurringTaskActive, deleteRecurringTask, updateRecurringTask } from "../api/recurringTaskApi";
 
@@ -87,10 +88,12 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
         return dict[freq] || freq;
     };
 
+    // Control de renderizado: si está cerrado, no devolvemos nada
     if (!isOpen) return null;
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+    // MAGIA: Usamos createPortal y lo anclamos a document.body
+    return createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
                 
                 {/* Cabecera del modal */}
@@ -179,6 +182,7 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
                     )}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body // <-- El segundo parámetro de createPortal
     );
 };
