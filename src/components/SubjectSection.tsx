@@ -33,9 +33,10 @@ interface SubjectSectionProps {
     newTask: { title: string; description: string; deadline: string; recurrence: string }; 
     handleChangeTask: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void; 
 
-    // Globales
+    // Globales y Animaciones
     error: string | null;
     loading: boolean;
+    deletingTasks: number[]; // <-- ¡AQUÍ ESTABA EL ERROR DE SINTAXIS!
 }
 
 export const SubjectSection = ({
@@ -61,6 +62,7 @@ export const SubjectSection = ({
     handleChangeTask,
     error,
     loading,
+    deletingTasks // <-- RECIBIMOS LA VARIABLE
 }: SubjectSectionProps) => {
 
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
@@ -79,10 +81,8 @@ export const SubjectSection = ({
                         )}
                     </div>
                     
-                    {/* Contenedor de botones: invisible por defecto, aparece en hover */}
+                    {/* Contenedor de botones */}
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        
-                        {/* BOTÓN NUEVO PARA GESTIONAR RUTINAS */}
                         <button
                             type="button"
                             className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition"
@@ -182,7 +182,6 @@ export const SubjectSection = ({
 
             {/* Tareas */}
             <div className="flex flex-col gap-2">
-                {/* Primero filtramos las tareas normales */}
                 {(() => {
                     const normalTasks = subject.tasks.filter((task) => !task.overdue);
 
@@ -196,7 +195,7 @@ export const SubjectSection = ({
 
                     return normalTasks.map((task) => (
                         <TaskItem
-                            key={task.id} 
+                            key={`task-${task.id}`} 
                             subjectId={subject.id}
                             task={task}
                             handleToggleTask={handleToggleTask}
@@ -208,6 +207,7 @@ export const SubjectSection = ({
                             handleChangeUpdateTask={handleChangeUpdateTask}
                             loading={loading}
                             error={error}
+                            isDeleting={deletingTasks?.includes(task.id)} // <-- EL CABLE FINAL
                         />
                     ));
                 })()}
