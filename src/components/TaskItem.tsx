@@ -16,6 +16,8 @@ interface TaskItemProps {
     handleUpdateTask: (e: React.FormEvent, subjectId: number, taskId: number) => void;
     updatedTask: { title: string; description: string; deadline: string };
     handleChangeUpdateTask: (e: React.ChangeEvent<HTMLInputElement>) => void;
+
+    setUpdatedTask: (task: { title: string; description: string; deadline: string }) => void;
     
     loading: boolean;
     error: string | null;
@@ -24,7 +26,7 @@ interface TaskItemProps {
 
 export const TaskItem = ({
     subjectId, task, handleToggleTask, handleDeleteTask, setOpenFormSubjectIdTaskId,
-    openFormSubjectIdTaskId, handleUpdateTask, updatedTask, handleChangeUpdateTask, loading, error, isDeleting
+    openFormSubjectIdTaskId, handleUpdateTask, updatedTask, handleChangeUpdateTask, setUpdatedTask, loading, error, isDeleting
 }: TaskItemProps) => {
 
     return (
@@ -81,7 +83,25 @@ export const TaskItem = ({
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <button type="button" 
                         className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition"
-                        onClick={() => { setOpenFormSubjectIdTaskId({subjectId: subjectId, taskId: task.id}); }}
+                        onClick={() => { 
+                            // 1. Abrimos el cajón (lo que ya tenías)
+                            setOpenFormSubjectIdTaskId({subjectId: subjectId, taskId: task.id}); 
+                            
+                            // 2. Arreglamos el formato de la fecha para el HTML
+                            let formattedDate = "";
+                            if (task.deadline) {
+                                const d = new Date(task.deadline);
+                                d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                                formattedDate = d.toISOString().slice(0, 16);
+                            }
+
+                            // 3. Metemos los datos de ESTA tarea en el formulario
+                            setUpdatedTask({
+                                title: task.title,
+                                description: task.description || "",
+                                deadline: formattedDate
+                            });
+                        }}
                         title="Editar tarea"
                     >
                         <Pencil size={16} />

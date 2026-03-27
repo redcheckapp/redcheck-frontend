@@ -37,6 +37,8 @@ interface SubjectSectionProps {
     error: string | null;
     loading: boolean;
     deletingTasks: number[]; // <-- ¡AQUÍ ESTABA EL ERROR DE SINTAXIS!
+    setUpdatedTask: (task: { title: string; description: string; deadline: string }) => void;
+    setUpdatedSubject: (subject: { name: string; description: string }) => void;
 }
 
 export const SubjectSection = ({
@@ -61,6 +63,8 @@ export const SubjectSection = ({
     newTask,
     handleChangeTask,
     error,
+    setUpdatedTask,
+    setUpdatedSubject,
     loading,
     deletingTasks // <-- RECIBIMOS LA VARIABLE
 }: SubjectSectionProps) => {
@@ -95,7 +99,16 @@ export const SubjectSection = ({
                         <button
                             type="button"
                             className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition"
-                            onClick={() => { setOpenFormUpdateSubject(subject.id); }}
+                            onClick={() => { 
+                                // 1. Abrimos el formulario de la asignatura
+                                setOpenFormUpdateSubject(subject.id); 
+        
+                                // 2. Rellenamos los datos con los de ESTA asignatura
+                                setUpdatedSubject({
+                                    name: subject.name,
+                                    description: subject.description || ""
+                                });
+                            }}
                             title="Editar asignatura"
                         >
                             <Pencil size={16} />
@@ -205,6 +218,7 @@ export const SubjectSection = ({
                             handleUpdateTask={handleUpdateTask}
                             updatedTask={updatedTask}
                             handleChangeUpdateTask={handleChangeUpdateTask}
+                            setUpdatedTask={setUpdatedTask}
                             loading={loading}
                             error={error}
                             isDeleting={deletingTasks?.includes(task.id)} // <-- EL CABLE FINAL

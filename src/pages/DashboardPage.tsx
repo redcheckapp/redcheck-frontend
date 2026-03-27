@@ -316,6 +316,8 @@ const DashboardPage = () => {
                                     error={error}
                                     loading={loading}
                                     deletingTasks={deletingTasks} // CABLE CONECTADO
+                                    setUpdatedTask={setUpdatedTask}
+                                    setUpdatedSubject={setUpdatedSubject}
                                 />
                             </div>
                         );
