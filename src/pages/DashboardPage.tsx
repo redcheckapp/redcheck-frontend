@@ -4,7 +4,7 @@ import { OverdueSection } from "../components/OverdueSection";
 import { SettingsModal } from "../components/SettingsModal";
 import { AnimatedVisibility } from "../components/AnimatedVisibility";
 import { useState, useEffect } from "react";
-import { CheckSquare, Coffee, Plus } from "lucide-react";
+import { Check, CheckSquare, Coffee, Plus } from "lucide-react";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
 import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
 import type { SubjectWithTasks } from "../types";
@@ -253,21 +253,27 @@ const DashboardPage = () => {
 
     const totalPending = subjects.reduce((acc, subject) => acc + subject.tasks.filter(t => !t.completed).length, 0);
     const totalPendingOverdue = subjects.reduce((acc, subject) => acc + subject.tasks.filter(t => !t.completed && t.overdue).length, 0);
-
-    //if (loading) return <div className="flex min-h-screen items-center justify-center bg-[#e3e7e2]"><p className="text-green-700 font-semibold">Cargando...</p></div>;
     
     if (loading) {
-    return (
-        <div className="min-h-screen flex items-center justify-center bg-[#e3e7e2]">
-            <div className="flex flex-col items-center gap-4 animate-pulse">
-                <CheckSquare size={48} className="text-red-700" />
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                    Cargando tu espacio...
-                </span>
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#e3e7e2]">
+                {/* Mantenemos el 'animate-pulse', pero lo aplicamos al logo oficial */}
+                <div className="flex flex-col items-center gap-5 animate-pulse">
+                    
+                    {/* --- NUEVO: Logo Oficial de RedCheck Centrado y Prominente --- */}
+                    <div className="bg-[#cc2229] w-16 h-16 rounded-[18px] flex items-center justify-center shadow-lg flex-shrink-0">
+                        {/* Check blanco y grueso (#ffffff y strokeWidth={4}) */}
+                        <Check size={40} strokeWidth={4} className="text-white" />
+                    </div>
+                    {/* ------------------------------------------------------------- */}
+
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">
+                        Cargando tu espacio...
+                    </span>
+                </div>
             </div>
-        </div>
-    );
-}
+        );
+    }
 
     if (error) return <div className="flex min-h-screen items-center justify-center bg-[#e3e7e2]"><p className="text-red-500 font-semibold">{error}</p></div>;
 
