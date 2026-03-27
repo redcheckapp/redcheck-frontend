@@ -6,14 +6,10 @@ export const getTodayTasks = async (subjectId: number): Promise<TaskResponse[]> 
     return response.data;
 }
 
-export const toggleTask = async (
-    subjectId: number,
-    taskId: number,
-    completed: boolean
-): Promise<TaskResponse> => {
+export const toggleTask = async (subjectId: number, taskId: number, completed: boolean): Promise<TaskResponse> => {
     const response = await api.patch(
         `/subjects/${subjectId}/tasks/${taskId}/complete`,
-        { completed }
+        completed
     );
     return response.data;
 }

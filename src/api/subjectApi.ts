@@ -17,7 +17,7 @@ export const postSubject = async (subjectData: SubjectRequest): Promise<SubjectR
 export const archiveSubject = async (subjectId: number, archived: boolean): Promise<SubjectResponse> => {
     const response = await api.patch(
         `subjects/${subjectId}/archive`,
-        { archived }
+        archived
     );
     return response.data;
 }

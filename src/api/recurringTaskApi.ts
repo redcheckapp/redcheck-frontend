@@ -1,9 +1,10 @@
 import api from "./axiosConfig";
+import type { RecurringTaskResponse } from "../types";
 
 export const addRecurringTask = async (
     subjectId: number, 
     taskData: { title: string; description?: string; periodicidad: string }
-) => {
+): Promise<RecurringTaskResponse> => {
     const response = await api.post(`/subjects/${subjectId}/recurring-tasks`, {
         title: taskData.title,
         description: taskData.description,
@@ -13,29 +14,25 @@ export const addRecurringTask = async (
     return response.data;
 };
 
-// Obtener todas las rutinas de una asignatura
-export const getRecurringTasks = async (subjectId: number) => {
+export const getRecurringTasks = async (subjectId: number): Promise<RecurringTaskResponse> => {
     const response = await api.get(`/subjects/${subjectId}/recurring-tasks`);
     return response.data;
 };
 
-// Pausar/Reactivar una rutina
-export const toggleRecurringTaskActive = async (subjectId: number, recurringTaskId: number, active: boolean) => {
+export const toggleRecurringTaskActive = async (subjectId: number, recurringTaskId: number, active: boolean): Promise<RecurringTaskResponse> => {
     const response = await api.patch(`/subjects/${subjectId}/recurring-tasks/${recurringTaskId}/active`, { active });
     return response.data;
 };
 
-// Borrar una rutina para siempre
-export const deleteRecurringTask = async (subjectId: number, recurringTaskId: number) => {
+export const deleteRecurringTask = async (subjectId: number, recurringTaskId: number): Promise<void> => {
     await api.delete(`/subjects/${subjectId}/recurring-tasks/${recurringTaskId}`);
 };
 
-// Actualizar una rutina (añade esto en taskApi.ts)
 export const updateRecurringTask = async (
     subjectId: number, 
     recurringTaskId: number, 
     taskData: { title: string; description?: string; frequency: string; subjectId: number }
-) => {
+): Promise<RecurringTaskResponse> => {
     const response = await api.put(`/subjects/${subjectId}/recurring-tasks/${recurringTaskId}`, taskData);
     return response.data;
 };

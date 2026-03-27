@@ -57,3 +57,14 @@ export interface ProgressRecord {
     completedTasks: number;
     completionRate: number;
 }
+
+export interface RecurringTaskResponse {
+    id: number,
+    title: string,
+    description: string | null,
+    frequency: string,
+    active: boolean,
+    createdDate: string,
+    latestGeneratedDate: string,
+    subjectId: number
+}
