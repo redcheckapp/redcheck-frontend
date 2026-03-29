@@ -102,10 +102,10 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
             </div>
 
             {/* --- ZONA CENTRAL --- */}
-            <div className="flex flex-col items-center w-full mb-auto">
+            <div className="flex-1 flex flex-col items-center w-full overflow-y-auto overflow-x-hidden pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
 
                 {/* Progreso del día */}
-                <div className={`relative transition-all duration-300 ease-in-out shrink-0 mb-10 ${sidebarOpen ? "w-24 h-24" : "w-10 h-10"}`}>
+                <div className={`relative transition-all duration-300 ease-in-out shrink-0 mb-5 ${sidebarOpen ? "w-24 h-24" : "w-10 h-10"}`}>
                     <svg viewBox="0 0 96 96" className="w-full h-full transform -rotate-90">
                         <circle cx="48" cy="48" r="36" stroke="#c3e0ce" strokeWidth="8" fill="#eaf6ed" />
                         <circle cx="48" cy="48" r="36" stroke="#16a34a" strokeWidth="8" fill="none"
@@ -119,8 +119,8 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                 </div>
 
                 {/* Heatmap (Abierto) */}
-                <div className={`transition-all duration-500 ease-in-out flex justify-center overflow-hidden w-full ${sidebarOpen ? "max-h-[200px] opacity-100 delay-75" : "max-h-0 opacity-0"}`}>
-                    <div className="w-[240px] shrink-0 pt-1 pb-1">
+                <div className={`transition-all duration-500 ease-in-out flex justify-center overflow-hidden w-full shrink-0 ${sidebarOpen ? "max-h-[300px] opacity-100 delay-75" : "max-h-0 opacity-0"}`}>
+                    <div className="w-full shrink-0 pt-1 pb-1 flex justify-center transform scale-[0.92] origin-top">
                         <ProgressHeatmap />
                     </div>
                 </div>
@@ -133,11 +133,28 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                 </div>
 
                 {/* SmartCheck AI */}
-                <div className="flex flex-col items-center text-center opacity-80 hover:opacity-100 transition-all duration-300 ease-in-out cursor-pointer group mt-4 mb-2 w-full" title="SmartCheck AI">
-                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 flex items-center justify-center shadow-sm mb-2.5">
-                        {/* Usamos Sparkles (o Brain) y el rojo de tu marca */}
-                        <Sparkles size={22} strokeWidth={2} className="text-red-600" />
+                <div 
+                    onClick={() => setSidebarOpen(true)} 
+                    className="flex flex-col items-center text-center opacity-80 hover:opacity-100 transition-all duration-300 ease-in-out cursor-pointer group mt-4 mb-2 w-full select-none" 
+                    title="SmartCheck AI"
+                >
+                    {/* Estructura limpia e idéntica a tu Activity Icon */}
+                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-300 shrink-0 ${
+                        sidebarOpen 
+                            ? "bg-red-50 text-red-600 shadow-sm" 
+                            : "bg-transparent text-gray-400 group-hover:bg-red-50 group-hover:text-red-600 group-hover:shadow-sm"
+                    }`}>
+                        
+                        <Sparkles 
+                            size={22} 
+                            strokeWidth={1.5} 
+                            className={`transition-transform duration-300 ${
+                                sidebarOpen ? "scale-110" : "group-hover:scale-110"
+                            }`} 
+                        />
+
                     </div>
+                    
                     <div className={`flex flex-col items-center overflow-hidden transition-all duration-300 ease-in-out w-full ${sidebarOpen ? "max-h-[60px] opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"}`}>
                         <h3 className="text-sm font-bold text-gray-800 tracking-wide">
                             SmartCheck AI
@@ -150,10 +167,11 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
 
                 {/* --- BOTONES DE LA IA --- */}
                 <div className={`
-                        flex flex-col space-y-3 px-4 overflow-hidden
+                        flex flex-col space-y-3 px-4 overflow-hidden w-full shrink-0
                         transition-all duration-500 ease-out
                         ${sidebarOpen 
-                            ? 'max-h-96 opacity-100 translate-y-0 mt-6' 
+                            // Cambiamos max-h-96 por max-h-[800px] y añadimos pb-4 para la sombra
+                            ? 'max-h-[800px] opacity-100 translate-y-0 mt-6 pb-4' 
                             : 'max-h-0 opacity-0 translate-y-4 mt-0 pointer-events-none'
                         }
                     `}>
