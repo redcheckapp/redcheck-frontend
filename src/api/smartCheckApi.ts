@@ -10,7 +10,7 @@ export const dailyAnalysis = async (): Promise<string> => {
     return response.data;
 }
 
-export const pollForAnalysis = async (intervalMs = 3000, maxAttempts = 30): Promise<any> => {
+export const pollForAnalysis = async (intervalMs = 3000, maxAttempts = 60): Promise<any> => {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         await new Promise(res => setTimeout(res, intervalMs));
         try {
