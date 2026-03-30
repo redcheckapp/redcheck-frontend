@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Clock, CheckCircle2 } from "lucide-react";
 import { getProgressHeatmap } from "../api/progressRecordApi";
-import type { ProgressRecord, SubjectWithTasks } from "../types"; // Asegúrate de importar tu tipo
+import type { ProgressRecord, SubjectWithTasks } from "../types";
 
 type ViewMode = "day" | "week" | "month";
 
-// --- NUEVO: ACEPTAMOS LAS SUBJECTS POR PROPS ---
 interface AgendaViewProps {
     subjects?: SubjectWithTasks[]; 
 }
@@ -67,7 +66,6 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
         });
     }, [currentDate]);
 
-    // --- NUEVO: FILTRAMOS LAS TAREAS DEL DÍA ACTUAL ---
     const tasksForCurrentDay = useMemo(() => {
         if (!subjects || subjects.length === 0) return [];
         
@@ -75,19 +73,16 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
             return subject.tasks
                 .filter(task => {
                     if (!task.deadline) return false;
-                    // Comparamos si la fecha límite de la tarea es igual al día que estamos viendo
                     const taskDate = new Date(task.deadline);
                     return taskDate.getFullYear() === currentDate.getFullYear() &&
                            taskDate.getMonth() === currentDate.getMonth() &&
                            taskDate.getDate() === currentDate.getDate();
                 })
-                .map(task => ({ ...task, subjectName: subject.name })); // Le pegamos el nombre de la asignatura
+                .map(task => ({ ...task, subjectName: subject.name })); 
         }).sort((a, b) => {
-            // Ordenamos primero pendientes y luego completadas
             return (a.completed === b.completed) ? 0 : a.completed ? 1 : -1; 
         });
     }, [subjects, currentDate]);
-    // ---------------------------------------------------
 
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     let firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
@@ -174,7 +169,6 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                 {/* --- VISTA: MES --- */}
                 {view === "month" && (
                     <>
-                        {/* ... Mismo código del mes de antes ... */}
                         <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50/50 shrink-0">
                             {weekDaysNames.map(day => (
                                 <div key={day} className="py-3 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">{day.substring(0,3)}</div>
@@ -189,13 +183,19 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                 const isPast = cellDateObj < todayObj && !isToday;
                                 
                                 const cellDateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
-                                const bgColorClass = isPast || isToday ? getSquareColor(cellDateString) : "bg-white";
+                                
+                                let bgColorClass = isPast || isToday ? getSquareColor(cellDateString) : "bg-white";
+                                if (isToday && bgColorClass === "bg-white") {
+                                    bgColorClass = "bg-red-50/50";
+                                }
+
                                 const record = records[cellDateString];
 
+                                // 💡 COMENTARIO CORREGIDO A JS NORMAL
                                 return (
-                                    <div key={i} onClick={() => { setCurrentDate(cellDateObj); setView("day"); }} className={`${bgColorClass} p-2 flex flex-col transition-colors hover:brightness-95 cursor-pointer relative group ${isToday ? "ring-2 ring-red-500 ring-inset z-10" : ""}`}>
+                                    <div key={i} onClick={() => { setCurrentDate(cellDateObj); setView("day"); }} className={`${bgColorClass} p-2 flex flex-col transition-colors hover:brightness-95 cursor-pointer relative group ${isToday ? "z-10" : ""}`}>
                                         <div className="flex justify-between items-start mb-1">
-                                            <span className={`text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full ${isToday ? "bg-red-600 text-white" : bgColorClass === "bg-[#4ade80]" || bgColorClass === "bg-[#16a34a]" ? "text-white drop-shadow-md" : "text-gray-500"}`}>
+                                            <span className={`text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full ${isToday ? "bg-red-600 text-white shadow-sm" : bgColorClass === "bg-[#4ade80]" || bgColorClass === "bg-[#16a34a]" ? "text-white drop-shadow-md" : "text-gray-500"}`}>
                                                 {dayNum}
                                             </span>
                                         </div>
@@ -216,7 +216,6 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
 
                 {/* --- VISTA: SEMANA --- */}
                 {view === "week" && (
-                    // ... Mismo código de la semana de antes ...
                     <div className="flex-1 flex flex-col">
                         <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50/50 shrink-0">
                             {currentWeekDays.map((date, i) => {
@@ -226,7 +225,7 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                         <span className={`text-xs font-bold uppercase tracking-wider ${isToday ? "text-red-500" : "text-gray-400"}`}>
                                             {weekDaysNames[i].substring(0,3)}
                                         </span>
-                                        <span className={`text-xl font-black ${isToday ? "text-red-600" : "text-gray-800"}`}>
+                                        <span className={`w-8 h-8 flex items-center justify-center rounded-full text-xl font-black ${isToday ? "bg-red-600 text-white shadow-sm mt-0.5" : "text-gray-800"}`}>
                                             {date.getDate()}
                                         </span>
                                     </div>
@@ -235,8 +234,13 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                         </div>
                         <div className="flex-1 grid grid-cols-7 bg-gray-100 gap-[1px]">
                             {currentWeekDays.map((date, i) => {
+                                const isToday = date.toDateString() === todayObj.toDateString();
                                 const cellDateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                                const bgColorClass = (date < todayObj || date.toDateString() === todayObj.toDateString()) ? getSquareColor(cellDateString) : "bg-white";
+                                
+                                let bgColorClass = (date < todayObj || isToday) ? getSquareColor(cellDateString) : "bg-white";
+                                if (isToday && bgColorClass === "bg-white") {
+                                    bgColorClass = "bg-red-50/50";
+                                }
                                 
                                 return (
                                     <div key={i} className={`${bgColorClass} p-3 transition-colors hover:bg-gray-50/50`}>
@@ -250,11 +254,10 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                     </div>
                 )}
 
-                {/* --- VISTA: DÍA (AHORA CON DATOS REALES) --- */}
+                {/* --- VISTA: DÍA --- */}
                 {view === "day" && (
                     <div className="flex-1 flex overflow-hidden">
                         
-                        {/* Timeline (Horas) */}
                         <div className="w-20 border-r border-gray-100 bg-gray-50/50 py-6 flex flex-col overflow-y-auto no-scrollbar shrink-0">
                             {hours.map(hour => (
                                 <div key={hour} className="h-20 flex justify-end pr-4 text-xs font-bold text-gray-400 relative">
@@ -263,10 +266,8 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                             ))}
                         </div>
                         
-                        {/* Contenido del Día */}
                         <div className="flex-1 relative overflow-y-auto bg-[linear-gradient(to_bottom,#f9fafb_1px,transparent_1px)] bg-[size:100%_5rem] p-6">
                             
-                            {/* Línea roja de hora actual */}
                             {currentDate.toDateString() === todayObj.toDateString() && (
                                 <div 
                                     className="absolute left-0 right-0 border-t-2 border-red-500 z-10 flex items-center pointer-events-none"
@@ -276,7 +277,6 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                 </div>
                             )}
 
-                            {/* --- RENDERIZADO DE TAREAS REALES --- */}
                             <div className="relative z-20 flex flex-col gap-3 max-w-xl ml-4">
                                 {tasksForCurrentDay.length === 0 ? (
                                     <div className="mt-10 p-6 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-center bg-white/50">
@@ -286,7 +286,6 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                     </div>
                                 ) : (
                                     tasksForCurrentDay.map(task => {
-                                        // Extraemos la hora si es que la tiene
                                         const tDate = new Date(task.deadline);
                                         const hasTime = tDate.getHours() !== 0 || tDate.getMinutes() !== 0;
                                         const timeString = hasTime 
@@ -298,7 +297,6 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                                 key={task.id} 
                                                 className={`bg-white border p-4 rounded-xl shadow-sm flex items-start gap-4 transition-all hover:shadow-md ${task.completed ? 'opacity-60 bg-gray-50' : 'border-blue-100'}`}
                                             >
-                                                {/* Indicador visual de asignatura o estado */}
                                                 <div className={`mt-1 w-3 h-3 rounded-full border-2 shrink-0 ${task.completed ? 'border-green-500 bg-green-100' : 'border-blue-500 bg-blue-100'}`} />
                                                 
                                                 <div className="flex flex-col flex-1">
