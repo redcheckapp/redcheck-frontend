@@ -1,10 +1,10 @@
-import { CheckSquare, LogOut, Settings, Bell, BotMessageSquare, Activity, Check, Sparkles } from "lucide-react";
+import { LogOut, Settings, Bell, Check, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import type { SubjectWithTasks } from "../types";
+import type { SubjectStat, SubjectWithTasks } from "../types";
 import { ProgressHeatmap } from "./ProgressHeatmap";
 import { SmartCheckButton } from "./SmartCheckButton";
-// import { dailyAnalysis } from "../api/smartCheckApi"; <-- ESTO LO QUITAMOS
+import { SubjectBalance } from "./SubjectBalance";
 
 // AÑADIMOS LAS DOS NUEVAS PROPS DE LA IA AQUÍ:
 interface SidebarProps {
@@ -17,10 +17,11 @@ interface SidebarProps {
     isAiLoading: boolean;          // <-- Nueva prop
     aiNotificationReady: boolean;  // <-- nuevo (viene de Dashboard)
     onOpenAiModal: () => void;
+    subjectStats: SubjectStat[];
 }
 
 // LAS RECIBIMOS AQUÍ:
-export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, onOpenSettings, onAiPlanClick, isAiLoading, aiNotificationReady, onOpenAiModal }: SidebarProps) => {
+export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, onOpenSettings, onAiPlanClick, isAiLoading, aiNotificationReady, onOpenAiModal, subjectStats }: SidebarProps) => {
     const navigate = useNavigate();
     const [showNotifications, setShowNotifications] = useState(false);
 
@@ -117,20 +118,15 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                         {completedTasks}/{totalTasks}
                     </div>
                 </div>
+    
 
-                {/* Heatmap (Abierto) */}
-                <div className={`transition-all duration-500 ease-in-out flex justify-center overflow-hidden w-full shrink-0 ${sidebarOpen ? "max-h-[300px] opacity-100 delay-75" : "max-h-0 opacity-0"}`}>
-                    <div className="w-full shrink-0 pt-1 pb-1 flex justify-center transform scale-[0.92] origin-top">
-                        <ProgressHeatmap />
-                    </div>
-                </div>
+                {/* AQUÍ INYECTAMOS NUESTRO NUEVO COMPONENTE */}
+                <SubjectBalance 
+                    sidebarOpen={sidebarOpen} 
+                    setSidebarOpen={setSidebarOpen}
+                    stats={subjectStats} 
+                />
 
-                {/* Activity Icon (Cerrado) */}
-                <div className={`transition-all duration-300 ease-in-out flex justify-center overflow-hidden w-full ${!sidebarOpen ? "max-h-[50px] opacity-100 mt-2" : "max-h-0 opacity-0 mt-0"}`}>
-                    <div onClick={() => setSidebarOpen(true)} className="w-10 h-10 rounded-xl text-gray-400 hover:text-green-600 hover:bg-white hover:shadow-sm transition-all cursor-pointer flex items-center justify-center shrink-0">
-                        <Activity size={22} strokeWidth={1.5} />
-                    </div>
-                </div>
 
                 {/* SmartCheck AI */}
                 <div 
