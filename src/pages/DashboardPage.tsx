@@ -3,17 +3,18 @@ import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
 import { SettingsModal } from "../components/SettingsModal";
 import { AnimatedVisibility } from "../components/AnimatedVisibility";
-import { useState, useEffect } from "react";
-import { Check, CheckSquare, Coffee, Plus } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Check, Coffee, Plus } from "lucide-react";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
 import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
-import type { SubjectWithTasks } from "../types";
+import type { SubjectWithTasks, SubjectStat } from "../types";
 import { useNavigate } from "react-router-dom";
 import { deleteUser, getUsername } from "../api/userApi";
 import { addRecurringTask } from "../api/recurringTaskApi";
 import SmartCheckModal from "../components/SmartCheckModal";
 import { dailyAnalysis, pollForAnalysis } from "../api/smartCheckApi";
 import { PageTransition } from "../components/PageTransition";
+import { AgendaView } from "../components/AgendaView";
 
 const DashboardPage = () => {
     const navigate = useNavigate();
@@ -49,7 +50,7 @@ const DashboardPage = () => {
     const [aiPlanData, setAiPlanData] = useState(null);
     const [isAiLoading, setIsAiLoading] = useState(false);
     const [aiNotificationReady, setAiNotificationReady] = useState(false);
-
+    
     const handleGenerateAiPlan = async () => {
         setIsAiLoading(true);
         alert("🧠 SmartCheck está analizando tus tareas. Te avisaremos cuando esté listo (Suele tardar unos 15-20 segundos).");
@@ -210,8 +211,11 @@ const DashboardPage = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
+                // Carga de perfil
                 const profile = await getUsername();
                 setUsername(profile.username);
+                
+                // Carga de asignaturas y tareas
                 const subjectsData = await getSubjects();
                 const subjectsWithTasks = await Promise.all(
                     subjectsData.map(async (subject) => {
@@ -219,13 +223,61 @@ const DashboardPage = () => {
                         return { ...subject, tasks };
                     })
                 );
-                setSubjects(subjectsWithTasks);
+                
+                setSubjects(subjectsWithTasks); // Tu estado original
+
             } catch (err) {
                 setError("Error al cargar los datos");
-            } finally { setLoading(false); }
+            } finally { 
+                setLoading(false); 
+            }
         };
         fetchData();
     }, []);
+
+    const subjectStats = useMemo(() => {
+        // Opción Recomendada: Medir el balance de tareas PENDIENTES.
+        // Así, a medida que tachas tareas de una asignatura, su barra disminuye,
+        // dando una sensación de progreso genial.
+
+        // 1. Calculamos el total de tareas PENDIENTES en todas las asignaturas
+        const totalPendingTasks = subjects.reduce((acc, curr) => {
+            const pendingInSubject = curr.tasks?.filter(t => !t.completed).length || 0;
+            return acc + pendingInSubject;
+        }, 0);
+
+        if (totalPendingTasks === 0) return []; // Si no hay tareas pendientes, barras vacías
+
+        // 2. Calculamos el porcentaje de tareas pendientes de cada asignatura
+        const rawStats = subjects.map(subject => {
+            const pendingInSubject = subject.tasks?.filter(t => !t.completed).length || 0;
+            return {
+                id: subject.id,
+                name: subject.name,
+                percent: Math.round((pendingInSubject / totalPendingTasks) * 100)
+            };
+        });
+
+        // 3. Filtramos las que tengan 0% pendientes, ordenamos de mayor a menor y sacamos el Top 3
+        const top3Stats = rawStats
+            .filter(stat => stat.percent > 0)
+            .sort((a, b) => b.percent - a.percent)
+            .slice(0, 3);
+
+        // 4. Asignamos colores
+        const colorPalette = [
+            { colorClass: "bg-red-500", hoverTextClass: "group-hover:text-red-600" },
+            { colorClass: "bg-blue-500", hoverTextClass: "group-hover:text-blue-600" },
+            { colorClass: "bg-amber-500", hoverTextClass: "group-hover:text-amber-500" },
+        ];
+
+        return top3Stats.map((stat, index) => ({
+            ...stat,
+            colorClass: colorPalette[index].colorClass,
+            hoverTextClass: colorPalette[index].hoverTextClass
+        }));
+        
+    }, [subjects]); // El hook escucha los cambios en 'subjects'
 
     const handleToggleTask = async (subjectId: number, taskId: number) => {
         const subject = subjects.find(s => s.id === subjectId);
@@ -290,8 +342,15 @@ const DashboardPage = () => {
                 isAiLoading={isAiLoading}
                 aiNotificationReady={aiNotificationReady}
                 onOpenAiModal={handleOpenAiModal} 
+                subjectStats={subjectStats}
             />
 
+            <main className="flex-1 relative overflow-hidden flex flex-col">
+                
+                {/* Le pasamos las asignaturas por props */}
+                <AgendaView subjects={subjects} />
+
+            </main>
             <div className="flex-1 rounded-2xl bg-white shadow-md p-6 flex flex-col overflow-y-auto">
                 <div className="mb-6">
                     <h1 className="text-3xl font-bold text-gray-800">{ getGreeting(username) }</h1>
