@@ -173,6 +173,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                     subtitle={isAiLoading ? "Consultando a SmartCheck..." : "Genera un resumen de tus prioridades para hoy."}
                     // We assign the function that comes from the DashboardPage
                     onClick={onAiPlanClick}
+                    comingSoon={false}
                 />
 
                 <SmartCheckButton 
@@ -180,6 +181,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                     title="Analizar riesgos"
                     subtitle="Identifica posibles bloqueos o retrasos."
                     onClick={() => console.log("Clic en el análisis de riesgos")}
+                    comingSoon={true}
                 />
                 </div>
                     

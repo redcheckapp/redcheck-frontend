@@ -3,9 +3,10 @@ interface SmartCheckCardProps {
   title: string;
   subtitle: string;
   onClick: () => void;
+  comingSoon?: boolean;
 }
 
-export const SmartCheckButton = ({ icon, title, subtitle, onClick }: SmartCheckCardProps) => {
+export const SmartCheckButton = ({ icon, title, subtitle, onClick, comingSoon }: SmartCheckCardProps) => {
   return (
     <button 
       onClick={onClick}
@@ -26,6 +27,13 @@ export const SmartCheckButton = ({ icon, title, subtitle, onClick }: SmartCheckC
       <p className="text-zinc-500 text-xs leading-snug m-0">
         {subtitle}
       </p>
+
+      {/* 4. Comming soon label */}
+      {comingSoon && (
+        <span className="mt-2 px-1.5 py-0.5 bg-purple-100 text-purple-800 text-[10px] leading-none font-bold rounded-md">
+          Próximamente
+        </span>
+      )}
     </button>
   );
 };
