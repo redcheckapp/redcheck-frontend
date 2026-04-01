@@ -7,13 +7,13 @@ interface PageTransitionProps {
 export const PageTransition = ({ children }: PageTransitionProps) => {
     return (
         <motion.div
-            // Estado inicial (invisible y un poco más abajo)
+            // Initial state (invisible and a bit lower)
             initial={{ opacity: 0, y: 15 }}
-            // Estado al entrar (visible y en su sitio)
+            // State when entering (visible and in place)
             animate={{ opacity: 1, y: 0 }}
-            // Estado al salir (se desvanece hacia arriba)
+            // State when exiting (fades upwards)
             exit={{ opacity: 0, y: -15 }}
-            // Duración y suavidad de la curva
+            // Duration and smoothness of the curve
             transition={{ duration: 0.4, ease: "easeOut" }}
             className="w-full h-full"
         >

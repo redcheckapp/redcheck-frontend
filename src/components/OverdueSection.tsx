@@ -13,7 +13,7 @@ interface OverdueSectionProps {
     updatedTask: { title: string; description: string; deadline: string };
     handleChangeUpdateTask: (e: React.ChangeEvent<HTMLInputElement>) => void;
     setUpdatedTask: (task: { title: string; description: string; deadline: string }) => void;
-    deletingTasks: number[]; // <-- CABLE DE ANIMACIÓN
+    deletingTasks: number[];
 }
 
 export const OverdueSection = ({
@@ -30,12 +30,11 @@ export const OverdueSection = ({
     deletingTasks
 }: OverdueSectionProps) => {
 
-    // 1. Comprobamos si hay alguna tarea atrasada (esté completada o no)
     const hasAnyOverdue = subjects.some(subject => 
         !subject.archived && subject.tasks.some(task => task.overdue)
     );
 
-    // Si no hay absolutamente ninguna tarea atrasada, escondemos toda la sección
+    // If there are absolutely no overdue tasks, we hide the entire section
     if (!hasAnyOverdue) return null;
 
     return (
@@ -43,7 +42,7 @@ export const OverdueSection = ({
             <div className="flex items-center gap-2 mb-6">
                 <AlertCircle size={20} className="text-red-500" />
                 <h2 className="text-lg font-bold text-gray-800">Fuera de plazo</h2>
-                {/* La burbuja roja solo enseña el número de las PENDIENTES */}
+                {/* The red bubble only shows the number of PENDING ones */}
                 {totalPendingOverdue > 0 && (
                     <span className="bg-red-100 text-red-600 text-xs font-bold px-2.5 py-0.5 rounded-full">
                         {totalPendingOverdue}
@@ -53,7 +52,7 @@ export const OverdueSection = ({
 
             <div className="flex flex-col gap-6">
                 {subjects
-                    // 2. Quitamos el filtro restrictivo de las asignaturas
+                    // We remove the restrictive filter from the subjects
                     .filter(subject => !subject.archived && subject.tasks.some(task => task.overdue))
                     .map(subject => (
                         <div key={`overdue-${subject.id}`}>
@@ -62,7 +61,7 @@ export const OverdueSection = ({
                             </h2>
                             <div className="flex flex-col gap-2">
                                 {subject.tasks
-                                    // 3. Quitamos el filtro restrictivo de las tareas
+                                    // We remove the restrictive filter from the tasks
                                     .filter(task => task.overdue)
                                     .map(task => {
                                         
@@ -78,17 +77,17 @@ export const OverdueSection = ({
                                                         : "opacity-100 scale-100 max-h-[1000px]"
                                                 }`}
                                             >
-                                                {/* --- 1. MODO NORMAL (VISTA DE LA TAREA) --- */}
-                                                {/* Aquí cambiamos los colores si está completada */}
+                                                {/* --- 1. NORMAL MODE (TASK VIEW) --- */}
+                                                {/* Here we change the colors if it is completed */}
                                                 <div className={`flex items-center gap-3 p-3 rounded-xl transition group border ${
                                                     isEditing 
                                                         ? 'bg-red-50 border-red-300 shadow-sm' 
                                                         : task.completed 
-                                                            ? 'bg-gray-50 border-gray-100 hover:bg-gray-100' // Gris suave si está completada
-                                                            : 'bg-red-50 hover:bg-red-100 border-red-100'   // Rojo alerta si está pendiente
+                                                            ? 'bg-gray-50 border-gray-100 hover:bg-gray-100' // Soft gray if completed
+                                                            : 'bg-red-50 hover:bg-red-100 border-red-100'   // Alert red if pending
                                                 }`}>
                                                     
-                                                    {/* Checkbox Animado */}
+                                                    {/* Animated Checkbox */}
                                                     <button 
                                                         onClick={() => handleToggleTask(subject.id, task.id)} 
                                                         className={`w-6 h-6 squared-full border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 ${
@@ -100,7 +99,7 @@ export const OverdueSection = ({
                                                         {task.completed && <Check size={12} color="white" />}
                                                     </button>
                                                     
-                                                    {/* Textos con efecto de tachado */}
+                                                    {/* Texts with strikethrough effect */}
                                                     <div className="flex-1">
                                                         <p className={`text-sm font-medium transition-all ${
                                                             task.completed ? "line-through text-gray-400" : "text-red-900"
@@ -115,7 +114,7 @@ export const OverdueSection = ({
                                                         </p>
                                                     </div>
 
-                                                    {/* Botones */}
+                                                    {/* Buttons */}
                                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                                         <button 
                                                             type="button" 
@@ -145,7 +144,7 @@ export const OverdueSection = ({
                                                     </div>
                                                 </div>
 
-                                                {/* --- 2. MODO EDICIÓN ANIMADO --- */}
+                                                {/* --- 2. ANIMATED EDIT MODE --- */}
                                                 <AnimatedVisibility isVisible={isEditing}>
                                                     <form 
                                                         onSubmit={(e) => handleUpdateTask(e, subject.id, task.id)}

@@ -4,12 +4,11 @@ import { OverdueSection } from "../components/OverdueSection";
 import { SettingsModal } from "../components/SettingsModal";
 import { AnimatedVisibility } from "../components/AnimatedVisibility";
 import { useState, useEffect, useMemo } from "react";
-// 1. IMPORTAMOS LOS ICONOS Y EL HEATMAP
 import { Check, Coffee, Plus, Focus, LayoutGrid } from "lucide-react";
-import { ProgressHeatmap } from "../components/ProgressHeatmap"; // <-- Importante tener la ruta correcta
+import { ProgressHeatmap } from "../components/ProgressHeatmap";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
 import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
-import type { SubjectWithTasks, SubjectStat } from "../types";
+import type { SubjectWithTasks } from "../types";
 import { useNavigate } from "react-router-dom";
 import { deleteUser, getUsername } from "../api/userApi";
 import { addRecurringTask } from "../api/recurringTaskApi";
@@ -31,7 +30,6 @@ const DashboardPage = () => {
     const [openFormNewSubject, setOpenFormNewSubject] = useState<boolean>(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     
-    // 2. ESTADO PARA EL MODO FOCO
     const [showCalendar, setShowCalendar] = useState(true);
 
     const [deletingSubjects, setDeletingSubjects] = useState<number[]>([]);
@@ -314,10 +312,10 @@ const DashboardPage = () => {
 
     if (error) return <div className="flex min-h-screen items-center justify-center bg-[#e3e7e2]"><p className="text-red-500 font-semibold">{error}</p></div>;
 
-    // EL CONTENEDOR PRINCIPAL: Flex row para manejar los 3 bloques principales (Agenda, Tareas, Heatmap)
+    // THE MAIN CONTAINER: Flex row to handle the 3 main blocks (Agenda, Tasks, Heatmap)
     return (
         <PageTransition>
-            {/* Quitamos gap-4 del contenedor principal para manejar los espacios manualmente con animaciones */}
+            {/* We remove gap-4 from the main container to handle spaces manually with animations */}
             <div className="flex h-screen bg-[#e3e7e2] p-4 overflow-hidden">
                 
                 <Sidebar 
@@ -333,7 +331,7 @@ const DashboardPage = () => {
                     subjectStats={subjectStats}
                 />
 
-                {/* --- BLOQUE 1: AGENDA (IZQUIERDA) --- */}
+                {/* --- BLOCK 1: AGENDA (LEFT) --- */}
                 <div className={`transition-all duration-500 ease-in-out flex flex-col overflow-hidden shrink-0 ${
                     showCalendar ? "w-[55%] opacity-100 ml-4" : "w-0 opacity-0 ml-0"
                 }`}>
@@ -342,11 +340,11 @@ const DashboardPage = () => {
                     </main>
                 </div>
 
-                {/* --- BLOQUE 2: TAREAS (CENTRO) --- */}
+                {/* --- BLOCK 2: TASKS (CENTER) --- */}
                 <div className="flex-1 rounded-2xl bg-white shadow-md flex flex-col overflow-y-auto transition-all duration-500 ease-in-out ml-4">
                     <div className="p-6 mx-auto w-full max-w-4xl transition-all duration-500 ease-in-out">
                         
-                        {/* CABECERA DE TAREAS + BOTÓN MODO FOCO */}
+                        {/* TASKS HEADER + FOCUS MODE BUTTON */}
                         <div className="mb-6 flex justify-between items-start">
                             <div>
                                 <h1 className="text-3xl font-bold text-gray-800">{ getGreeting(username) }</h1>
@@ -469,7 +467,7 @@ const DashboardPage = () => {
                     </div>
                 </div>
 
-                {/* --- BLOQUE 3: PANEL DE RENDIMIENTO CON HEATMAP (SOLO EN MODO FOCO) --- */}
+                {/* --- BLOCK 3: PERFORMANCE PANEL WITH HEATMAP (ONLY IN FOCUS MODE) --- */}
                 <div className={`transition-all duration-500 ease-in-out flex flex-col overflow-hidden shrink-0 ${
                     showCalendar ? "w-0 opacity-0 ml-0" : "w-[350px] opacity-100 ml-4" 
                 }`}>
@@ -485,12 +483,11 @@ const DashboardPage = () => {
                             </div>
                         </div>
                         
-                        {/* Tu componente original del Heatmap reaparece aquí */}
                         <div className="flex-1">
                             <ProgressHeatmap />
                         </div>
 
-                        {/* Bloque motivacional */}
+                        {/* Motivational block */}
                         <div className="mt-8 p-5 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-100/50 shadow-sm shrink-0">
                             <h4 className="text-green-800 font-bold text-sm mb-2 flex items-center gap-2">
                                 <Check size={16} /> 

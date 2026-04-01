@@ -1,13 +1,13 @@
-import { useState, useEffect, memo } from "react"; // <-- Añadido 'memo' aquí
+import { useState, useEffect, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { login } from "../api/authApi";
-import { Check, CheckSquare } from "lucide-react"; 
+import { Check } from "lucide-react"; 
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
 import { PageTransition } from "../components/PageTransition";
 
-// --- NUEVO: Extraemos las partículas a un componente inmutable ---
-// Al usar memo(), React solo lo dibujará 1 vez y no lo recargará al escribir
+// --- We extract the particles to an immutable component ---
+// By using memo(), React will only draw it 1 time and will not reload it when writing
 const BackgroundParticles = memo(({ init }: { init: boolean }) => {
     if (!init) return null;
     
@@ -21,12 +21,12 @@ const BackgroundParticles = memo(({ init }: { init: boolean }) => {
                 },
                 fpsLimit: 120,
                 particles: {
-                    color: { value: "#9ca3af" }, // <-- Gris suave
+                    color: { value: "#9ca3af" }, // <-- Soft gray
                     links: {
-                        color: "#9ca3af",      // <-- Enlaces gris suave
+                        color: "#9ca3af",      // <-- Soft gray links
                         distance: 150,
                         enable: true,
-                        opacity: 0.2,          // <-- Más transparente para que no moleste
+                        opacity: 0.2,          // <-- More transparent so it doesn't bother
                         width: 1,
                     },
                     move: {
@@ -34,12 +34,12 @@ const BackgroundParticles = memo(({ init }: { init: boolean }) => {
                         enable: true,
                         outModes: { default: "bounce" },
                         random: false,
-                        speed: 1.0,            // <-- Un poco más lentas y relajantes
+                        speed: 1.0,            // <-- A bit slower and more relaxing
                         straight: false,
                     },
                     number: {
                         density: { enable: true, area: 800 },
-                        value: 60,             // <-- Un poco menos densas
+                        value: 60,             // <-- A bit less dense
                     },
                     opacity: { value: 0.3 },
                     shape: { type: "circle" },
@@ -97,7 +97,6 @@ const LoginPage = () => {
         <PageTransition>
             <div className="relative min-h-screen flex items-center justify-center bg-[#e3e7e2] overflow-hidden p-4">
             
-            {/* Usamos el nuevo componente memoizado */}
             <BackgroundParticles init={init} />
 
             <div className="relative z-10 bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
@@ -106,19 +105,19 @@ const LoginPage = () => {
                     
                     <div className="flex items-center justify-center gap-4">
                         
-                        {/* El cuadrado rojo con el check blanco */}
+                        {/* The red square with the white check */}
                         <div className="bg-[#cc2229] w-[52px] h-[52px] rounded-[14px] flex items-center justify-center shadow-sm flex-shrink-0">
                             <Check size={36} strokeWidth={4} className="text-white" />
                         </div>
                         
-                        {/* BLOQUE DE TEXTO: w-max hace que el ancho lo marque "REDCHECK" */}
+                        {/* TEXT BLOCK: w-max makes the width marked by "REDCHECK" */}
                         <div className="flex flex-col justify-center w-max">
                             
                             <span className="text-[34px] font-black text-gray-900 leading-none tracking-tight">
                                 REDCHECK
                             </span>
                             
-                            {/* flex justify-between empuja la primera palabra a la izquierda y la última a la derecha */}
+                            {/* flex justify-between pushes the first word to the left and the last to the right */}
                             <div className="flex justify-between w-full text-[11px] font-bold text-gray-800 mt-1.5 tracking-wide">
                                 <span>Agenda</span>
                                 <span>Inteligente</span>

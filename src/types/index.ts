@@ -69,11 +69,11 @@ export interface RecurringTaskResponse {
     subjectId: number
 }
 
-// Definimos la estructura exacta que nos mandará el backend
+// We define the exact structure that the backend will send us
 export interface SubjectStat {
     id: number | string;
     name: string;
     percent: number;
-    colorClass: string;       // Ej: "bg-red-500"
-    hoverTextClass: string;   // Ej: "group-hover:text-red-600"
+    colorClass: string;       // Ex: "bg-red-500"
+    hoverTextClass: string;   // Ex: "group-hover:text-red-600"
 }

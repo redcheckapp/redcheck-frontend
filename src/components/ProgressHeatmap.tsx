@@ -49,7 +49,7 @@ export const ProgressHeatmap = () => {
         return d;
     });
 
-    // --- NUEVO: Agrupamos en semanas para pintar los meses ---
+    // We group by weeks to paint the months
     const weeks = [];
     for (let i = 0; i < dateArray.length; i += 7) {
         weeks.push(dateArray.slice(i, i + 7));
@@ -96,25 +96,25 @@ export const ProgressHeatmap = () => {
                     </div>
                 </div>
 
-                {/* Wrapper para el Header de Meses + Cuadrícula */}
+                {/* Wrapper for the Months Header + Grid */}
                 <div className="flex flex-col gap-1.5">
                     
-                    {/* --- HEADER DE MESES --- */}
+                    {/* --- MONTHS HEADER --- */}
                     <div className="flex gap-1 text-[10px] text-gray-400 font-medium h-3">
                         {weeks.map((week, idx) => {
                             const currentMonth = week[0].getMonth();
                             let showMonth = false;
                             
                             if (idx === 0) {
-                                // En la primera columna, enseñamos el mes solo si no está a punto de acabar
+                                // In the first column, we show the month only if it's not about to end
                                 showMonth = week[0].getDate() <= 20;
                             } else {
-                                // Enseñamos el mes si ha cambiado respecto a la semana anterior
+                                // We show the month if it has changed compared to the previous week
                                 const prevMonth = weeks[idx - 1][0].getMonth();
                                 showMonth = currentMonth !== prevMonth;
                             }
 
-                            // Formateamos para que salga bonito ("Ene", "Feb", etc.) sin puntos
+                            // We format it to look nice ("Jan", "Feb", etc.) without dots
                             let monthName = "";
                             if (showMonth) {
                                 const rawMonth = week[0].toLocaleDateString("es-ES", { month: "short" }).replace('.', '');
@@ -133,7 +133,7 @@ export const ProgressHeatmap = () => {
                         })}
                     </div>
 
-                    {/* --- CUADRÍCULA DEL HEATMAP --- */}
+                    {/* --- HEATMAP GRID --- */}
                     <div className="grid grid-rows-7 grid-flow-col gap-1">
                         {dateArray.map((date, idx) => {
                             const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -163,7 +163,7 @@ export const ProgressHeatmap = () => {
                 </div>
             </div>
 
-            {/* TOOLTIP FLOTANTE */}
+            {/* FLOATING TOOLTIP */}
             {tooltip.show && (
                 <div 
                     className="fixed z-[100] px-3 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-lg shadow-xl pointer-events-none transform -translate-x-1/2 -translate-y-full transition-opacity duration-150 animate-in fade-in"

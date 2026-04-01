@@ -29,25 +29,25 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
         style={{ maxHeight: '88vh' }}
       >
 
-        {/* ── CABECERA ── */}
+        {/* ── HEADER ── */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4">
-          {/* Badge de riesgo */}
+          {/* Risk badge */}
           <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${risk.className}`}>
             Riesgo: {risk.label}
           </span>
         </div>
 
-        {/* ── TÍTULO CENTRADO ── */}
+        {/* ── CENTERED TITLE ── */}
         <div className="text-center px-6 pb-4">
           <h2 className="text-2xl font-bold text-zinc-900 tracking-tight">
             Plan Diario SmartCheck 🧠
           </h2>
         </div>
 
-        {/* ── CUERPO ── */}
+        {/* ── BODY ── */}
         <div className="overflow-y-auto flex-1 px-6 pb-6 flex flex-col gap-5">
 
-          {/* Mensaje de apoyo */}
+          {/* Support message */}
           <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex gap-3 items-start">
             <span className="text-lg leading-none mt-0.5">🧠</span>
             <p className="text-sm text-blue-800 font-medium leading-relaxed m-0">
@@ -55,12 +55,12 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
             </p>
           </div>
 
-          {/* Subtítulo sección */}
+          {/* Section subtitle */}
           <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest m-0">
             Tu estrategia para hoy
           </h3>
 
-          {/* Tarjetas de tareas */}
+          {/* Task cards */}
           <div className="flex flex-col gap-3">
             {aiData.planDeHoy
               ?.sort((a: any, b: any) => a.ordenDefinido - b.ordenDefinido)
@@ -84,12 +84,12 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
                     key={itemIA.id}
                     className="flex gap-4 items-start bg-zinc-50 border border-zinc-200 rounded-xl p-4"
                   >
-                    {/* Número */}
+                    {/* Number */}
                     <div className="shrink-0 w-8 h-8 rounded-full bg-zinc-900 text-white text-sm font-bold flex items-center justify-center">
                       {itemIA.ordenDefinido}
                     </div>
 
-                    {/* Contenido */}
+                    {/* Content */}
                     <div className="flex flex-col gap-1 flex-1 min-w-0">
                       <p className="text-sm font-bold text-zinc-900 m-0 leading-snug">
                         {tareaReal.title}
@@ -98,7 +98,7 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
                         Asignatura: {nombreAsignatura}
                       </p>
 
-                      {/* Razón de prioridad */}
+                      {/* Priority reason */}
                       <div className="mt-2 bg-white border border-zinc-100 rounded-lg px-3 py-2">
                         <p className="text-xs text-zinc-500 italic m-0 leading-relaxed">
                           ✨ {itemIA.razonPrioridad}
@@ -111,7 +111,7 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
           </div>
         </div>
 
-        {/* ── PIE ── */}
+        {/* ── FOOTER ── */}
         <div className="px-6 py-4 border-t border-zinc-100 bg-zinc-50">
           <button
             onClick={onClose}

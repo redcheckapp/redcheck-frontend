@@ -10,7 +10,6 @@ interface TaskItemProps {
     handleToggleTask: (subjectId: number, taskId: number) => void;
     handleDeleteTask: (subjectId: number, taskId: number) => void;
     
-    // Props para el formulario de edición
     setOpenFormSubjectIdTaskId: (val: { subjectId: number; taskId: number } | null) => void;
     openFormSubjectIdTaskId: { subjectId: number; taskId: number } | null;
     handleUpdateTask: (e: React.FormEvent, subjectId: number, taskId: number) => void;
@@ -24,7 +23,7 @@ interface TaskItemProps {
     isDeleting?: boolean;
 }
 
-    // Función que formatea la fecha y le da diseño de "burbuja" según la cercanía
+    // Function that formats the date and gives it a "bubble" design according to proximity
     const renderDeadline = (deadlineStr: string | null, isCompleted: boolean) => {
         if (!deadlineStr) return "Sin fecha límite";
 
@@ -44,7 +43,7 @@ interface TaskItemProps {
 
         const timeStr = deadlineDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
 
-        // Si la tarea NO está completada, aplicamos las burbujas de colores
+        // If the task is NOT completed, we apply the color bubbles
         if (!isCompleted) {
             if (taskDate.getTime() === today.getTime()) {
                 return (
@@ -78,7 +77,7 @@ interface TaskItemProps {
             }
         }
 
-        // Formato por defecto (lejanas o completadas) sin puntito ni fondo
+        // Default format (distant or completed) without dot or background
         return (
             <span>
                 {deadlineDate.toLocaleString("es-ES", { 
@@ -97,10 +96,10 @@ export const TaskItem = ({
     return (
         <div className={`flex flex-col w-full transition-all duration-500 ease-in-out origin-top overflow-hidden ${
             isDeleting 
-                ? "opacity-0 scale-95 max-h-0 !mb-[-0.5rem] border-transparent" // Se encoge y desaparece
-                : "opacity-100 scale-100 max-h-[1000px]" // Estado normal
+                ? "opacity-0 scale-95 max-h-0 !mb-[-0.5rem] border-transparent" // It shrinks and disappears
+                : "opacity-100 scale-100 max-h-[1000px]" // Normal state
         }`}>
-            {/* Fila principal de la tarea */}
+            {/* Main task row */}
             <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition group">
 
                 {/* Checkbox */}
@@ -114,7 +113,7 @@ export const TaskItem = ({
                     {task.completed && <Check size={12} color="white" />}
                 </button>
 
-                {/* Título y deadline */}
+                {/* Title and deadline */}
                 <div className="flex-1">
                     <p className={`text-sm font-medium transition
                         ${task.completed
@@ -135,15 +134,15 @@ export const TaskItem = ({
                     </p>
                 </div>
 
-                {/* Botones de acción */}
+                {/* Action buttons */}
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <button type="button" 
                         className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition"
                         onClick={() => { 
-                            // 1. Abrimos el cajón (lo que ya tenías)
+                            // 1. We open the drawer
                             setOpenFormSubjectIdTaskId({subjectId: subjectId, taskId: task.id}); 
                             
-                            // 2. Arreglamos el formato de la fecha para el HTML
+                            // 2. We fix the date format for HTML
                             let formattedDate = "";
                             if (task.deadline) {
                                 const d = new Date(task.deadline);
@@ -151,7 +150,7 @@ export const TaskItem = ({
                                 formattedDate = d.toISOString().slice(0, 16);
                             }
 
-                            // 3. Metemos los datos de ESTA tarea en el formulario
+                            // 3. We put the data of THIS task in the form
                             setUpdatedTask({
                                 title: task.title,
                                 description: task.description || "",
@@ -173,7 +172,7 @@ export const TaskItem = ({
                 </div>
             </div>
 
-            {/* Formulario de edición de tarea */}
+            {/* Task editing form */}
             <AnimatedVisibility isVisible={openFormSubjectIdTaskId?.subjectId === subjectId && openFormSubjectIdTaskId?.taskId === task.id}>
                 <form onSubmit={(e) => handleUpdateTask(e, subjectId, task.id)}
                     className="flex flex-col gap-4 mt-2 mb-4 ml-10 p-5 bg-white border border-gray-100 rounded-2xl shadow-sm">
@@ -194,7 +193,7 @@ export const TaskItem = ({
                             />
                         </div>
 
-                        {/* Fila compacta para Descripción y Fecha */}
+                        {/* Compact row for Description and Date */}
                         <div className="flex flex-col sm:flex-row gap-3">
                             <div className="flex-1 flex flex-col gap-1.5">
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Descripción</label>

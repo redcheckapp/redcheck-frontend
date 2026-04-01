@@ -63,7 +63,6 @@ export const SubjectSection = ({
 
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
     
-    // 💡 SOLUCIÓN: Sacamos la variable aquí arriba para que todo el componente la vea
     const normalTasks = subject.tasks.filter((task) => !task.overdue);
 
     return (
@@ -105,7 +104,6 @@ export const SubjectSection = ({
             </AnimatedVisibility>
 
             <div className="flex flex-col gap-2">
-                {/* 💡 Ahora usamos la variable directamente */}
                 {normalTasks.length === 0 ? (
                     <p className="text-[13px] text-gray-400 font-medium italic mb-1 pl-1">
                         No hay tareas pendientes para hoy.
@@ -131,7 +129,7 @@ export const SubjectSection = ({
                     ))
                 )}
 
-                {/* Botón oculto que "crece" animando su altura desde 0 */}
+                {/* Hidden button that "grows" by animating its height from 0 */}
                 <div className={`grid transition-all duration-300 ease-in-out opacity-0 focus-within:opacity-100 ${
                     openFormSubjectId === subject.id || normalTasks.length === 0 
                         ? 'grid-rows-[1fr] opacity-100' 

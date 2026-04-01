@@ -32,7 +32,7 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                 });
                 setRecords(recordMap);
             } catch (error) {
-                console.error("Error al cargar el heatmap:", error);
+                console.error("Error loading the heatmap:", error);
             } finally {
                 setLoadingRecords(false);
             }
@@ -130,7 +130,7 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
     return (
         <div className="flex-1 flex flex-col h-full bg-[#e3e7e2] p-8 overflow-hidden">
             
-            {/* --- CABECERA --- */}
+            {/* --- HEADER --- */}
             <div className="flex items-center justify-between mb-8 shrink-0">
                 <div className="flex items-center gap-4">
                     <h1 className="text-3xl font-black text-gray-900 tracking-tight capitalize min-w-[280px]">
@@ -157,7 +157,7 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                 </div>
             </div>
 
-            {/* --- ÁREA DE LA CUADRÍCULA --- */}
+            {/* --- GRID AREA --- */}
             <div className="flex-1 bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden flex flex-col relative">
                 
                 {loadingRecords && (
@@ -166,7 +166,7 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                     </div>
                 )}
 
-                {/* --- VISTA: MES --- */}
+                {/* --- VIEW: MONTH --- */}
                 {view === "month" && (
                     <>
                         <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50/50 shrink-0">
@@ -191,7 +191,6 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
 
                                 const record = records[cellDateString];
 
-                                // 💡 COMENTARIO CORREGIDO A JS NORMAL
                                 return (
                                     <div key={i} onClick={() => { setCurrentDate(cellDateObj); setView("day"); }} className={`${bgColorClass} p-2 flex flex-col transition-colors hover:brightness-95 cursor-pointer relative group ${isToday ? "z-10" : ""}`}>
                                         <div className="flex justify-between items-start mb-1">
@@ -214,7 +213,7 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                     </>
                 )}
 
-                {/* --- VISTA: SEMANA --- */}
+                {/* --- VIEW: WEEK --- */}
                 {view === "week" && (
                     <div className="flex-1 flex flex-col">
                         <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50/50 shrink-0">
@@ -254,7 +253,7 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                     </div>
                 )}
 
-                {/* --- VISTA: DÍA --- */}
+                {/* --- VIEW: DAY --- */}
                 {view === "day" && (
                     <div className="flex-1 flex overflow-hidden">
                         

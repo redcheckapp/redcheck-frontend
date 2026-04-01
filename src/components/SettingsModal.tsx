@@ -12,16 +12,16 @@ interface SettingsModalProps {
 export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject, handleDeleteAccount }: SettingsModalProps) => {
     if (!isOpen) return null;
 
-    // Filtramos para quedarnos SOLO con las asignaturas archivadas
+    // We filter to keep ONLY the archived subjects
     const archivedSubjects = subjects.filter(subject => subject.archived);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 transition-all">
             
-            {/* Contenedor del modal con animación de entrada */}
+            {/* Modal container with entry animation */}
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                 
-                {/* Cabecera */}
+                {/* Header */}
                 <div className="flex justify-between items-center p-5 border-b border-gray-100">
                     <h2 className="text-xl font-bold text-gray-800">Ajustes</h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition rounded-lg p-1 hover:bg-gray-100">
@@ -29,10 +29,10 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
                     </button>
                 </div>
 
-                {/* Contenido */}
+                {/* Content */}
                 <div className="p-5 flex flex-col gap-6 max-h-[60vh] overflow-y-auto">
                     
-                    {/* Sección 1: Asignaturas Archivadas */}
+                    {/* Section 1: Archived Subjects */}
                     <div className="flex flex-col gap-3">
                         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Asignaturas Archivadas</h3>
                         
@@ -43,7 +43,6 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
                                 {archivedSubjects.map(subject => (
                                     <div key={subject.id} className="flex justify-between items-center p-3 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition">
                                         <div>
-                                            {/* Aquí le hemos quitado el "line-through" y oscurecido un poco el texto */}
                                             <p className="text-sm font-medium text-gray-700">
                                                 {subject.name}
                                             </p>
@@ -61,7 +60,7 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
                         )}
                     </div>
 
-                    {/* Sección 2: Zona de peligro */}
+                    {/* Section 2: Danger Zone */}
                     <div className="flex flex-col gap-3 pt-4 border-t border-gray-100">
                         <h3 className="text-sm font-semibold text-red-500 uppercase tracking-wider">Zona de peligro</h3>
                         <p className="text-xs text-gray-500">Esta acción es irreversible. Se borrarán todos tus datos y tareas.</p>

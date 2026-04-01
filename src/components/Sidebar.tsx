@@ -2,25 +2,22 @@ import { LogOut, Settings, Bell, Check, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import type { SubjectStat, SubjectWithTasks } from "../types";
-import { ProgressHeatmap } from "./ProgressHeatmap";
 import { SmartCheckButton } from "./SmartCheckButton";
 import { SubjectBalance } from "./SubjectBalance";
 
-// AÑADIMOS LAS DOS NUEVAS PROPS DE LA IA AQUÍ:
 interface SidebarProps {
     sidebarOpen: boolean;
     setSidebarOpen: (isOpen: boolean) => void;
     totalPending: number;
     subjects: SubjectWithTasks[];
     onOpenSettings: () => void;
-    onAiPlanClick: () => void;     // <-- Nueva prop
-    isAiLoading: boolean;          // <-- Nueva prop
-    aiNotificationReady: boolean;  // <-- nuevo (viene de Dashboard)
+    onAiPlanClick: () => void;
+    isAiLoading: boolean;
+    aiNotificationReady: boolean;
     onOpenAiModal: () => void;
     subjectStats: SubjectStat[];
 }
 
-// LAS RECIBIMOS AQUÍ:
 export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, onOpenSettings, onAiPlanClick, isAiLoading, aiNotificationReady, onOpenAiModal, subjectStats }: SidebarProps) => {
     const navigate = useNavigate();
     const [showNotifications, setShowNotifications] = useState(false);
@@ -34,7 +31,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
         <div className={`relative z-20 transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[280px] overflow-visible" : "w-20 overflow-hidden"}
             rounded-2xl bg-gray-50 shadow-md p-5 flex flex-col`}>
 
-            {/* --- CABECERA --- */}
+            {/* --- HEADER --- */}
             <div className="flex items-center mb-8 w-[240px] shrink-0">
                 <button
                     onClick={() => {
@@ -102,10 +99,10 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                 </div>
             </div>
 
-            {/* --- ZONA CENTRAL --- */}
+            {/* --- CENTRAL ZONE --- */}
             <div className="flex-1 flex flex-col items-center w-full overflow-y-auto overflow-x-hidden pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
 
-                {/* Progreso del día */}
+                {/* Daily progress */}
                 <div className={`relative transition-all duration-300 ease-in-out shrink-0 mb-5 ${sidebarOpen ? "w-24 h-24" : "w-10 h-10"}`}>
                     <svg viewBox="0 0 96 96" className="w-full h-full transform -rotate-90">
                         <circle cx="48" cy="48" r="36" stroke="#c3e0ce" strokeWidth="8" fill="#eaf6ed" />
@@ -119,14 +116,11 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                     </div>
                 </div>
     
-
-                {/* AQUÍ INYECTAMOS NUESTRO NUEVO COMPONENTE */}
                 <SubjectBalance 
                     sidebarOpen={sidebarOpen} 
                     setSidebarOpen={setSidebarOpen}
                     stats={subjectStats} 
                 />
-
 
                 {/* SmartCheck AI */}
                 <div 
@@ -134,7 +128,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                     className="flex flex-col items-center text-center opacity-80 hover:opacity-100 transition-all duration-300 ease-in-out cursor-pointer group mt-4 mb-2 w-full select-none" 
                     title="SmartCheck AI"
                 >
-                    {/* Estructura limpia e idéntica a tu Activity Icon */}
+                    {/* Clean structure identical to your Activity Icon */}
                     <div className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-300 shrink-0 ${
                         sidebarOpen 
                             ? "bg-red-50 text-red-600 shadow-sm" 
@@ -161,24 +155,23 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                     </div>
                 </div>
 
-                {/* --- BOTONES DE LA IA --- */}
+                {/* --- AI BUTTONS --- */}
                 <div className={`
                         flex flex-col space-y-3 px-4 overflow-hidden w-full shrink-0
                         transition-all duration-500 ease-out
                         ${sidebarOpen 
-                            // Cambiamos max-h-96 por max-h-[800px] y añadimos pb-4 para la sombra
                             ? 'max-h-[800px] opacity-100 translate-y-0 mt-6 pb-4' 
                             : 'max-h-0 opacity-0 translate-y-4 mt-0 pointer-events-none'
                         }
                     `}>
   
-                {/* CONECTAMOS EL BOTÓN AQUÍ */}
+                {/* We connect the button here */}
                 <SmartCheckButton
                     icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>}
                     title="Análisis Diario de Tareas"
-                    // Cambiamos el subtítulo si está pensando la IA
+                    // We change the subtitle if the AI is thinking
                     subtitle={isAiLoading ? "Consultando a SmartCheck..." : "Genera un resumen de tus prioridades para hoy."}
-                    // Le asignamos la función que viene del DashboardPage
+                    // We assign the function that comes from the DashboardPage
                     onClick={onAiPlanClick}
                 />
 
@@ -192,7 +185,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                     
             </div>
 
-            {/* --- PIE DE PÁGINA --- */}
+            {/* --- FOOTER --- */}
             <div className={`mt-auto flex flex-col gap-1 w-full pt-4 transition-all duration-300 ease-in-out ${sidebarOpen ? "border-t border-gray-200" : "border-transparent"}`}>
                 <button onClick={onOpenSettings} className="flex items-center p-2 rounded-xl text-gray-500 hover:text-gray-800 hover:bg-gray-200 transition-colors w-full" title="Ajustes">
                     <div className="flex items-center justify-center shrink-0 w-6 h-6">

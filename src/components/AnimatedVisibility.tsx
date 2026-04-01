@@ -6,14 +6,13 @@ interface AnimatedVisibilityProps {
 }
 
 export const AnimatedVisibility = ({ isVisible, children }: AnimatedVisibilityProps) => {
-    // Guardamos la prop anterior para saber si ha cambiado en este render
+    // We save the previous prop to know if it has changed in this render
     const [prevIsVisible, setPrevIsVisible] = useState(isVisible);
     
     const [shouldRender, setShouldRender] = useState(isVisible);
     const [isClosing, setIsClosing] = useState(false);
 
-    // PATRÓN RECOMENDADO POR REACT: Derivar estado durante el renderizado.
-    // Si la prop 'isVisible' acaba de cambiar, ajustamos los estados directamente aquí.
+    // If the 'isVisible' prop has just changed, we adjust the states directly here.
     if (isVisible !== prevIsVisible) {
         setPrevIsVisible(isVisible);
         
@@ -25,19 +24,18 @@ export const AnimatedVisibility = ({ isVisible, children }: AnimatedVisibilityPr
         }
     }
 
-    // El useEffect AHORA solo tiene una responsabilidad: 
-    // gestionar el "temporizador" de salida para destruir el HTML.
+    // useEffect manages the exit "timer" to destroy the HTML
     useEffect(() => {
         if (!isVisible && shouldRender) {
             const timer = setTimeout(() => {
                 setShouldRender(false);
-            }, 200); // 200ms = lo que dura la animación CSS
+            }, 200); // 200ms = duration of the CSS animation
             
             return () => clearTimeout(timer);
         }
     }, [isVisible, shouldRender]);
 
-    // Si no debe renderizarse, devolvemos nada
+    // If it should not be rendered, we return nothing
     if (!shouldRender) return null;
 
     return (

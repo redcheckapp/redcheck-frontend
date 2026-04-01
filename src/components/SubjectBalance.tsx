@@ -1,22 +1,21 @@
 import { PieChart } from "lucide-react";
 import type { SubjectStat } from "../types";
 
-// Actualizamos las props para recibir los datos reales
 interface SubjectBalanceProps {
     sidebarOpen: boolean;
     setSidebarOpen: (open: boolean) => void;
-    stats: SubjectStat[]; // Aquí recibimos la información del backend
+    stats: SubjectStat[];
 }
 
 export const SubjectBalance = ({ sidebarOpen, setSidebarOpen, stats }: SubjectBalanceProps) => {
     
-    // Si no hay datos (ej. usuario nuevo o cargando), mostramos un estado vacío elegante
+    // If there is no data (for example, new user or loading), we show an elegant empty state
     const isEmpty = !stats || stats.length === 0;
 
     return (
         <div className="flex flex-col items-center w-full transition-all duration-500 ease-in-out shrink-0 mb-4 mt-2">
             
-            {/* --- VISTA CERRADA (Icono interactivo) --- */}
+            {/* --- CLOSED VIEW (Interactive icon) --- */}
             <div className={`transition-all duration-300 ease-in-out flex justify-center overflow-hidden w-full ${!sidebarOpen ? "max-h-[50px] opacity-100" : "max-h-0 opacity-0 hidden"}`}>
                 <div 
                     onClick={() => setSidebarOpen(true)} 
@@ -27,7 +26,7 @@ export const SubjectBalance = ({ sidebarOpen, setSidebarOpen, stats }: SubjectBa
                 </div>
             </div>
 
-            {/* --- VISTA ABIERTA (Gráfico de barras) --- */}
+            {/* --- OPEN VIEW (Bar chart) --- */}
             <div className={`w-full transition-all duration-500 ease-in-out overflow-hidden flex flex-col ${sidebarOpen ? "max-h-[250px] opacity-100" : "max-h-0 opacity-0"}`}>
                 
                 <div className="flex items-center justify-between mb-4 px-5">
