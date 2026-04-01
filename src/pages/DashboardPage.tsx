@@ -349,8 +349,14 @@ const DashboardPage = () => {
                             <div>
                                 <h1 className="text-3xl font-bold text-gray-800">{ getGreeting(username) }</h1>
                                 <p className="text-gray-400 mt-1 capitalize">{today}</p>
-                                <p className="text-sm text-gray-500 mt-1">
-                                    {totalPending === 0 ? `¡No tienes tareas pendientes hoy! ${Coffee}` : ``}
+                                <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                                    {totalPending === 0 ? (
+                                        <>
+                                            ¡No tienes tareas pendientes hoy! <Coffee size={16} />
+                                        </>
+                                    ) : (
+                                        <span>&nbsp;</span>
+                                    )}
                                 </p>
                             </div>
 
