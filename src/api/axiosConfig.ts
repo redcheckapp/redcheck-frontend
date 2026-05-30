@@ -1,7 +1,8 @@
 import axios from "axios";
 
 const api = axios.create({
-    baseURL: "http://localhost:8080"
+    // Vite reemplazará esto por tu IP/Dominio en tiempo de compilación
+    baseURL: import.meta.env.VITE_API_URL
 });
 
 api.interceptors.request.use(config => {

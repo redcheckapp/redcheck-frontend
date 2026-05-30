@@ -1,9 +1,8 @@
-import axios from "axios";
+import api from "./axiosConfig"; // Importamos la instancia configurada
 import type { AuthResponse, LoginForm } from "../types";
 
-const API_URL = "http://localhost:8080";
-
 export const login = async (form : LoginForm): Promise<AuthResponse> => {
-    const response = await axios.post(`${API_URL}/auth/login`, form);
+    // La URL base y los interceptores se aplican automáticamente
+    const response = await api.post('/auth/login', form);
     return response.data;
 };
