@@ -203,7 +203,7 @@ const LoginPage = () => {
                             disabled={loading}
                             className="w-full bg-emerald-600 text-white py-3 rounded-xl font-medium hover:bg-emerald-700 transition-all shadow-sm hover:shadow disabled:opacity-50 flex items-center justify-center gap-2"
                         >
-                            🚀 Acceso Rápido (Reclutadores)
+                            🚀 Acceso Rápido (Demo)
                         </button>
 
                 </form>
