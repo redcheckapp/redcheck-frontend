@@ -93,6 +93,28 @@ const LoginPage = () => {
         }
     };
 
+    // --- NUEVA FUNCIÓN PARA EL LOGIN DE DEMO ---
+    const handleDemoLogin = async (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        setError(null);
+        setLoading(true);
+
+        // Opcional: Rellenamos visualmente los campos por si el usuario se fija
+        setForm({ email: "demo@redcheck.com", password: "demo1234" });
+
+        try {
+            // Pasamos el objeto directamente a la API para evitar retrasos asíncronos del setForm
+            const response = await login({ email: "demo@redcheck.com", password: "demo1234" });
+            localStorage.setItem("token", response.token); 
+            navigate("/dashboard");
+        } catch(err) {
+            setError("Error al acceder a la cuenta de demostración. Asegúrate de que el backend la ha inicializado.");
+        } finally {
+            setLoading(false);
+        }
+    };
+    // -------------------------------------------
+
     return (
         <PageTransition>
             <div className="relative min-h-screen flex items-center justify-center bg-[#e3e7e2] overflow-hidden p-4">
@@ -173,6 +195,16 @@ const LoginPage = () => {
                     >
                         {loading ? "Cargando..." : "Entrar a RedCheck"}
                     </button>
+
+                    {/* --- NUEVO BOTÓN DEMO --- */}
+                        <button
+                            type="button"
+                            onClick={handleDemoLogin}
+                            disabled={loading}
+                            className="w-full bg-emerald-600 text-white py-3 rounded-xl font-medium hover:bg-emerald-700 transition-all shadow-sm hover:shadow disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                            🚀 Acceso Rápido (Reclutadores)
+                        </button>
 
                 </form>
 
