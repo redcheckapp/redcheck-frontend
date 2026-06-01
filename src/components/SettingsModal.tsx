@@ -7,9 +7,10 @@ interface SettingsModalProps {
     subjects: SubjectWithTasks[];
     handleArchiveSubject: (id: number) => void;
     handleDeleteAccount: () => void; 
+    userEmail: string;
 }
 
-export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject, handleDeleteAccount }: SettingsModalProps) => {
+export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject, handleDeleteAccount, userEmail }: SettingsModalProps) => {
     if (!isOpen) return null;
 
     // We filter to keep ONLY the archived subjects
@@ -63,14 +64,32 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
                     {/* Section 2: Danger Zone */}
                     <div className="flex flex-col gap-3 pt-4 border-t border-gray-100">
                         <h3 className="text-sm font-semibold text-red-500 uppercase tracking-wider">Zona de peligro</h3>
-                        <p className="text-xs text-gray-500">Esta acción es irreversible. Se borrarán todos tus datos y tareas.</p>
-                        <button 
-                            onClick={handleDeleteAccount}
-                            className="flex justify-center items-center gap-2 w-full p-3 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition font-medium text-sm"
-                        >
-                            <Trash2 size={16} />
-                            Borrar cuenta
-                        </button>
+                        
+                        {userEmail === 'demo@redcheck.com' ? (
+                            <>
+                                <p className="text-xs text-gray-500">
+                                    Por motivos de seguridad, la eliminación de cuenta está desactivada en el entorno de demostración.
+                                </p>
+                                <button 
+                                    disabled
+                                    className="flex justify-center items-center gap-2 w-full p-3 rounded-xl bg-gray-100 text-gray-400 cursor-not-allowed font-medium text-sm transition"
+                                >
+                                    <Trash2 size={16} />
+                                    Borrar cuenta (Deshabilitado)
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-xs text-gray-500">Esta acción es irreversible. Se borrarán todos tus datos y tareas.</p>
+                                <button 
+                                    onClick={handleDeleteAccount}
+                                    className="flex justify-center items-center gap-2 w-full p-3 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition font-medium text-sm"
+                                >
+                                    <Trash2 size={16} />
+                                    Borrar cuenta
+                                </button>
+                            </>
+                        )}
                     </div>
 
                 </div>

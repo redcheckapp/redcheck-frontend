@@ -35,6 +35,7 @@ const DashboardPage = () => {
     const [deletingSubjects, setDeletingSubjects] = useState<number[]>([]);
     const [deletingTasks, setDeletingTasks] = useState<number[]>([]);
     const [username, setUsername] = useState("");
+    const [userEmail, setUserEmail] = useState("");
     const [updatedSubject, setUpdatedSubject] = useState({ name: "", description: "" });
     const [newTask, setNewTask] = useState({ title: "", description: "", deadline: "", recurrence: "NONE" });
     const [updatedTask, setUpdatedTask] = useState({ title: "", description: "", deadline: "" });
@@ -212,6 +213,7 @@ const DashboardPage = () => {
             try {
                 const profile = await getUsername();
                 setUsername(profile.username);
+                setUserEmail(profile.email);
                 
                 const subjectsData = await getSubjects();
                 const subjectsWithTasks = await Promise.all(
@@ -512,6 +514,7 @@ const DashboardPage = () => {
                     subjects={subjects}
                     handleArchiveSubject={handleArchiveSubject}
                     handleDeleteAccount={handleDeleteAccount}
+                    userEmail={userEmail}
                 />
 
                 <SmartCheckModal 
