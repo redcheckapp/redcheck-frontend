@@ -1,4 +1,4 @@
-import { LogOut, Settings, Bell, Check, Sparkles } from "lucide-react";
+import { LogOut, Settings, Bell, Check, Sparkles, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import type { SubjectStat, SubjectWithTasks } from "../types";
@@ -16,9 +16,26 @@ interface SidebarProps {
     aiNotificationReady: boolean;
     onOpenAiModal: () => void;
     subjectStats: SubjectStat[];
+    showTrash: boolean;
+    onOpenTrash: () => void;
+    onGoHome: () => void;
 }
 
-export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, onOpenSettings, onAiPlanClick, isAiLoading, aiNotificationReady, onOpenAiModal, subjectStats }: SidebarProps) => {
+export const Sidebar = ({ 
+    sidebarOpen, 
+    setSidebarOpen, 
+    totalPending, 
+    subjects, 
+    onOpenSettings, 
+    onAiPlanClick, 
+    isAiLoading, 
+    aiNotificationReady, 
+    onOpenAiModal, 
+    subjectStats,
+    showTrash,
+    onOpenTrash,
+    onGoHome 
+}: SidebarProps) => {
     const navigate = useNavigate();
     const [showNotifications, setShowNotifications] = useState(false);
 
@@ -46,7 +63,12 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                     </div>
                 </button>
                 
-                <div className={`flex items-center overflow-hidden transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[150px] opacity-100 ml-2" : "w-0 opacity-0 ml-0"}`}>
+                {/* Haciendo el logo clicable para volver al Dashboard */}
+                <div 
+                    onClick={onGoHome}
+                    className={`flex items-center overflow-hidden cursor-pointer hover:opacity-80 transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[150px] opacity-100 ml-2" : "w-0 opacity-0 ml-0"}`}
+                    title="Ir al inicio"
+                >
                     <span className="text-[22px] font-black text-gray-900 tracking-tight leading-none mt-1">
                         REDCHECK
                     </span>
@@ -128,13 +150,11 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                     className="flex flex-col items-center text-center opacity-80 hover:opacity-100 transition-all duration-300 ease-in-out cursor-pointer group mt-4 mb-2 w-full select-none" 
                     title="SmartCheck AI"
                 >
-                    {/* Clean structure identical to your Activity Icon */}
                     <div className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-300 shrink-0 ${
                         sidebarOpen 
                             ? "bg-red-50 text-red-600 shadow-sm" 
                             : "bg-transparent text-gray-400 group-hover:bg-red-50 group-hover:text-red-600 group-hover:shadow-sm"
                     }`}>
-                        
                         <Sparkles 
                             size={22} 
                             strokeWidth={1.5} 
@@ -142,7 +162,6 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                                 sidebarOpen ? "scale-110" : "group-hover:scale-110"
                             }`} 
                         />
-
                     </div>
                     
                     <div className={`flex flex-col items-center overflow-hidden transition-all duration-300 ease-in-out w-full ${sidebarOpen ? "max-h-[60px] opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"}`}>
@@ -165,30 +184,44 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, totalPending, subjects, o
                         }
                     `}>
   
-                {/* We connect the button here */}
-                <SmartCheckButton
-                    icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>}
-                    title="Análisis Diario de Tareas"
-                    // We change the subtitle if the AI is thinking
-                    subtitle={isAiLoading ? "Consultando a SmartCheck..." : "Genera un resumen de tus prioridades para hoy."}
-                    // We assign the function that comes from the DashboardPage
-                    onClick={onAiPlanClick}
-                    comingSoon={false}
-                />
+                    <SmartCheckButton
+                        icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>}
+                        title="Análisis Diario de Tareas"
+                        subtitle={isAiLoading ? "Consultando a SmartCheck..." : "Genera un resumen de tus prioridades para hoy."}
+                        onClick={onAiPlanClick}
+                        comingSoon={false}
+                    />
 
-                <SmartCheckButton 
-                    icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
-                    title="Analizar riesgos"
-                    subtitle="Identifica posibles bloqueos o retrasos."
-                    onClick={() => console.log("Clic en el análisis de riesgos")}
-                    comingSoon={true}
-                />
+                    <SmartCheckButton 
+                        icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
+                        title="Analizar riesgos"
+                        subtitle="Identifica posibles bloqueos o retrasos."
+                        onClick={() => console.log("Clic en el análisis de riesgos")}
+                        comingSoon={true}
+                    />
                 </div>
                     
             </div>
 
             {/* --- FOOTER --- */}
             <div className={`mt-auto flex flex-col gap-1 w-full pt-4 transition-all duration-300 ease-in-out ${sidebarOpen ? "border-t border-gray-200" : "border-transparent"}`}>
+                
+                {/* PAPELERA DE RECICLAJE */}
+                <button 
+                    onClick={onOpenTrash} 
+                    className={`flex items-center p-2 rounded-xl transition-colors w-full ${showTrash ? "bg-gray-800 text-white shadow-md" : "text-gray-500 hover:text-gray-800 hover:bg-gray-200"}`} 
+                    title="Papelera"
+                >
+                    <div className="flex items-center justify-center shrink-0 w-6 h-6">
+                        <Trash2 size={20} />
+                    </div>
+                    <div className={`flex items-center overflow-hidden transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[120px] opacity-100" : "w-0 opacity-0"}`}>
+                        <span className="text-sm font-medium whitespace-nowrap ml-3">
+                            Papelera
+                        </span>
+                    </div>
+                </button>
+
                 <button onClick={onOpenSettings} className="flex items-center p-2 rounded-xl text-gray-500 hover:text-gray-800 hover:bg-gray-200 transition-colors w-full" title="Ajustes">
                     <div className="flex items-center justify-center shrink-0 w-6 h-6">
                         <Settings size={20} />

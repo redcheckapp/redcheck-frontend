@@ -33,3 +33,17 @@ export const updateSubject = async (subjectId: number, subjectData: SubjectReque
     );
     return response.data;
 }
+
+export const getTrashSubjects = async (): Promise<SubjectResponse[]> => {
+    const response = await api.get(`subjects?deleted=true`);
+    return response.data;
+}
+
+export const restoreSubject = async (subjectId: number): Promise<SubjectResponse> => {
+    const response = await api.patch(`subjects/${subjectId}/restore`);
+    return response.data;
+}
+
+export const hardDeleteSubject = async (subjectId: number): Promise<void> => {
+    await api.delete(`subjects/${subjectId}/force`);
+}

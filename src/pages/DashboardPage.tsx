@@ -16,6 +16,7 @@ import SmartCheckModal from "../components/SmartCheckModal";
 import { dailyAnalysis, pollForAnalysis } from "../api/smartCheckApi";
 import { PageTransition } from "../components/PageTransition";
 import { AgendaView } from "../components/AgendaView";
+import { TrashView } from "../components/TrashView";
 
 const DashboardPage = () => {
     const navigate = useNavigate();
@@ -31,6 +32,7 @@ const DashboardPage = () => {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     
     const [showCalendar, setShowCalendar] = useState(true);
+    const [showTrash, setShowTrash] = useState(false); // <-- NUEVO: Estado para controlar si vemos la papelera
 
     const [deletingSubjects, setDeletingSubjects] = useState<number[]>([]);
     const [deletingTasks, setDeletingTasks] = useState<number[]>([]);
@@ -50,6 +52,8 @@ const DashboardPage = () => {
     const [aiPlanData, setAiPlanData] = useState(null);
     const [isAiLoading, setIsAiLoading] = useState(false);
     const [aiNotificationReady, setAiNotificationReady] = useState(false);
+    
+    // ... [TODO EL RESTO DE TUS FUNCIONES SE MANTIENE IGUAL HASTA EL RENDER] ...
     
     const handleGenerateAiPlan = async () => {
         setIsAiLoading(true);
@@ -143,7 +147,7 @@ const DashboardPage = () => {
     };
 
     const handleDeleteSubject = async (subjectId: number) => {
-        if (!window.confirm("¿Seguro que quieres borrar esta asignatura y todas sus tareas?")) return;
+        if (!window.confirm("¿Seguro que quieres enviar esta asignatura y todas sus tareas a la papelera?")) return; // <-- NUEVO: Ajusté el texto del confirm
         setError(null); 
         try {
             setDeletingSubjects(prev => [...prev, subjectId]);
@@ -154,8 +158,8 @@ const DashboardPage = () => {
             }, 400);
             
         } catch(err) { 
-            console.error("Error al borrar asignatura:", err);
-            setError("No se pudo eliminar la asignatura."); 
+            console.error("Error al enviar a la papelera:", err);
+            setError("No se pudo enviar la asignatura a la papelera."); 
             setDeletingSubjects(prev => prev.filter(id => id !== subjectId));
         } 
     };
@@ -314,10 +318,8 @@ const DashboardPage = () => {
 
     if (error) return <div className="flex min-h-screen items-center justify-center bg-[#e3e7e2]"><p className="text-red-500 font-semibold">{error}</p></div>;
 
-    // THE MAIN CONTAINER: Flex row to handle the 3 main blocks (Agenda, Tasks, Heatmap)
     return (
         <PageTransition>
-            {/* We remove gap-4 from the main container to handle spaces manually with animations */}
             <div className="flex h-screen bg-[#e3e7e2] p-4 overflow-hidden">
                 
                 <Sidebar 
@@ -331,182 +333,206 @@ const DashboardPage = () => {
                     aiNotificationReady={aiNotificationReady}
                     onOpenAiModal={handleOpenAiModal} 
                     subjectStats={subjectStats}
+                    showTrash={showTrash}                                  // <-- NUEVO: Le decimos al Sidebar si estamos en la papelera
+                    onOpenTrash={() => setShowTrash(true)}                 // <-- NUEVO: Función para abrir papelera
+                    onGoHome={() => setShowTrash(false)}                   // <-- NUEVO: Función para volver al dashboard
                 />
 
-                {/* --- BLOCK 1: AGENDA (LEFT) --- */}
-                <div className={`transition-all duration-500 ease-in-out flex flex-col overflow-hidden shrink-0 ${
-                    showCalendar ? "w-[55%] opacity-100 ml-4" : "w-0 opacity-0 ml-0"
-                }`}>
-                    <main className="w-full h-full relative flex flex-col min-w-[700px]">
-                        <AgendaView subjects={subjects} />
-                    </main>
-                </div>
-
-                {/* --- BLOCK 2: TASKS (CENTER) --- */}
-                <div className="flex-1 rounded-2xl bg-white shadow-md flex flex-col overflow-y-auto transition-all duration-500 ease-in-out ml-4">
-                    <div className="p-6 mx-auto w-full max-w-4xl transition-all duration-500 ease-in-out">
-                        
-                        {/* TASKS HEADER + FOCUS MODE BUTTON */}
-                        <div className="mb-6 flex justify-between items-start">
-                            <div>
-                                <h1 className="text-3xl font-bold text-gray-800">{ getGreeting(username) }</h1>
-                                <p className="text-gray-400 mt-1 capitalize">{today}</p>
-                                <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
-                                    {totalPending === 0 ? (
-                                        <>
-                                            ¡No tienes tareas pendientes hoy! <Coffee size={16} />
-                                        </>
-                                    ) : (
-                                        <span>&nbsp;</span>
-                                    )}
-                                </p>
-                            </div>
-
-                            <button
-                                onClick={() => setShowCalendar(!showCalendar)}
-                                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-all border shrink-0 mt-1 ${
-                                    showCalendar 
-                                        ? "bg-white text-gray-400 hover:text-gray-700 hover:bg-gray-50 border-gray-200" 
-                                        : "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 shadow-sm"
-                                }`}
-                                title={showCalendar ? "Ocultar agenda (Modo Foco)" : "Mostrar agenda"}
-                            >
-                                {showCalendar ? <Focus size={18} strokeWidth={2.5} /> : <LayoutGrid size={18} strokeWidth={2.5} />}
-                                <span className="hidden xl:inline">
-                                    {showCalendar ? "Modo Foco" : "Ver Agenda"}
-                                </span>
-                            </button>
-                        </div>
-
-                        <div className="flex flex-col gap-8">
-                            {subjects.filter(subject => !subject.archived).map(subject => {
-                                const isDeleting = deletingSubjects.includes(subject.id);
-                                return (
-                                    <div 
-                                        key={`subject-wrapper-${subject.id}`}
-                                        className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
-                                            isDeleting 
-                                                ? "opacity-0 scale-95 max-h-0 !mb-[-2rem]"
-                                                : "opacity-100 scale-100 max-h-[2000px]"
-                                        }`}
-                                    >
-                                        <SubjectSection
-                                            key={subject.id}
-                                            subject={subject}
-                                            setOpenFormUpdateSubject={setOpenFormUpdateSubject}
-                                            openFormUpdateSubject={openFormUpdateSubject}
-                                            handleUpdateSubject={handleUpdateSubject}
-                                            handleArchiveSubject={handleArchiveSubject}
-                                            handleDeleteSubject={handleDeleteSubject}
-                                            updatedSubject={updatedSubject}
-                                            handleChangeUpdateSubject={handleChangeUpdateSubject}
-                                            handleToggleTask={handleToggleTask}
-                                            handleDeleteTask={handleDeleteTask}
-                                            setOpenFormSubjectIdTaskId={setOpenFormSubjectIdTaskId}
-                                            openFormSubjectIdTaskId={openFormSubjectIdTaskId}
-                                            handleUpdateTask={handleUpdateTask}
-                                            updatedTask={updatedTask}
-                                            handleChangeUpdateTask={handleChangeUpdateTask}
-                                            setOpenFormSubjectId={setOpenFormSubjectId}
-                                            openFormSubjectId={openFormSubjectId}
-                                            handleSubmitTask={handleSubmitTask}
-                                            newTask={newTask}
-                                            handleChangeTask={handleChangeTask}
-                                            error={error}
-                                            loading={loading}
-                                            deletingTasks={deletingTasks} 
-                                            setUpdatedTask={setUpdatedTask}
-                                            setUpdatedSubject={setUpdatedSubject}
-                                        />
-                                    </div>
-                                );
-                            })}
-
-                            <button 
-                                className="w-full mt-4 flex items-center justify-center gap-2 text-gray-500 bg-transparent border-2 border-dashed border-gray-300 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 rounded-xl py-4 text-sm font-medium transition-all group" 
-                                onClick={() => { setOpenFormNewSubject(true); }}
-                            >
-                                <Plus size={18} className="transition-transform group-hover:scale-110" />
-                                <span>Añadir nueva asignatura</span>
-                            </button>
-
-                            <AnimatedVisibility isVisible={openFormNewSubject}>
-                                <form onSubmit={handleSubmitSubject} className="flex flex-col gap-4 mt-4 p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
-                                    <div>
-                                        <h3 className="text-lg font-bold text-gray-800">Nueva asignatura</h3>
-                                        <p className="text-xs text-gray-500 mt-1">Añade una nueva materia para organizar tus tareas.</p>
-                                    </div>
-
-                                    <div className="flex flex-col gap-3">
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nombre</label>
-                                            <input type="text" name="name" value={newSubject.name} onChange={handleChangeSubject} placeholder="Ej. Desarrollo de Interfaces" className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all" required />
-                                        </div>
-                                        
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Descripción <span className="text-gray-400 font-normal lowercase">(opcional)</span></label>
-                                            <input type="text" name="description" value={newSubject.description} onChange={handleChangeSubject} placeholder="Ej. Asignatura de 3º de carrera" className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all" />
-                                        </div>
-                                    </div>
-
-                                    {error && <p className="text-red-600 text-sm bg-red-50 p-2 rounded-lg text-center">{error}</p>}
-
-                                    <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50">
-                                        <button type="button" onClick={() => { setOpenFormNewSubject(false) }} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all">Cancelar</button>
-                                        <button type="submit" disabled={loading} className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50">Guardar asignatura</button>
-                                    </div>
-                                </form>
-                            </AnimatedVisibility>       
-                        </div>
-
-                        <OverdueSection
-                            subjects={subjects}
-                            totalPendingOverdue={totalPendingOverdue}
-                            handleToggleTask={handleToggleTask}
-                            handleDeleteTask={handleDeleteTask}
-                            setOpenFormSubjectIdTaskId={setOpenFormSubjectIdTaskId}
-                            openFormSubjectIdTaskId={openFormSubjectIdTaskId}
-                            handleUpdateTask={handleUpdateTask}
-                            updatedTask={updatedTask}
-                            handleChangeUpdateTask={handleChangeUpdateTask}
-                            setUpdatedTask={setUpdatedTask}
-                            deletingTasks={deletingTasks} 
+                {/* --- RENDERIZADO CONDICIONAL --- */}
+                {showTrash ? (
+                    // VISTA DE LA PAPELERA
+                    <div className="flex-1 ml-4 transition-all duration-500 ease-in-out">
+                        <TrashView 
+                            onClose={() => {
+                                fetchData(); 
+                                setShowTrash(false);
+                                }
+                            } 
+                            onRestore={() => {
+                            console.log("Elemento restaurado, manteniendo vista de papelera.");
+                                }
+                            } 
                         />
                     </div>
-                </div>
-
-                {/* --- BLOCK 3: PERFORMANCE PANEL WITH HEATMAP (ONLY IN FOCUS MODE) --- */}
-                <div className={`transition-all duration-500 ease-in-out flex flex-col overflow-hidden shrink-0 ${
-                    showCalendar ? "w-0 opacity-0 ml-0" : "w-[350px] opacity-100 ml-4" 
-                }`}>
-                    <div className="w-[350px] h-full bg-white rounded-2xl shadow-md p-6 flex flex-col shrink-0 overflow-y-auto overflow-x-hidden">
-                        
-                        <div className="flex items-center gap-2 mb-6 border-b border-gray-50 pb-4">
-                            <div className="bg-blue-50 p-2 rounded-lg text-blue-600">
-                                <LayoutGrid size={20} />
-                            </div>
-                            <div>
-                                <h3 className="text-sm font-bold text-gray-800">Tu rendimiento</h3>
-                                <p className="text-xs text-gray-400 font-medium">Historial de constancia</p>
-                            </div>
-                        </div>
-                        
-                        <div className="flex-1">
-                            <ProgressHeatmap />
+                ) : (
+                    // VISTA NORMAL DEL DASHBOARD
+                    <>
+                        {/* --- BLOCK 1: AGENDA (LEFT) --- */}
+                        <div className={`transition-all duration-500 ease-in-out flex flex-col overflow-hidden shrink-0 ${
+                            showCalendar ? "w-[55%] opacity-100 ml-4" : "w-0 opacity-0 ml-0"
+                        }`}>
+                            <main className="w-full h-full relative flex flex-col min-w-[700px]">
+                                <AgendaView subjects={subjects} />
+                            </main>
                         </div>
 
-                        {/* Motivational block */}
-                        <div className="mt-8 p-5 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-100/50 shadow-sm shrink-0">
-                            <h4 className="text-green-800 font-bold text-sm mb-2 flex items-center gap-2">
-                                <Check size={16} /> 
-                                Modo Foco Activo
-                            </h4>
-                            <p className="text-[13px] text-green-700/80 font-medium leading-relaxed">
-                                El calendario principal está oculto. Concéntrate en completar tus tareas de hoy para mantener tu racha de progreso en verde.
-                            </p>
+                        {/* --- BLOCK 2: TASKS (CENTER) --- */}
+                        <div className="flex-1 rounded-2xl bg-white shadow-md flex flex-col overflow-y-auto transition-all duration-500 ease-in-out ml-4">
+                            <div className="p-6 mx-auto w-full max-w-4xl transition-all duration-500 ease-in-out">
+                                
+                                {/* TASKS HEADER + FOCUS MODE BUTTON */}
+                                <div className="mb-6 flex justify-between items-start">
+                                    <div>
+                                        <h1 className="text-3xl font-bold text-gray-800">{ getGreeting(username) }</h1>
+                                        <p className="text-gray-400 mt-1 capitalize">{today}</p>
+                                        <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                                            {totalPending === 0 ? (
+                                                <>
+                                                    ¡No tienes tareas pendientes hoy! <Coffee size={16} />
+                                                </>
+                                            ) : (
+                                                <span>&nbsp;</span>
+                                            )}
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        onClick={() => setShowCalendar(!showCalendar)}
+                                        className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-all border shrink-0 mt-1 ${
+                                            showCalendar 
+                                                ? "bg-white text-gray-400 hover:text-gray-700 hover:bg-gray-50 border-gray-200" 
+                                                : "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 shadow-sm"
+                                        }`}
+                                        title={showCalendar ? "Ocultar agenda (Modo Foco)" : "Mostrar agenda"}
+                                    >
+                                        {showCalendar ? <Focus size={18} strokeWidth={2.5} /> : <LayoutGrid size={18} strokeWidth={2.5} />}
+                                        <span className="hidden xl:inline">
+                                            {showCalendar ? "Modo Foco" : "Ver Agenda"}
+                                        </span>
+                                    </button>
+                                </div>
+
+                                <div className="flex flex-col gap-8">
+                                    {subjects.filter(subject => !subject.archived).map(subject => {
+                                        const isDeleting = deletingSubjects.includes(subject.id);
+                                        return (
+                                            <div 
+                                                key={`subject-wrapper-${subject.id}`}
+                                                className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
+                                                    isDeleting 
+                                                        ? "opacity-0 scale-95 max-h-0 !mb-[-2rem]"
+                                                        : "opacity-100 scale-100 max-h-[2000px]"
+                                                }`}
+                                            >
+                                                <SubjectSection
+                                                    key={subject.id}
+                                                    subject={subject}
+                                                    setOpenFormUpdateSubject={setOpenFormUpdateSubject}
+                                                    openFormUpdateSubject={openFormUpdateSubject}
+                                                    handleUpdateSubject={handleUpdateSubject}
+                                                    handleArchiveSubject={handleArchiveSubject}
+                                                    handleDeleteSubject={handleDeleteSubject}
+                                                    updatedSubject={updatedSubject}
+                                                    handleChangeUpdateSubject={handleChangeUpdateSubject}
+                                                    handleToggleTask={handleToggleTask}
+                                                    handleDeleteTask={handleDeleteTask}
+                                                    setOpenFormSubjectIdTaskId={setOpenFormSubjectIdTaskId}
+                                                    openFormSubjectIdTaskId={openFormSubjectIdTaskId}
+                                                    handleUpdateTask={handleUpdateTask}
+                                                    updatedTask={updatedTask}
+                                                    handleChangeUpdateTask={handleChangeUpdateTask}
+                                                    setOpenFormSubjectId={setOpenFormSubjectId}
+                                                    openFormSubjectId={openFormSubjectId}
+                                                    handleSubmitTask={handleSubmitTask}
+                                                    newTask={newTask}
+                                                    handleChangeTask={handleChangeTask}
+                                                    error={error}
+                                                    loading={loading}
+                                                    deletingTasks={deletingTasks} 
+                                                    setUpdatedTask={setUpdatedTask}
+                                                    setUpdatedSubject={setUpdatedSubject}
+                                                />
+                                            </div>
+                                        );
+                                    })}
+
+                                    <button 
+                                        className="w-full mt-4 flex items-center justify-center gap-2 text-gray-500 bg-transparent border-2 border-dashed border-gray-300 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 rounded-xl py-4 text-sm font-medium transition-all group" 
+                                        onClick={() => { setOpenFormNewSubject(true); }}
+                                    >
+                                        <Plus size={18} className="transition-transform group-hover:scale-110" />
+                                        <span>Añadir nueva asignatura</span>
+                                    </button>
+
+                                    <AnimatedVisibility isVisible={openFormNewSubject}>
+                                        <form onSubmit={handleSubmitSubject} className="flex flex-col gap-4 mt-4 p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                                            <div>
+                                                <h3 className="text-lg font-bold text-gray-800">Nueva asignatura</h3>
+                                                <p className="text-xs text-gray-500 mt-1">Añade una nueva materia para organizar tus tareas.</p>
+                                            </div>
+
+                                            <div className="flex flex-col gap-3">
+                                                <div className="flex flex-col gap-1.5">
+                                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nombre</label>
+                                                    <input type="text" name="name" value={newSubject.name} onChange={handleChangeSubject} placeholder="Ej. Desarrollo de Interfaces" className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all" required />
+                                                </div>
+                                                
+                                                <div className="flex flex-col gap-1.5">
+                                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Descripción <span className="text-gray-400 font-normal lowercase">(opcional)</span></label>
+                                                    <input type="text" name="description" value={newSubject.description} onChange={handleChangeSubject} placeholder="Ej. Asignatura de 3º de carrera" className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all" />
+                                                </div>
+                                            </div>
+
+                                            {error && <p className="text-red-600 text-sm bg-red-50 p-2 rounded-lg text-center">{error}</p>}
+
+                                            <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50">
+                                                <button type="button" onClick={() => { setOpenFormNewSubject(false) }} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all">Cancelar</button>
+                                                <button type="submit" disabled={loading} className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50">Guardar asignatura</button>
+                                            </div>
+                                        </form>
+                                    </AnimatedVisibility>       
+                                </div>
+
+                                <OverdueSection
+                                    subjects={subjects}
+                                    totalPendingOverdue={totalPendingOverdue}
+                                    handleToggleTask={handleToggleTask}
+                                    handleDeleteTask={handleDeleteTask}
+                                    setOpenFormSubjectIdTaskId={setOpenFormSubjectIdTaskId}
+                                    openFormSubjectIdTaskId={openFormSubjectIdTaskId}
+                                    handleUpdateTask={handleUpdateTask}
+                                    updatedTask={updatedTask}
+                                    handleChangeUpdateTask={handleChangeUpdateTask}
+                                    setUpdatedTask={setUpdatedTask}
+                                    deletingTasks={deletingTasks} 
+                                />
+                            </div>
                         </div>
-                    </div>
-                </div>
+
+                        {/* --- BLOCK 3: PERFORMANCE PANEL WITH HEATMAP (ONLY IN FOCUS MODE) --- */}
+                        <div className={`transition-all duration-500 ease-in-out flex flex-col overflow-hidden shrink-0 ${
+                            showCalendar ? "w-0 opacity-0 ml-0" : "w-[350px] opacity-100 ml-4" 
+                        }`}>
+                            <div className="w-[350px] h-full bg-white rounded-2xl shadow-md p-6 flex flex-col shrink-0 overflow-y-auto overflow-x-hidden">
+                                
+                                <div className="flex items-center gap-2 mb-6 border-b border-gray-50 pb-4">
+                                    <div className="bg-blue-50 p-2 rounded-lg text-blue-600">
+                                        <LayoutGrid size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-gray-800">Tu rendimiento</h3>
+                                        <p className="text-xs text-gray-400 font-medium">Historial de constancia</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex-1">
+                                    <ProgressHeatmap />
+                                </div>
+
+                                {/* Motivational block */}
+                                <div className="mt-8 p-5 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-100/50 shadow-sm shrink-0">
+                                    <h4 className="text-green-800 font-bold text-sm mb-2 flex items-center gap-2">
+                                        <Check size={16} /> 
+                                        Modo Foco Activo
+                                    </h4>
+                                    <p className="text-[13px] text-green-700/80 font-medium leading-relaxed">
+                                        El calendario principal está oculto. Concéntrate en completar tus tareas de hoy para mantener tu racha de progreso en verde.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )}
 
                 <SettingsModal 
                     isOpen={isSettingsOpen}

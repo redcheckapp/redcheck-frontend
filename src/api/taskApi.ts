@@ -33,3 +33,17 @@ export const updateTask = async (subjectId: number, taskId: number, taskData: Ta
     );
     return response.data;
 }
+
+export const getTrashTasks = async (subjectId: number): Promise<TaskResponse[]> => {
+    const response = await api.get(`/subjects/${subjectId}/tasks?deleted=true`);
+    return response.data;
+}
+
+export const restoreTask = async (subjectId: number, taskId: number): Promise<TaskResponse> => {
+    const response = await api.patch(`subjects/${subjectId}/tasks/${taskId}/restore`);
+    return response.data;
+}
+
+export const hardDeleteTask = async (subjectId: number, taskId: number): Promise<void> => {
+    await api.delete(`subjects/${subjectId}/tasks/${taskId}/force`);
+}

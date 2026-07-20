@@ -17,6 +17,7 @@ export interface SubjectResponse {
     id: number;
     name: string;
     description: string | null;
+    deleted: boolean;
     archived: boolean;
 }
 
@@ -28,8 +29,9 @@ export interface TaskResponse {
     deadline: string | null;
     completedDate: string | null;
     completed: boolean;
+    deleted: boolean;
     overdue: boolean;
-    subjectId: boolean;
+    subjectId: number;
 }
 
 export interface TaskRequest {
