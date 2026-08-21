@@ -9,6 +9,8 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
     const [subjects, setSubjects] = useState<SubjectResponse[]>([]);
     const [tasks, setTasks] = useState<TaskResponse[]>([]);
     const [loading, setLoading] = useState(true);
+    const [removingSubjects, setRemovingSubjects] = useState<number[]>([]);
+    const [removingTasks, setRemovingTasks] = useState<number[]>([]);
 
     const loadTrash = async () => {
         setLoading(true);
@@ -41,28 +43,43 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
     }, []);
 
     const handleRestoreSubject = async (id: number) => {
+        setRemovingSubjects(prev => [...prev, id]);
         await restoreSubject(id);
-        setSubjects(subjects.filter(s => s.id !== id));
-        // Puedes añadir una pequeña alerta visual o un toast aquí
-        toast.success("Asignatura restaurada"); 
+        setTimeout(() => {
+            setSubjects(current => current.filter(s => s.id !== id));
+            setRemovingSubjects(prev => prev.filter(rId => rId !== id));
+            toast.success("Asignatura restaurada"); 
+        }, 400);
     };
 
     const handleHardDeleteSubject = async (id: number) => {
         if (!window.confirm("¿Borrar definitivamente? Esta acción es irreversible.")) return;
+        setRemovingSubjects(prev => [...prev, id]);
         await hardDeleteSubject(id);
-        setSubjects(subjects.filter(s => s.id !== id));
+        setTimeout(() => {
+            setSubjects(current => current.filter(s => s.id !== id));
+            setRemovingSubjects(prev => prev.filter(rId => rId !== id));
+        }, 400);
     };
 
     const handleRestoreTask = async (subjectId: number, taskId: number) => {
+        setRemovingTasks(prev => [...prev, taskId]);
         await restoreTask(subjectId, taskId);
-        setTasks(tasks.filter(t => t.id !== taskId));
-        toast.success("Tarea restaurada");
+        setTimeout(() => {
+            setTasks(current => current.filter(t => t.id !== taskId));
+            setRemovingTasks(prev => prev.filter(rId => rId !== taskId));
+            toast.success("Tarea restaurada");
+        }, 400);
     };
 
     const handleHardDeleteTask = async (subjectId: number, taskId: number) => {
         if (!window.confirm("¿Borrar definitivamente?")) return;
+        setRemovingTasks(prev => [...prev, taskId]);
         await hardDeleteTask(subjectId, taskId);
-        setTasks(tasks.filter(t => t.id !== taskId));
+        setTimeout(() => {
+            setTasks(current => current.filter(t => t.id !== taskId));
+            setRemovingTasks(prev => prev.filter(rId => rId !== taskId));
+        }, 400);
     };
 
     const handleEmptyTrash = async () => {
@@ -130,47 +147,61 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
                 </div>
             ) : (
                 <div className="space-y-8 flex-1">
-                    {/* Sección Asignaturas */}
-                    {subjects.length > 0 && (
-                        <div>
-                            {/* MEJORA 5: Subtítulos con más contraste (text-gray-500 y mb-6) */}
-                            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-6">Asignaturas eliminadas</h2>
-                            <div className="grid gap-3">
-                                {subjects.map(s => (
-                                    <div key={s.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                        <span className="font-semibold text-gray-700">{s.name}</span>
-                                        <div className="flex gap-2">
-                                            <button onClick={() => handleRestoreSubject(s.id)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"><RotateCcw size={18}/></button>
-                                            <button onClick={() => handleHardDeleteSubject(s.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg"><X size={18}/></button>
-                                        </div>
-                                    </div>
-                                ))}
+                        {/* Sección Asignaturas */}
+                        {subjects.length > 0 && (
+                            <div>
+                                <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-6">Asignaturas eliminadas</h2>
+                                <div className="flex flex-col gap-3">
+                                    {subjects.map(s => {
+                                        const isRemoving = removingSubjects.includes(s.id);
+                                        return (
+                                            <div 
+                                                key={s.id} 
+                                                className={`transition-all duration-400 ease-in-out flex items-center justify-between bg-gray-50 rounded-xl border border-gray-100 overflow-hidden ${
+                                                    isRemoving ? "opacity-0 scale-95 max-h-0 p-0 border-transparent mb-[-0.75rem]" : "opacity-100 scale-100 max-h-[100px] p-4"
+                                                }`}
+                                            >
+                                                <span className="font-semibold text-gray-700">{s.name}</span>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => handleRestoreSubject(s.id)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"><RotateCcw size={18}/></button>
+                                                    <button onClick={() => handleHardDeleteSubject(s.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg"><X size={18}/></button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* Sección Tareas */}
-                    {tasks.length > 0 && (
-                        <div>
-                            {/* MEJORA 5: Subtítulos con más contraste (text-gray-500 y mb-6) */}
-                            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-6">Tareas eliminadas</h2>
-                            <div className="grid gap-3">
-                                {tasks.map(t => (
-                                    <div key={t.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                        <span className="text-gray-700">{t.title}</span>
-                                        <div className="flex gap-2">
-                                            <button onClick={() => handleRestoreTask(t.subjectId, t.id)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg">
-                                                <RotateCcw size={18}/>
-                                            </button>
-                                            <button onClick={() => handleHardDeleteTask(t.subjectId, t.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg">
-                                                <X size={18}/>
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
+                        {/* Sección Tareas */}
+                        {tasks.length > 0 && (
+                            <div>
+                                <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-6">Tareas eliminadas</h2>
+                                <div className="flex flex-col gap-3">
+                                    {tasks.map(t => {
+                                        const isRemoving = removingTasks.includes(t.id);
+                                        return (
+                                            <div 
+                                                key={t.id} 
+                                                className={`transition-all duration-400 ease-in-out flex items-center justify-between bg-gray-50 rounded-xl border border-gray-100 overflow-hidden ${
+                                                    isRemoving ? "opacity-0 scale-95 max-h-0 p-0 border-transparent mb-[-0.75rem]" : "opacity-100 scale-100 max-h-[100px] p-4"
+                                                }`}
+                                            >
+                                                <span className="text-gray-700">{t.title}</span>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => handleRestoreTask(t.subjectId, t.id)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg">
+                                                        <RotateCcw size={18}/>
+                                                    </button>
+                                                    <button onClick={() => handleHardDeleteTask(t.subjectId, t.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg">
+                                                        <X size={18}/>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
                 </div>
             )}
         </div>
