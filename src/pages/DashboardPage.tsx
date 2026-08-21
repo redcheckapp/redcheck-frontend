@@ -147,7 +147,6 @@ const DashboardPage = () => {
     };
 
     const handleDeleteSubject = async (subjectId: number) => {
-        if (!window.confirm("¿Seguro que quieres enviar esta asignatura y todas sus tareas a la papelera?")) return; // <-- NUEVO: Ajusté el texto del confirm
         setError(null); 
         try {
             setDeletingSubjects(prev => [...prev, subjectId]);
@@ -212,30 +211,38 @@ const DashboardPage = () => {
 
     const today = new Date().toLocaleDateString("es-ES", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
 
+    // 1. Crea esta función justo antes de tu useEffect
+    const refreshData = async () => {
+        try {
+            const subjectsData = await getSubjects();
+            const subjectsWithTasks = await Promise.all(
+                subjectsData.map(async (subject) => {
+                    const tasks = await getTodayTasks(subject.id);
+                    return { ...subject, tasks };
+                })
+            );
+            setSubjects(subjectsWithTasks); 
+        } catch (err) {
+            console.error("Error refrescando el dashboard:", err);
+        }
+    };
+
+    // 2. Modifica tu useEffect para que sea más limpio
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchInitialData = async () => {
             try {
                 const profile = await getUsername();
                 setUsername(profile.username);
                 setUserEmail(profile.email);
-                
-                const subjectsData = await getSubjects();
-                const subjectsWithTasks = await Promise.all(
-                    subjectsData.map(async (subject) => {
-                        const tasks = await getTodayTasks(subject.id);
-                        return { ...subject, tasks };
-                    })
-                );
-                
-                setSubjects(subjectsWithTasks); 
-
+                await refreshData(); // Usamos la nueva función
             } catch (err) {
                 setError("Error al cargar los datos");
             } finally { 
                 setLoading(false); 
             }
         };
-        fetchData();
+    
+        fetchInitialData();
     }, []);
 
     const subjectStats = useMemo(() => {
@@ -334,39 +341,47 @@ const DashboardPage = () => {
                     onOpenAiModal={handleOpenAiModal} 
                     subjectStats={subjectStats}
                     showTrash={showTrash}                                  // <-- NUEVO: Le decimos al Sidebar si estamos en la papelera
-                    onOpenTrash={() => setShowTrash(true)}                 // <-- NUEVO: Función para abrir papelera
+                    onOpenTrash={() => {
+                        if (showTrash) {
+                            // Si ya estamos en la papelera, salir y refrescar datos
+                            setShowTrash(false);
+                            refreshData();
+                        } else {
+                            // Si no, entrar a la papelera
+                            setShowTrash(true);
+                        }
+                    }}                 // <-- NUEVO: Función para abrir papelera
                     onGoHome={() => setShowTrash(false)}                   // <-- NUEVO: Función para volver al dashboard
                 />
 
-                {/* --- RENDERIZADO CONDICIONAL --- */}
-                {showTrash ? (
-                    // VISTA DE LA PAPELERA
-                    <div className="flex-1 ml-4 transition-all duration-500 ease-in-out">
-                        <TrashView 
-                            onClose={() => {
-                                fetchData(); 
-                                setShowTrash(false);
-                                }
-                            } 
-                            onRestore={() => {
-                            console.log("Elemento restaurado, manteniendo vista de papelera.");
-                                }
-                            } 
-                        />
-                    </div>
-                ) : (
-                    // VISTA NORMAL DEL DASHBOARD
-                    <>
-                        {/* --- BLOCK 1: AGENDA (LEFT) --- */}
-                        <div className={`transition-all duration-500 ease-in-out flex flex-col overflow-hidden shrink-0 ${
-                            showCalendar ? "w-[55%] opacity-100 ml-4" : "w-0 opacity-0 ml-0"
-                        }`}>
-                            <main className="w-full h-full relative flex flex-col min-w-[700px]">
-                                <AgendaView subjects={subjects} />
-                            </main>
+                {/* --- RENDERIZADO CONDICIONAL CON ANIMACIÓN SUAVE --- */}
+                {/* El 'key' obliga a React a reiniciar la animación cada vez que cambiamos de vista */}
+                <div key={showTrash ? 'view-trash' : 'view-dashboard'} className="flex-1 flex h-full animate-soft-fade">
+                    
+                    {showTrash ? (
+                        // VISTA DE LA PAPELERA
+                        <div className="flex-1 ml-4">
+                            <TrashView 
+                                onClose={() => {
+                                    setShowTrash(false);
+                                    refreshData();
+                                }} 
+                                onRestore={() => {}} 
+                            />
                         </div>
+                    ) : (
+                        // VISTA NORMAL DEL DASHBOARD
+                        <>
+                            {/* --- BLOCK 1: AGENDA (LEFT) --- */}
+                            <div className={`transition-all duration-500 ease-in-out flex flex-col overflow-hidden shrink-0 ${
+                                showCalendar ? "w-[55%] opacity-100 ml-4" : "w-0 opacity-0 ml-0"
+                            }`}>
+                                <main className="w-full h-full relative flex flex-col min-w-[700px]">
+                                    <AgendaView subjects={subjects} />
+                                </main>
+                            </div>
 
-                        {/* --- BLOCK 2: TASKS (CENTER) --- */}
+                            {/* --- BLOCK 2: TASKS (CENTER) --- */}
                         <div className="flex-1 rounded-2xl bg-white shadow-md flex flex-col overflow-y-auto transition-all duration-500 ease-in-out ml-4">
                             <div className="p-6 mx-auto w-full max-w-4xl transition-all duration-500 ease-in-out">
                                 
@@ -501,8 +516,8 @@ const DashboardPage = () => {
 
                         {/* --- BLOCK 3: PERFORMANCE PANEL WITH HEATMAP (ONLY IN FOCUS MODE) --- */}
                         <div className={`transition-all duration-500 ease-in-out flex flex-col overflow-hidden shrink-0 ${
-                            showCalendar ? "w-0 opacity-0 ml-0" : "w-[350px] opacity-100 ml-4" 
-                        }`}>
+                                showCalendar ? "w-0 opacity-0 ml-0" : "w-[350px] opacity-100 ml-4" 
+                            }`}>
                             <div className="w-[350px] h-full bg-white rounded-2xl shadow-md p-6 flex flex-col shrink-0 overflow-y-auto overflow-x-hidden">
                                 
                                 <div className="flex items-center gap-2 mb-6 border-b border-gray-50 pb-4">
@@ -550,6 +565,7 @@ const DashboardPage = () => {
                     subjects={subjects} 
                 />
             </div>
+        </div>
         </PageTransition>
     );
 };

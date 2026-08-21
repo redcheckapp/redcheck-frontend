@@ -53,10 +53,10 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
         setSubjects(subjects.filter(s => s.id !== id));
     };
 
-    const handleRestoreTask = async (id: number) => {
-        await restoreTask(id);
-        // Solo actualizamos el estado local
-        setTasks(tasks.filter(t => t.id !== id));
+    const handleRestoreTask = async (subjectId: number, taskId: number) => {
+        await restoreTask(subjectId, taskId);
+        setTasks(tasks.filter(t => t.id !== taskId));
+        toast.success("Tarea restaurada");
     };
 
     const handleHardDeleteTask = async (subjectId: number, taskId: number) => {
@@ -65,31 +65,76 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
         setTasks(tasks.filter(t => t.id !== taskId));
     };
 
+    const handleEmptyTrash = async () => {
+        if (!window.confirm("¿Estás seguro de que quieres vaciar toda la papelera? Esta acción es irreversible y se perderán todos los datos.")) return;
+        
+        setLoading(true);
+        try {
+            // Preparamos todas las peticiones de borrado definitivo
+            const taskPromises = tasks.map(t => hardDeleteTask(t.subjectId, t.id));
+            const subjectPromises = subjects.map(s => hardDeleteSubject(s.id));
+            
+            // Las ejecutamos todas a la vez
+            await Promise.all([...taskPromises, ...subjectPromises]);
+            
+            // Vaciamos el estado local de la interfaz
+            setSubjects([]);
+            setTasks([]);
+            toast.success("Papelera vaciada correctamente");
+        } catch (error) {
+            console.error("Error al vaciar la papelera:", error);
+            alert("Hubo un error al vaciar algunos elementos.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="w-full h-full bg-white rounded-2xl shadow-md p-8 flex flex-col overflow-y-auto">
-            <div className="flex items-center gap-4 mb-8">
-                <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-all">
-                    <ArrowLeft size={24} />
-                </button>
-                <div className="flex items-center gap-3 text-red-600">
-                    <Trash2 size={28} />
-                    <h1 className="text-3xl font-bold text-gray-800">Papelera</h1>
+            
+            {/* MEJORA 4: Cabecera con el botón de Vaciar Papelera */}
+            <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                    <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-all">
+                        <ArrowLeft size={24} />
+                    </button>
+                    <div className="flex items-center gap-3 text-red-600">
+                        <Trash2 size={28} />
+                        <h1 className="text-3xl font-bold text-gray-800">Papelera</h1>
+                    </div>
                 </div>
+
+                {/* Botón de Vaciar Papelera (Solo aparece si no está vacía) */}
+                {(subjects.length > 0 || tasks.length > 0) && (
+                    <button 
+                        onClick={handleEmptyTrash}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-all disabled:opacity-50"
+                    >
+                        <Trash2 size={18} />
+                        <span>Vaciar papelera</span>
+                    </button>
+                )}
             </div>
 
             {loading ? (
                 <div className="flex-1 flex items-center justify-center text-gray-400">Cargando...</div>
             ) : subjects.length === 0 && tasks.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-4">
-                    <Inbox size={48} strokeWidth={1} />
-                    <p>La papelera está vacía.</p>
+                // MEJORA 3: Estado vacío más visual
+                <div className="flex-1 flex flex-col items-center justify-center gap-3">
+                    <div className="bg-gray-50 p-6 rounded-full text-gray-400 mb-2 border border-gray-100">
+                        <Inbox size={48} strokeWidth={1} />
+                    </div>
+                    <p className="text-lg font-bold text-gray-800">La papelera está vacía</p>
+                    <p className="text-sm text-gray-500">Los elementos que elimines aparecerán aquí.</p>
                 </div>
             ) : (
-                <div className="space-y-8">
+                <div className="space-y-8 flex-1">
                     {/* Sección Asignaturas */}
                     {subjects.length > 0 && (
                         <div>
-                            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Asignaturas eliminadas</h2>
+                            {/* MEJORA 5: Subtítulos con más contraste (text-gray-500 y mb-6) */}
+                            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-6">Asignaturas eliminadas</h2>
                             <div className="grid gap-3">
                                 {subjects.map(s => (
                                     <div key={s.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
@@ -107,14 +152,19 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
                     {/* Sección Tareas */}
                     {tasks.length > 0 && (
                         <div>
-                            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Tareas eliminadas</h2>
+                            {/* MEJORA 5: Subtítulos con más contraste (text-gray-500 y mb-6) */}
+                            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-6">Tareas eliminadas</h2>
                             <div className="grid gap-3">
                                 {tasks.map(t => (
                                     <div key={t.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
                                         <span className="text-gray-700">{t.title}</span>
                                         <div className="flex gap-2">
-                                            <button onClick={() => handleRestoreTask(t.subjectId, t.id)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"><RotateCcw size={18}/></button>
-                                            <button onClick={() => handleHardDeleteTask(t.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg"><X size={18}/></button>
+                                            <button onClick={() => handleRestoreTask(t.subjectId, t.id)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg">
+                                                <RotateCcw size={18}/>
+                                            </button>
+                                            <button onClick={() => handleHardDeleteTask(t.subjectId, t.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg">
+                                                <X size={18}/>
+                                            </button>
                                         </div>
                                     </div>
                                 ))}
