@@ -1,6 +1,5 @@
 import { Pencil, Archive, X, Plus, Repeat } from "lucide-react";
 import { TaskItem } from "./TaskItem";
-import { AnimatedVisibility } from "./AnimatedVisibility";
 import { RecurringTasksModal } from "./RecurringTasksModal";
 import { useState } from "react";
 import type { SubjectWithTasks } from "../types";
@@ -29,6 +28,7 @@ interface SubjectSectionProps {
     error: string | null;
     loading: boolean;
     deletingTasks: number[]; 
+    addingTasks: number[];
     setUpdatedTask: (task: { title: string; description: string; deadline: string }) => void;
     setUpdatedSubject: (subject: { name: string; description: string }) => void;
 }
@@ -58,7 +58,8 @@ export const SubjectSection = ({
     setUpdatedTask,
     setUpdatedSubject,
     loading,
-    deletingTasks 
+    deletingTasks,
+    addingTasks
 }: SubjectSectionProps) => {
 
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
@@ -80,7 +81,7 @@ export const SubjectSection = ({
                     )}
                 </div>
                 
-                <div className="flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity duration-200 shrink-0">
+                <div className="flex items-center gap-1 opacity-100 [@media(any-hover:hover)]:opacity-0 [@media(any-hover:hover)]:group-hover/header:opacity-100 transition-opacity duration-200 shrink-0">
                     <button type="button" className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition" onClick={() => setIsRecurringModalOpen(true)} title="Gestionar rutinas recurrentes"><Repeat size={16} /></button>
                     <button type="button" className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition" onClick={() => { setOpenFormUpdateSubject(subject.id); setUpdatedSubject({ name: subject.name, description: subject.description || "" }); }} title="Editar asignatura"><Pencil size={16} /></button>
                     <button type="button" className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" onClick={() => { handleArchiveSubject(subject.id); }} title="Archivar asignatura"><Archive size={16} /></button>
@@ -88,20 +89,33 @@ export const SubjectSection = ({
                 </div>
             </div>
 
-            <AnimatedVisibility isVisible={openFormUpdateSubject === subject.id}>
-                <form onSubmit={(e) => handleUpdateSubject(e, subject.id)} className="flex flex-col gap-4 mb-4 p-5 bg-white border border-gray-100 rounded-2xl shadow-sm font-normal">
+            {/* FORMULARIO EDITAR ASIGNATURA CON ANIMACIÓN SUAVE */}
+            <div 
+                className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
+                    openFormUpdateSubject === subject.id 
+                        ? "opacity-100 scale-100 max-h-[500px] mb-4" 
+                        : "opacity-0 scale-95 max-h-0 mb-0"
+                }`}
+            >
+                <form onSubmit={(e) => handleUpdateSubject(e, subject.id)} className="flex flex-col gap-4 p-6 bg-white border border-gray-100 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] font-normal">
                     <h3 className="text-sm font-bold text-gray-800 border-b border-gray-50 pb-2">Editar asignatura</h3>
                     <div className="flex flex-col gap-3">
-                        <div className="flex flex-col gap-1.5"><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nombre</label><input type="text" name="name" value={updatedSubject.name} onChange={handleChangeUpdateSubject} placeholder="Ej. Desarrollo de Interfaces" className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all" required /></div>
-                        <div className="flex flex-col gap-1.5"><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Descripción</label><input type="text" name="description" value={updatedSubject.description} onChange={handleChangeUpdateSubject} placeholder="Añade detalles..." className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all" /></div>
+                        <div className="flex flex-col">
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nombre</label>
+                            <input type="text" name="name" value={updatedSubject.name} onChange={handleChangeUpdateSubject} placeholder="Ej. Desarrollo de Interfaces" className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" required />
+                        </div>
+                        <div className="flex flex-col">
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Descripción</label>
+                            <input type="text" name="description" value={updatedSubject.description} onChange={handleChangeUpdateSubject} placeholder="Añade detalles..." className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                        </div>
                     </div>
                     {error && <p className="text-red-500 text-sm text-center bg-red-50 p-2 rounded-lg">{error}</p>}
-                    <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50">
-                        <button type="button" onClick={() => { setOpenFormUpdateSubject(null); }} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all">Cancelar</button>
-                        <button type="submit" disabled={loading} className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50">Guardar cambios</button>
+                    <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-gray-50">
+                        <button type="button" onClick={() => { setOpenFormUpdateSubject(null); }} className="px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200">Cancelar</button>
+                        <button type="submit" disabled={loading} className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0">Guardar cambios</button>
                     </div>
                 </form>
-            </AnimatedVisibility>
+            </div>
 
             <div className="flex flex-col gap-2">
                 {normalTasks.length === 0 ? (
@@ -114,6 +128,7 @@ export const SubjectSection = ({
                             key={`task-${task.id}`} 
                             subjectId={subject.id}
                             task={task}
+                            isAdding={addingTasks?.includes(task.id)}
                             handleToggleTask={handleToggleTask}
                             handleDeleteTask={handleDeleteTask}
                             setOpenFormSubjectIdTaskId={setOpenFormSubjectIdTaskId}
@@ -129,11 +144,11 @@ export const SubjectSection = ({
                     ))
                 )}
 
-                {/* Hidden button that "grows" by animating its height from 0 */}
-                <div className={`grid transition-all duration-300 ease-in-out opacity-0 focus-within:opacity-100 ${
+                {/* BOTÓN RESPONSIVO: Siempre visible en móvil/tablet, hover en escritorio */}
+                <div className={`grid transition-all duration-300 ease-in-out focus-within:opacity-100 ${
                     openFormSubjectId === subject.id || normalTasks.length === 0 
                         ? 'grid-rows-[1fr] opacity-100' 
-                        : 'grid-rows-[0fr] group-hover/section:grid-rows-[1fr] group-hover/section:opacity-100'
+                        : 'grid-rows-[1fr] opacity-100 [@media(any-hover:hover)]:grid-rows-[0fr] [@media(any-hover:hover)]:opacity-0 [@media(any-hover:hover)]:group-hover/section:grid-rows-[1fr] [@media(any-hover:hover)]:group-hover/section:opacity-100'
                 }`}>
                     <div className="overflow-hidden flex items-center">
                         <button
@@ -148,24 +163,49 @@ export const SubjectSection = ({
                     </div>
                 </div>
 
-                <AnimatedVisibility isVisible={openFormSubjectId === subject.id}>
-                    <form onSubmit={(e) => handleSubmitTask(e, subject.id)} className="flex flex-col gap-4 mt-2 mb-4 p-5 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                {/* FORMULARIO AÑADIR TAREA CON ANIMACIÓN SUAVE */}
+                <div 
+                    className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
+                        openFormSubjectId === subject.id 
+                            ? "opacity-100 scale-100 max-h-[600px] mt-2 mb-4" 
+                            : "opacity-0 scale-95 max-h-0 !mt-0 !mb-0" 
+                    }`}
+                >
+                    <form onSubmit={(e) => handleSubmitTask(e, subject.id)} className="flex flex-col gap-4 p-6 bg-white border border-gray-100 rounded-2xl shadow-[0_2px_10px_-3px_rgba(34,197,94,0.1)]">
                         <h3 className="text-sm font-bold text-gray-800 border-b border-gray-50 pb-2">Nueva tarea para {subject.name}</h3>
                         <div className="flex flex-col gap-3">
-                            <div className="flex flex-col gap-1.5"><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Título de la tarea</label><input type="text" name="title" value={newTask.title} onChange={handleChangeTask} placeholder="Ej. Hacer el diagrama de base de datos" className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-400 transition-all" required /></div>
-                            <div className="flex flex-col gap-1.5"><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Descripción</label><input type="text" name="description" value={newTask.description} onChange={handleChangeTask} placeholder="Añade detalles..." className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-400 transition-all" /></div>
+                            <div className="flex flex-col">
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Título de la tarea</label>
+                                <input type="text" name="title" value={newTask.title} onChange={handleChangeTask} placeholder="Ej. Hacer el diagrama de base de datos" className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" required />
+                            </div>
+                            <div className="flex flex-col">
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Descripción</label>
+                                <input type="text" name="description" value={newTask.description} onChange={handleChangeTask} placeholder="Añade detalles..." className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" />
+                            </div>
                             <div className="flex flex-col sm:flex-row gap-3">
-                                <div className="flex-1 flex flex-col gap-1.5"><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Fecha límite</label><input type="datetime-local" name="deadline" value={newTask.deadline} onChange={handleChangeTask} disabled={newTask.recurrence !== "NONE"} className="w-full bg-gray-50 border border-gray-200 text-gray-600 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed" /></div>
-                                <div className="flex-1 flex flex-col gap-1.5"><label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Repetición</label><select name="recurrence" value={newTask.recurrence} onChange={handleChangeTask} className="w-full bg-gray-50 border border-gray-200 text-gray-600 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-400 transition-all cursor-pointer"><option value="NONE">No se repite</option><option value="DAILY">Diariamente</option><option value="WEEKLY">Semanalmente</option><option value="BIWEEKLY">Quincenalmente</option><option value="MONTHLY">Mensualmente</option></select></div>
+                                <div className="flex-1 flex flex-col">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Fecha límite</label>
+                                    <input type="datetime-local" name="deadline" value={newTask.deadline} onChange={handleChangeTask} disabled={newTask.recurrence !== "NONE"} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed" />
+                                </div>
+                                <div className="flex-1 flex flex-col">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Repetición</label>
+                                    <select name="recurrence" value={newTask.recurrence} onChange={handleChangeTask} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none cursor-pointer">
+                                        <option value="NONE">No se repite</option>
+                                        <option value="DAILY">Diariamente</option>
+                                        <option value="WEEKLY">Semanalmente</option>
+                                        <option value="BIWEEKLY">Quincenalmente</option>
+                                        <option value="MONTHLY">Mensualmente</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                         {error && <p className="text-red-600 text-sm bg-red-50 p-2 rounded-lg text-center">{error}</p>}
-                        <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50">
-                            <button type="button" onClick={() => { setOpenFormSubjectId(null); }} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all">Cancelar</button>
-                            <button type="submit" disabled={loading} className="px-5 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50">Guardar tarea</button>
+                        <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-gray-50">
+                            <button type="button" onClick={() => { setOpenFormSubjectId(null); }} className="px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200">Cancelar</button>
+                            <button type="submit" disabled={loading} className="px-5 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0">Guardar tarea</button>
                         </div>
                     </form>
-                </AnimatedVisibility>
+                </div>
             </div>
 
             <RecurringTasksModal isOpen={isRecurringModalOpen} onClose={() => setIsRecurringModalOpen(false)} subjectId={subject.id} subjectName={subject.name} />

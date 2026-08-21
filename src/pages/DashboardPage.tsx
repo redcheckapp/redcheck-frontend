@@ -35,6 +35,8 @@ const DashboardPage = () => {
     const [showTrash, setShowTrash] = useState(false); // <-- NUEVO: Estado para controlar si vemos la papelera
 
     const [deletingSubjects, setDeletingSubjects] = useState<number[]>([]);
+    const [addingSubjects, setAddingSubjects] = useState<number[]>([]);
+    const [addingTasks, setAddingTasks] = useState<number[]>([]);
     const [deletingTasks, setDeletingTasks] = useState<number[]>([]);
     const [username, setUsername] = useState("");
     const [userEmail, setUserEmail] = useState("");
@@ -99,7 +101,24 @@ const DashboardPage = () => {
                     description: newTask.description,
                     deadline: newTask.deadline
                 });
+                
+                // 1. Registramos que esta tarea está "naciendo"
+                setAddingTasks(prev => [...prev, response.id]);
+                
+                // 2. Actualizamos el estado y cerramos el formulario visualmente
                 setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: [...subject.tasks, response] }));
+                setOpenFormSubjectId(null);
+                
+                // 3. Retrasamos el vaciado de los inputs para no romper la animación de cierre
+                setTimeout(() => {
+                    setNewTask({title: "", description: "", deadline: "", recurrence: "NONE"});
+                }, 500); // Da tiempo a que el formulario se pliegue
+
+                // 4. Disparamos la expansión suave de la nueva tarea
+                setTimeout(() => {
+                    setAddingTasks(prev => prev.filter(id => id !== response.id));
+                }, 50);
+
             } else {
                 await addRecurringTask(subjectId, {
                     title: newTask.title,
@@ -107,10 +126,12 @@ const DashboardPage = () => {
                     periodicidad: newTask.recurrence
                 });
                 alert("Tarea recurrente creada. Aparecerá según su periodicidad a partir de mañana.");
+                
+                setOpenFormSubjectId(null);
+                setTimeout(() => {
+                    setNewTask({title: "", description: "", deadline: "", recurrence: "NONE"});
+                }, 500);
             }
-            
-            setOpenFormSubjectId(null);
-            setNewTask({title: "", description: "", deadline: "", recurrence: "NONE"});
         } catch(err) { 
             setError("Error al crear la tarea"); 
         }
@@ -296,9 +317,25 @@ const DashboardPage = () => {
         setError(null); 
         try {
             const response = await postSubject(newSubject);
-            setSubjects([...subjects, { ...response, tasks: [] }]);
+            const newlyCreatedSubject = { ...response, tasks: [] };
+            
+            // 1. Registramos que esta asignatura acaba de nacer
+            setAddingSubjects(prev => [...prev, newlyCreatedSubject.id]);
+            
+            // 2. La añadimos al estado principal y cerramos el formulario visualmente
+            setSubjects([...subjects, newlyCreatedSubject]);
             setOpenFormNewSubject(false);
-            setNewSubject({ name: "", description: "" });
+            
+            // 3. RETRASAMOS el vaciado de los inputs 500ms para que la animación termine suavemente
+            setTimeout(() => {
+                setNewSubject({ name: "", description: "" });
+            }, 500); 
+            
+            // 4. Disparamos la expansión de la nueva tarjeta de asignatura
+            setTimeout(() => {
+                setAddingSubjects(prev => prev.filter(id => id !== newlyCreatedSubject.id));
+            }, 50);
+            
         } catch(err) { 
             console.error("Error al crear asignatura:", err);
             setError("No se pudo crear la asignatura. Inténtalo de nuevo."); 
@@ -420,11 +457,12 @@ const DashboardPage = () => {
                                 <div className="flex flex-col gap-8">
                                     {subjects.filter(subject => !subject.archived).map(subject => {
                                         const isDeleting = deletingSubjects.includes(subject.id);
+                                        const isAdding = addingSubjects.includes(subject.id);
                                         return (
                                             <div 
                                                 key={`subject-wrapper-${subject.id}`}
                                                 className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
-                                                    isDeleting 
+                                                    isDeleting || isAdding
                                                         ? "opacity-0 scale-95 max-h-0 !mb-[-2rem]"
                                                         : "opacity-100 scale-100 max-h-[2000px]"
                                                 }`}
@@ -432,6 +470,7 @@ const DashboardPage = () => {
                                                 <SubjectSection
                                                     key={subject.id}
                                                     subject={subject}
+                                                    addingTasks={addingTasks}
                                                     setOpenFormUpdateSubject={setOpenFormUpdateSubject}
                                                     openFormUpdateSubject={openFormUpdateSubject}
                                                     handleUpdateSubject={handleUpdateSubject}
@@ -469,33 +508,67 @@ const DashboardPage = () => {
                                         <span>Añadir nueva asignatura</span>
                                     </button>
 
-                                    <AnimatedVisibility isVisible={openFormNewSubject}>
-                                        <form onSubmit={handleSubmitSubject} className="flex flex-col gap-4 mt-4 p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                                    {/* Contenedor animado del formulario de Nueva Asignatura */}
+                                    <div 
+                                        className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
+                                            openFormNewSubject 
+                                                ? "opacity-100 scale-100 max-h-[500px] mt-4" 
+                                                : "opacity-0 scale-95 max-h-0 !mt-0 !mb-0" 
+                                        }`}
+                                    >
+                                        <form onSubmit={handleSubmitSubject} className="flex flex-col gap-4 p-6 bg-white border border-gray-100 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)]">
                                             <div>
                                                 <h3 className="text-lg font-bold text-gray-800">Nueva asignatura</h3>
                                                 <p className="text-xs text-gray-500 mt-1">Añade una nueva materia para organizar tus tareas.</p>
                                             </div>
 
                                             <div className="flex flex-col gap-3">
-                                                <div className="flex flex-col gap-1.5">
-                                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nombre</label>
-                                                    <input type="text" name="name" value={newSubject.name} onChange={handleChangeSubject} placeholder="Ej. Desarrollo de Interfaces" className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all" required />
+                                                <div className="flex flex-col">
+                                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nombre</label>
+                                                    <input 
+                                                        type="text" 
+                                                        name="name" 
+                                                        value={newSubject.name} 
+                                                        onChange={handleChangeSubject} 
+                                                        placeholder="Ej. Desarrollo de Interfaces" 
+                                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" 
+                                                        required 
+                                                    />
                                                 </div>
                                                 
-                                                <div className="flex flex-col gap-1.5">
-                                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Descripción <span className="text-gray-400 font-normal lowercase">(opcional)</span></label>
-                                                    <input type="text" name="description" value={newSubject.description} onChange={handleChangeSubject} placeholder="Ej. Asignatura de 3º de carrera" className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all" />
+                                                <div className="flex flex-col">
+                                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Descripción <span className="text-gray-400 font-normal lowercase">(opcional)</span></label>
+                                                    <input 
+                                                        type="text" 
+                                                        name="description" 
+                                                        value={newSubject.description} 
+                                                        onChange={handleChangeSubject} 
+                                                        placeholder="Ej. Asignatura de 3º de carrera" 
+                                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" 
+                                                    />
                                                 </div>
                                             </div>
 
                                             {error && <p className="text-red-600 text-sm bg-red-50 p-2 rounded-lg text-center">{error}</p>}
 
-                                            <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50">
-                                                <button type="button" onClick={() => { setOpenFormNewSubject(false) }} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all">Cancelar</button>
-                                                <button type="submit" disabled={loading} className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50">Guardar asignatura</button>
+                                            <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-gray-50">
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => { setOpenFormNewSubject(false) }} 
+                                                    className="px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                                <button 
+                                                    type="submit" 
+                                                    disabled={loading} 
+                                                    className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
+                                                >
+                                                    Guardar asignatura
+                                                </button>
                                             </div>
                                         </form>
-                                    </AnimatedVisibility>       
+                                    </div>   
                                 </div>
 
                                 <OverdueSection

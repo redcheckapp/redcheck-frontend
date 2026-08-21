@@ -1,5 +1,4 @@
 import { Check, Pencil, X } from "lucide-react";
-import { AnimatedVisibility } from "./AnimatedVisibility";
 import type { SubjectWithTasks } from "../types";
 
 type Task = SubjectWithTasks["tasks"][0]; 
@@ -20,6 +19,7 @@ interface TaskItemProps {
     
     loading: boolean;
     error: string | null;
+    isAdding?: boolean;
     isDeleting?: boolean;
 }
 
@@ -90,14 +90,14 @@ interface TaskItemProps {
 
 export const TaskItem = ({
     subjectId, task, handleToggleTask, handleDeleteTask, setOpenFormSubjectIdTaskId,
-    openFormSubjectIdTaskId, handleUpdateTask, updatedTask, handleChangeUpdateTask, setUpdatedTask, loading, error, isDeleting
+    openFormSubjectIdTaskId, handleUpdateTask, updatedTask, handleChangeUpdateTask, setUpdatedTask, loading, error, isAdding, isDeleting,
 }: TaskItemProps) => {
 
     return (
-        <div className={`flex flex-col w-full transition-all duration-500 ease-in-out origin-top overflow-hidden ${
-            isDeleting 
-                ? "opacity-0 scale-95 max-h-0 !mb-[-0.5rem] border-transparent" // It shrinks and disappears
-                : "opacity-100 scale-100 max-h-[1000px]" // Normal state
+        <div className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
+                isAdding || isDeleting
+                    ? "opacity-0 scale-95 max-h-0 !mb-[-0.5rem]" 
+                    : "opacity-100 scale-100 max-h-[1000px]" // Normal state
         }`}>
             {/* Main task row */}
             <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition group">
@@ -134,15 +134,13 @@ export const TaskItem = ({
                     </p>
                 </div>
 
-                {/* Action buttons */}
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                {/* BOTONES DE ACCIÓN: Accesibles en táctil, hover en escritorio */}
+                <div className="flex items-center gap-1 opacity-100 [@media(any-hover:hover)]:opacity-0 [@media(any-hover:hover)]:group-hover:opacity-100 transition-opacity duration-200">
                     <button type="button" 
                         className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition"
                         onClick={() => { 
-                            // 1. We open the drawer
                             setOpenFormSubjectIdTaskId({subjectId: subjectId, taskId: task.id}); 
                             
-                            // 2. We fix the date format for HTML
                             let formattedDate = "";
                             if (task.deadline) {
                                 const d = new Date(task.deadline);
@@ -150,7 +148,6 @@ export const TaskItem = ({
                                 formattedDate = d.toISOString().slice(0, 16);
                             }
 
-                            // 3. We put the data of THIS task in the form
                             setUpdatedTask({
                                 title: task.title,
                                 description: task.description || "",
@@ -172,49 +169,52 @@ export const TaskItem = ({
                 </div>
             </div>
 
-            {/* Task editing form */}
-            <AnimatedVisibility isVisible={openFormSubjectIdTaskId?.subjectId === subjectId && openFormSubjectIdTaskId?.taskId === task.id}>
+            {/* FORMULARIO EDITAR TAREA CON ANIMACIÓN SUAVE Y ESTILOS PREMIUM */}
+            <div className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
+                openFormSubjectIdTaskId?.subjectId === subjectId && openFormSubjectIdTaskId?.taskId === task.id
+                    ? "opacity-100 scale-100 max-h-[500px] mt-2 mb-4"
+                    : "opacity-0 scale-95 max-h-0 !mt-0 !mb-0"
+            }`}>
                 <form onSubmit={(e) => handleUpdateTask(e, subjectId, task.id)}
-                    className="flex flex-col gap-4 mt-2 mb-4 ml-10 p-5 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                    className="flex flex-col gap-4 ml-10 p-6 bg-white border border-gray-100 rounded-2xl shadow-[0_2px_10px_-3px_rgba(234,179,8,0.1)]">
                                                         
                     <h3 className="text-sm font-bold text-gray-800 border-b border-gray-50 pb-2">Editar tarea</h3>
 
                     <div className="flex flex-col gap-3">
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Título de la tarea</label>
+                        <div className="flex flex-col">
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Título de la tarea</label>
                             <input
                                 type="text"
                                 name="title"
                                 value={updatedTask.title}
                                 onChange={handleChangeUpdateTask}
                                 placeholder="Título de la tarea"
-                                className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow-100 focus:border-yellow-400 transition-all"
+                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none"
                                 required
                             />
                         </div>
 
-                        {/* Compact row for Description and Date */}
                         <div className="flex flex-col sm:flex-row gap-3">
-                            <div className="flex-1 flex flex-col gap-1.5">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Descripción</label>
+                            <div className="flex-1 flex flex-col">
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Descripción</label>
                                 <input
                                     type="text"
                                     name="description"
                                     value={updatedTask.description}
                                     onChange={handleChangeUpdateTask}
                                     placeholder="Añade detalles..."
-                                    className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow-100 focus:border-yellow-400 transition-all"
+                                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none"
                                 />
                             </div>
                             
-                            <div className="flex-1 flex flex-col gap-1.5">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Fecha límite</label>
+                            <div className="flex-1 flex flex-col">
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Fecha límite</label>
                                 <input
                                     type="datetime-local"
                                     name="deadline"
                                     value={updatedTask.deadline}
                                     onChange={handleChangeUpdateTask}
-                                    className="w-full bg-gray-50 border border-gray-200 text-gray-600 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-yellow-100 focus:border-yellow-400 transition-all"
+                                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none"
                                 />
                             </div>
                         </div>
@@ -224,10 +224,10 @@ export const TaskItem = ({
                         <p className="text-red-500 text-sm text-center mt-2 bg-red-50 p-2 rounded-lg">{error}</p>
                     )}
 
-                    <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-gray-50">
+                    <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-gray-50">
                         <button type="button" 
                             onClick={() => {setOpenFormSubjectIdTaskId(null)}}
-                            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
+                            className="px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200"
                         >
                             Cancelar
                         </button>
@@ -235,13 +235,13 @@ export const TaskItem = ({
                         <button
                             type="submit"
                             disabled={loading}
-                            className="px-5 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50"
+                            className="px-5 py-2.5 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
                         >
                             Guardar cambios
                         </button>
                     </div>
                 </form>
-            </AnimatedVisibility>
+            </div>
         </div>
     );
 };
