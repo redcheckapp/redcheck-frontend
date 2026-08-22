@@ -32,7 +32,7 @@ const DashboardPage = () => {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     
     const [showCalendar, setShowCalendar] = useState(true);
-    const [showTrash, setShowTrash] = useState(false); // <-- NUEVO: Estado para controlar si vemos la papelera
+    const [showTrash, setShowTrash] = useState(false); 
 
     const [deletingSubjects, setDeletingSubjects] = useState<number[]>([]);
     const [addingSubjects, setAddingSubjects] = useState<number[]>([]);
@@ -54,8 +54,6 @@ const DashboardPage = () => {
     const [aiPlanData, setAiPlanData] = useState(null);
     const [isAiLoading, setIsAiLoading] = useState(false);
     const [aiNotificationReady, setAiNotificationReady] = useState(false);
-    
-    // ... [TODO EL RESTO DE TUS FUNCIONES SE MANTIENE IGUAL HASTA EL RENDER] ...
     
     const handleGenerateAiPlan = async () => {
         setIsAiLoading(true);
@@ -102,19 +100,14 @@ const DashboardPage = () => {
                     deadline: newTask.deadline
                 });
                 
-                // 1. Registramos que esta tarea está "naciendo"
                 setAddingTasks(prev => [...prev, response.id]);
-                
-                // 2. Actualizamos el estado y cerramos el formulario visualmente
                 setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: [...subject.tasks, response] }));
                 setOpenFormSubjectId(null);
                 
-                // 3. Retrasamos el vaciado de los inputs para no romper la animación de cierre
                 setTimeout(() => {
                     setNewTask({title: "", description: "", deadline: "", recurrence: "NONE"});
-                }, 500); // Da tiempo a que el formulario se pliegue
+                }, 500); 
 
-                // 4. Disparamos la expansión suave de la nueva tarea
                 setTimeout(() => {
                     setAddingTasks(prev => prev.filter(id => id !== response.id));
                 }, 50);
@@ -232,7 +225,6 @@ const DashboardPage = () => {
 
     const today = new Date().toLocaleDateString("es-ES", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
 
-    // 1. Crea esta función justo antes de tu useEffect
     const refreshData = async () => {
         try {
             const subjectsData = await getSubjects();
@@ -248,14 +240,13 @@ const DashboardPage = () => {
         }
     };
 
-    // 2. Modifica tu useEffect para que sea más limpio
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
                 const profile = await getUsername();
                 setUsername(profile.username);
                 setUserEmail(profile.email);
-                await refreshData(); // Usamos la nueva función
+                await refreshData(); 
             } catch (err) {
                 setError("Error al cargar los datos");
             } finally { 
@@ -319,19 +310,14 @@ const DashboardPage = () => {
             const response = await postSubject(newSubject);
             const newlyCreatedSubject = { ...response, tasks: [] };
             
-            // 1. Registramos que esta asignatura acaba de nacer
             setAddingSubjects(prev => [...prev, newlyCreatedSubject.id]);
-            
-            // 2. La añadimos al estado principal y cerramos el formulario visualmente
             setSubjects([...subjects, newlyCreatedSubject]);
             setOpenFormNewSubject(false);
             
-            // 3. RETRASAMOS el vaciado de los inputs 500ms para que la animación termine suavemente
             setTimeout(() => {
                 setNewSubject({ name: "", description: "" });
             }, 500); 
             
-            // 4. Disparamos la expansión de la nueva tarjeta de asignatura
             setTimeout(() => {
                 setAddingSubjects(prev => prev.filter(id => id !== newlyCreatedSubject.id));
             }, 50);
@@ -347,12 +333,12 @@ const DashboardPage = () => {
     
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-[#e3e7e2]">
+            <div className="min-h-screen flex items-center justify-center bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500">
                 <div className="flex flex-col items-center gap-5 animate-pulse">
                     <div className="bg-[#cc2229] w-16 h-16 rounded-[18px] flex items-center justify-center shadow-lg flex-shrink-0">
                         <Check size={40} strokeWidth={4} className="text-white" />
                     </div>
-                    <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">
+                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mt-1">
                         Cargando tu espacio...
                     </span>
                 </div>
@@ -360,11 +346,11 @@ const DashboardPage = () => {
         );
     }
 
-    if (error) return <div className="flex min-h-screen items-center justify-center bg-[#e3e7e2]"><p className="text-red-500 font-semibold">{error}</p></div>;
+    if (error) return <div className="flex min-h-screen items-center justify-center bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500"><p className="text-red-500 font-semibold">{error}</p></div>;
 
     return (
         <PageTransition>
-            <div className="flex h-screen bg-[#e3e7e2] p-4 overflow-hidden">
+            <div className="flex h-screen bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500 p-4 overflow-hidden">
                 
                 <Sidebar 
                     sidebarOpen={sidebarOpen} 
@@ -377,26 +363,21 @@ const DashboardPage = () => {
                     aiNotificationReady={aiNotificationReady}
                     onOpenAiModal={handleOpenAiModal} 
                     subjectStats={subjectStats}
-                    showTrash={showTrash}                                  // <-- NUEVO: Le decimos al Sidebar si estamos en la papelera
+                    showTrash={showTrash}
                     onOpenTrash={() => {
                         if (showTrash) {
-                            // Si ya estamos en la papelera, salir y refrescar datos
                             setShowTrash(false);
                             refreshData();
                         } else {
-                            // Si no, entrar a la papelera
                             setShowTrash(true);
                         }
-                    }}                 // <-- NUEVO: Función para abrir papelera
-                    onGoHome={() => setShowTrash(false)}                   // <-- NUEVO: Función para volver al dashboard
+                    }}
+                    onGoHome={() => setShowTrash(false)}
                 />
 
-                {/* --- RENDERIZADO CONDICIONAL CON ANIMACIÓN SUAVE --- */}
-                {/* El 'key' obliga a React a reiniciar la animación cada vez que cambiamos de vista */}
                 <div key={showTrash ? 'view-trash' : 'view-dashboard'} className="flex-1 flex h-full animate-soft-fade">
                     
                     {showTrash ? (
-                        // VISTA DE LA PAPELERA
                         <div className="flex-1 ml-4">
                             <TrashView 
                                 onClose={() => {
@@ -407,7 +388,6 @@ const DashboardPage = () => {
                             />
                         </div>
                     ) : (
-                        // VISTA NORMAL DEL DASHBOARD
                         <>
                             {/* --- BLOCK 1: AGENDA (LEFT) --- */}
                             <div className={`transition-all duration-500 ease-in-out flex flex-col overflow-hidden shrink-0 ${
@@ -419,15 +399,15 @@ const DashboardPage = () => {
                             </div>
 
                             {/* --- BLOCK 2: TASKS (CENTER) --- */}
-                        <div className="flex-1 rounded-2xl bg-white shadow-md flex flex-col overflow-y-auto transition-all duration-500 ease-in-out ml-4">
+                        <div className="flex-1 rounded-2xl bg-white dark:bg-gray-900 shadow-md flex flex-col overflow-y-auto transition-colors duration-500 ease-in-out ml-4">
                             <div className="p-6 mx-auto w-full max-w-4xl transition-all duration-500 ease-in-out">
                                 
                                 {/* TASKS HEADER + FOCUS MODE BUTTON */}
                                 <div className="mb-6 flex justify-between items-start">
                                     <div>
-                                        <h1 className="text-3xl font-bold text-gray-800">{ getGreeting(username) }</h1>
-                                        <p className="text-gray-400 mt-1 capitalize">{today}</p>
-                                        <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                                        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">{ getGreeting(username) }</h1>
+                                        <p className="text-gray-400 dark:text-gray-500 mt-1 capitalize">{today}</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
                                             {totalPending === 0 ? (
                                                 <>
                                                     ¡No tienes tareas pendientes hoy! <Coffee size={16} />
@@ -442,8 +422,8 @@ const DashboardPage = () => {
                                         onClick={() => setShowCalendar(!showCalendar)}
                                         className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-all border shrink-0 mt-1 ${
                                             showCalendar 
-                                                ? "bg-white text-gray-400 hover:text-gray-700 hover:bg-gray-50 border-gray-200" 
-                                                : "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 shadow-sm"
+                                                ? "bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700" 
+                                                : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 shadow-sm"
                                         }`}
                                         title={showCalendar ? "Ocultar agenda (Modo Foco)" : "Mostrar agenda"}
                                     >
@@ -501,7 +481,7 @@ const DashboardPage = () => {
                                     })}
 
                                     <button 
-                                        className="w-full mt-4 flex items-center justify-center gap-2 text-gray-500 bg-transparent border-2 border-dashed border-gray-300 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 rounded-xl py-4 text-sm font-medium transition-all group" 
+                                        className="w-full mt-4 flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400 bg-transparent border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 rounded-xl py-4 text-sm font-medium transition-all group" 
                                         onClick={() => { setOpenFormNewSubject(true); }}
                                     >
                                         <Plus size={18} className="transition-transform group-hover:scale-110" />
@@ -516,53 +496,53 @@ const DashboardPage = () => {
                                                 : "opacity-0 scale-95 max-h-0 !mt-0 !mb-0" 
                                         }`}
                                     >
-                                        <form onSubmit={handleSubmitSubject} className="flex flex-col gap-4 p-6 bg-white border border-gray-100 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)]">
+                                        <form onSubmit={handleSubmitSubject} className="flex flex-col gap-4 p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] dark:shadow-none transition-colors duration-300">
                                             <div>
-                                                <h3 className="text-lg font-bold text-gray-800">Nueva asignatura</h3>
-                                                <p className="text-xs text-gray-500 mt-1">Añade una nueva materia para organizar tus tareas.</p>
+                                                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">Nueva asignatura</h3>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Añade una nueva materia para organizar tus tareas.</p>
                                             </div>
 
                                             <div className="flex flex-col gap-3">
                                                 <div className="flex flex-col">
-                                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nombre</label>
+                                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Nombre</label>
                                                     <input 
                                                         type="text" 
                                                         name="name" 
                                                         value={newSubject.name} 
                                                         onChange={handleChangeSubject} 
                                                         placeholder="Ej. Desarrollo de Interfaces" 
-                                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" 
+                                                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" 
                                                         required 
                                                     />
                                                 </div>
                                                 
                                                 <div className="flex flex-col">
-                                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Descripción <span className="text-gray-400 font-normal lowercase">(opcional)</span></label>
+                                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Descripción <span className="text-gray-400 dark:text-gray-500 font-normal lowercase">(opcional)</span></label>
                                                     <input 
                                                         type="text" 
                                                         name="description" 
                                                         value={newSubject.description} 
                                                         onChange={handleChangeSubject} 
                                                         placeholder="Ej. Asignatura de 3º de carrera" 
-                                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" 
+                                                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" 
                                                     />
                                                 </div>
                                             </div>
 
-                                            {error && <p className="text-red-600 text-sm bg-red-50 p-2 rounded-lg text-center">{error}</p>}
+                                            {error && <p className="text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/30 p-2 rounded-lg text-center">{error}</p>}
 
-                                            <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-gray-50">
+                                            <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-gray-50 dark:border-gray-800">
                                                 <button 
                                                     type="button" 
                                                     onClick={() => { setOpenFormNewSubject(false) }} 
-                                                    className="px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200"
+                                                    className="px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200"
                                                 >
                                                     Cancelar
                                                 </button>
                                                 <button 
                                                     type="submit" 
                                                     disabled={loading} 
-                                                    className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
+                                                    className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
                                                 >
                                                     Guardar asignatura
                                                 </button>
@@ -591,15 +571,15 @@ const DashboardPage = () => {
                         <div className={`transition-all duration-500 ease-in-out flex flex-col overflow-hidden shrink-0 ${
                                 showCalendar ? "w-0 opacity-0 ml-0" : "w-[350px] opacity-100 ml-4" 
                             }`}>
-                            <div className="w-[350px] h-full bg-white rounded-2xl shadow-md p-6 flex flex-col shrink-0 overflow-y-auto overflow-x-hidden">
+                            <div className="w-[350px] h-full bg-white dark:bg-gray-900 rounded-2xl shadow-md p-6 flex flex-col shrink-0 overflow-y-auto overflow-x-hidden transition-colors duration-500">
                                 
-                                <div className="flex items-center gap-2 mb-6 border-b border-gray-50 pb-4">
-                                    <div className="bg-blue-50 p-2 rounded-lg text-blue-600">
+                                <div className="flex items-center gap-2 mb-6 border-b border-gray-50 dark:border-gray-800 pb-4 transition-colors">
+                                    <div className="bg-blue-50 dark:bg-blue-900/30 p-2 rounded-lg text-blue-600 dark:text-blue-400">
                                         <LayoutGrid size={20} />
                                     </div>
                                     <div>
-                                        <h3 className="text-sm font-bold text-gray-800">Tu rendimiento</h3>
-                                        <p className="text-xs text-gray-400 font-medium">Historial de constancia</p>
+                                        <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">Tu rendimiento</h3>
+                                        <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">Historial de constancia</p>
                                     </div>
                                 </div>
                                 
@@ -608,12 +588,12 @@ const DashboardPage = () => {
                                 </div>
 
                                 {/* Motivational block */}
-                                <div className="mt-8 p-5 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-100/50 shadow-sm shrink-0">
-                                    <h4 className="text-green-800 font-bold text-sm mb-2 flex items-center gap-2">
+                                <div className="mt-8 p-5 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-2xl border border-green-100/50 dark:border-green-900/50 shadow-sm shrink-0 transition-colors duration-500">
+                                    <h4 className="text-green-800 dark:text-green-400 font-bold text-sm mb-2 flex items-center gap-2">
                                         <Check size={16} /> 
                                         Modo Foco Activo
                                     </h4>
-                                    <p className="text-[13px] text-green-700/80 font-medium leading-relaxed">
+                                    <p className="text-[13px] text-green-700/80 dark:text-green-500/80 font-medium leading-relaxed">
                                         El calendario principal está oculto. Concéntrate en completar tus tareas de hoy para mantener tu racha de progreso en verde.
                                     </p>
                                 </div>

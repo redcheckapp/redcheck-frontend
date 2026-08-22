@@ -107,17 +107,17 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
     };
 
     return (
-        <div className="w-full h-full bg-white rounded-2xl shadow-md p-8 flex flex-col overflow-y-auto">
+        <div className="w-full h-full bg-white dark:bg-gray-900 rounded-2xl shadow-md p-8 flex flex-col overflow-y-auto transition-colors duration-500">
             
-            {/* MEJORA 4: Cabecera con el botón de Vaciar Papelera */}
+            {/* Cabecera con el botón de Vaciar Papelera */}
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
-                    <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-all">
+                    <button onClick={onClose} className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-300">
                         <ArrowLeft size={24} />
                     </button>
-                    <div className="flex items-center gap-3 text-red-600">
+                    <div className="flex items-center gap-3 text-red-600 dark:text-red-500 transition-colors duration-300">
                         <Trash2 size={28} />
-                        <h1 className="text-3xl font-bold text-gray-800">Papelera</h1>
+                        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 transition-colors duration-300">Papelera</h1>
                     </div>
                 </div>
 
@@ -126,7 +126,7 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
                     <button 
                         onClick={handleEmptyTrash}
                         disabled={loading}
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-all disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-xl transition-all duration-300 disabled:opacity-50"
                     >
                         <Trash2 size={18} />
                         <span>Vaciar papelera</span>
@@ -135,36 +135,36 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
             </div>
 
             {loading ? (
-                <div className="flex-1 flex items-center justify-center text-gray-400">Cargando...</div>
+                <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500 transition-colors duration-300">Cargando...</div>
             ) : subjects.length === 0 && tasks.length === 0 ? (
-                // MEJORA 3: Estado vacío más visual
-                <div className="flex-1 flex flex-col items-center justify-center gap-3">
-                    <div className="bg-gray-50 p-6 rounded-full text-gray-400 mb-2 border border-gray-100">
+                // Estado vacío más visual adaptado
+                <div className="flex-1 flex flex-col items-center justify-center gap-3 transition-colors duration-300">
+                    <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-full text-gray-400 dark:text-gray-600 mb-2 border border-gray-100 dark:border-gray-800 transition-colors duration-300">
                         <Inbox size={48} strokeWidth={1} />
                     </div>
-                    <p className="text-lg font-bold text-gray-800">La papelera está vacía</p>
-                    <p className="text-sm text-gray-500">Los elementos que elimines aparecerán aquí.</p>
+                    <p className="text-lg font-bold text-gray-800 dark:text-gray-200 transition-colors duration-300">La papelera está vacía</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">Los elementos que elimines aparecerán aquí.</p>
                 </div>
             ) : (
                 <div className="space-y-8 flex-1">
                         {/* Sección Asignaturas */}
                         {subjects.length > 0 && (
                             <div>
-                                <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-6">Asignaturas eliminadas</h2>
+                                <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-6 transition-colors duration-300">Asignaturas eliminadas</h2>
                                 <div className="flex flex-col gap-3">
                                     {subjects.map(s => {
                                         const isRemoving = removingSubjects.includes(s.id);
                                         return (
                                             <div 
                                                 key={s.id} 
-                                                className={`transition-all duration-400 ease-in-out flex items-center justify-between bg-gray-50 rounded-xl border border-gray-100 overflow-hidden ${
-                                                    isRemoving ? "opacity-0 scale-95 max-h-0 p-0 border-transparent mb-[-0.75rem]" : "opacity-100 scale-100 max-h-[100px] p-4"
+                                                className={`transition-all duration-400 ease-in-out flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden ${
+                                                    isRemoving ? "opacity-0 scale-95 max-h-0 p-0 border-transparent dark:border-transparent mb-[-0.75rem]" : "opacity-100 scale-100 max-h-[100px] p-4"
                                                 }`}
                                             >
-                                                <span className="font-semibold text-gray-700">{s.name}</span>
+                                                <span className="font-semibold text-gray-700 dark:text-gray-200 transition-colors duration-300">{s.name}</span>
                                                 <div className="flex gap-2">
-                                                    <button onClick={() => handleRestoreSubject(s.id)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"><RotateCcw size={18}/></button>
-                                                    <button onClick={() => handleHardDeleteSubject(s.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg"><X size={18}/></button>
+                                                    <button onClick={() => handleRestoreSubject(s.id)} className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors duration-200"><RotateCcw size={18}/></button>
+                                                    <button onClick={() => handleHardDeleteSubject(s.id)} className="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors duration-200"><X size={18}/></button>
                                                 </div>
                                             </div>
                                         );
@@ -176,23 +176,23 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
                         {/* Sección Tareas */}
                         {tasks.length > 0 && (
                             <div>
-                                <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-6">Tareas eliminadas</h2>
+                                <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-6 transition-colors duration-300">Tareas eliminadas</h2>
                                 <div className="flex flex-col gap-3">
                                     {tasks.map(t => {
                                         const isRemoving = removingTasks.includes(t.id);
                                         return (
                                             <div 
                                                 key={t.id} 
-                                                className={`transition-all duration-400 ease-in-out flex items-center justify-between bg-gray-50 rounded-xl border border-gray-100 overflow-hidden ${
-                                                    isRemoving ? "opacity-0 scale-95 max-h-0 p-0 border-transparent mb-[-0.75rem]" : "opacity-100 scale-100 max-h-[100px] p-4"
+                                                className={`transition-all duration-400 ease-in-out flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden ${
+                                                    isRemoving ? "opacity-0 scale-95 max-h-0 p-0 border-transparent dark:border-transparent mb-[-0.75rem]" : "opacity-100 scale-100 max-h-[100px] p-4"
                                                 }`}
                                             >
-                                                <span className="text-gray-700">{t.title}</span>
+                                                <span className="text-gray-700 dark:text-gray-200 transition-colors duration-300">{t.title}</span>
                                                 <div className="flex gap-2">
-                                                    <button onClick={() => handleRestoreTask(t.subjectId, t.id)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg">
+                                                    <button onClick={() => handleRestoreTask(t.subjectId, t.id)} className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors duration-200">
                                                         <RotateCcw size={18}/>
                                                     </button>
-                                                    <button onClick={() => handleHardDeleteTask(t.subjectId, t.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg">
+                                                    <button onClick={() => handleHardDeleteTask(t.subjectId, t.id)} className="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors duration-200">
                                                         <X size={18}/>
                                                     </button>
                                                 </div>
