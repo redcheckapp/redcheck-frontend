@@ -46,7 +46,7 @@ export const Sidebar = ({
 
     return (
         <div className={`relative z-20 transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[280px] overflow-visible" : "w-20 overflow-hidden"}
-            rounded-2xl bg-gray-50 dark:bg-gray-900 shadow-md p-5 flex flex-col transition-colors duration-500`}>
+            rounded-2xl bg-gray-50 dark:bg-gray-900 shadow-md p-5 flex flex-col`}>
 
             {/* --- HEADER --- */}
             <div className="flex items-center mb-8 w-[240px] shrink-0">
@@ -63,7 +63,6 @@ export const Sidebar = ({
                     </div>
                 </button>
                 
-                {/* Haciendo el logo clicable para volver al Dashboard */}
                 <div 
                     onClick={onGoHome}
                     className={`flex items-center overflow-hidden cursor-pointer hover:opacity-80 transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[150px] opacity-100 ml-2" : "w-0 opacity-0 ml-0"}`}
@@ -124,18 +123,14 @@ export const Sidebar = ({
             {/* --- CENTRAL ZONE --- */}
             <div className="flex-1 flex flex-col items-center w-full overflow-y-auto overflow-x-hidden pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
 
-                {/* Daily progress */}
                 <div className={`relative transition-all duration-300 ease-in-out shrink-0 mb-5 ${sidebarOpen ? "w-24 h-24" : "w-10 h-10"}`}>
                     <svg viewBox="0 0 96 96" className="w-full h-full transform -rotate-90">
-                        {/* Pista de fondo: ahora es gris oscuro en modo noche para que se vea claramente el raíl */}
                         <circle cx="48" cy="48" r="36" stroke="currentColor" strokeWidth="8" fill="currentColor" className="text-[#c3e0ce] dark:text-gray-800 fill-[#eaf6ed] dark:fill-gray-900/50 transition-colors duration-500" />
-                        {/* Línea de progreso: verde brillante */}
                         <circle cx="48" cy="48" r="36" stroke="currentColor" strokeWidth="8" fill="none"
                             strokeDasharray="226" strokeDashoffset={strokeDashoffset} strokeLinecap="round"
                             className="text-[#16a34a] dark:text-green-400 transition-all duration-500 ease-out" 
                         />
                     </svg>
-                    {/* Texto interior: ahora es blanco puro en modo noche para máxima legibilidad */}
                     <div className={`absolute inset-0 flex items-center justify-center font-bold text-green-700 dark:text-white transition-all duration-300 ease-in-out ${sidebarOpen ? "text-xl tracking-tight" : "text-xs"}`}>
                         {completedTasks}/{totalTasks}
                     </div>
@@ -147,7 +142,6 @@ export const Sidebar = ({
                     stats={subjectStats} 
                 />
 
-                {/* SmartCheck AI */}
                 <div 
                     onClick={() => setSidebarOpen(true)} 
                     className="flex flex-col items-center text-center opacity-80 hover:opacity-100 transition-all duration-300 ease-in-out cursor-pointer group mt-4 mb-2 w-full select-none" 
@@ -177,7 +171,6 @@ export const Sidebar = ({
                     </div>
                 </div>
 
-                {/* --- AI BUTTONS --- */}
                 <div className={`
                         flex flex-col space-y-3 px-4 overflow-hidden w-full shrink-0
                         transition-all duration-500 ease-out
@@ -203,13 +196,11 @@ export const Sidebar = ({
                         comingSoon={true}
                     />
                 </div>
-                    
             </div>
 
             {/* --- FOOTER --- */}
             <div className={`mt-auto flex flex-col gap-1 w-full pt-4 transition-all duration-300 ease-in-out ${sidebarOpen ? "border-t border-gray-200 dark:border-gray-800" : "border-transparent"}`}>
                 
-                {/* PAPELERA DE RECICLAJE */}
                 <button 
                     onClick={onOpenTrash} 
                     className={`flex items-center p-2 rounded-xl transition-colors w-full ${showTrash ? "bg-gray-800 dark:bg-gray-800 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800"}`} 
@@ -236,7 +227,7 @@ export const Sidebar = ({
                     </div>
                 </button>
 
-                <button onClick={() => { localStorage.removeItem("token"); navigate("/login"); }} className="flex items-center p-2 rounded-xl text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors w-full" title="Cerrar sesión">
+                <button onClick={() => { localStorage.removeItem("token"); navigate("/login"); }} className="flex items-center p-2 rounded-xl text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:bg-transparent dark:hover:bg-red-900/30 transition-colors w-full" title="Cerrar sesión">
                     <div className="flex items-center justify-center shrink-0 w-6 h-6">
                         <LogOut size={20} />
                     </div>
