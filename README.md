@@ -1,4 +1,4 @@
-# 🧠 RedCheck - AI-Powered Smart Planner
+# RedCheck - AI-Powered Smart Planner
 
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
@@ -15,14 +15,14 @@ This full-stack project showcases advanced frontend architecture, artificial int
   <img src="https://github.com/user-attachments/assets/54ebbb87-0f47-407a-ad6f-9f448821fb9a" alt="RedCheck Dashboard Overview" width="800"/>
 </p>
 
-## ✨ Key Features
+## Key Features
 
 The frontend was designed with a strict focus on User Experience (UX), frictionless interactions, and a highly scalable component architecture.
 
 - **SmartCheck AI:** Artificial intelligence integration to generate daily strategies. It analyzes task risk levels (High/Medium/Low), defines an execution order, and generates a priority reasoning for each item.
 
   <p align="center">
-    <img src="https://github.com/user-attachments/assets/21bf8539-90ff-4138-b56a-24baeabc92f5" alt="SmartCheck AI Demo" width="800"/>
+    <img src="https://github.com/user-attachments/assets/09817975-e8f0-4c95-beee-9da478879499" alt="SmartCheck AI Demo" width="800"/>
   </p>
   
 - **Activity Heatmap:** Historical progress visualization via a contribution graph (inspired by GitHub), dynamically calculated based on daily task completion ratios.
@@ -36,7 +36,7 @@ The frontend was designed with a strict focus on User Experience (UX), frictionl
   
 - **UI Animations:** Fluid page transitions and interactive modals utilizing `Framer Motion` and optimized CSS animations.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Core:** React 18, TypeScript, Vite.
 - **Styling:** Tailwind CSS.
@@ -45,7 +45,7 @@ The frontend was designed with a strict focus on User Experience (UX), frictionl
 - **Routing:** React Router DOM.
 - **Deployment:** Docker, Docker Compose, NGINX.
 
-## 🚀 Local Installation & Deployment
+## Local Installation & Deployment
 
 ### Prerequisites
 - Node.js (v18 or higher recommended)
@@ -101,11 +101,11 @@ docker-compose up -d --build
 ```
 4. Open ```http://localhost``` in your browser.
 
-## 🧪 Demo Environment
+## Demo Environment
 
 To facilitate technical reviews by recruiters and other developers, the login screen includes a Demo Button. This feature injects test credentials (```demo@redcheck.com```) and performs automatic authentication, allowing instant access to the application without manual registration.
 
-## 📂 Architecture Highlights
+## Architecture Highlights
 
 The project follows a clean architectural pattern, strictly decoupling business logic from the presentation layer:
 
