@@ -10,9 +10,9 @@ interface SmartCheckModalProps {
 
 const getRiskConfig = (nivel: string) => {
   switch (nivel?.toUpperCase()) {
-    case 'ALTO':  return { label: 'ALTO 🔥',  className: 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50' };
-    case 'MEDIO': return { label: 'MEDIO ⚠️', className: 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-900/50' };
-    case 'BAJO':  return { label: 'BAJO ✅',  className: 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-900/50' };
+    case 'ALTO':  return { label: 'ALTO',  className: 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50' };
+    case 'MEDIO': return { label: 'MEDIO', className: 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-900/50' };
+    case 'BAJO':  return { label: 'BAJO',  className: 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-900/50' };
     default:      return { label: nivel,       className: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700' };
   }
 };
@@ -40,7 +40,7 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
         {/* ── CENTERED TITLE ── */}
         <div className="text-center px-6 pb-4">
           <h2 className="text-2xl font-bold text-zinc-900 dark:text-gray-100 tracking-tight transition-colors duration-300">
-            Plan Diario SmartCheck 🧠
+            Plan Diario SmartCheck
           </h2>
         </div>
 
@@ -49,7 +49,7 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
 
           {/* Support message */}
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50 rounded-xl px-4 py-3 flex gap-3 items-start transition-colors duration-300">
-            <span className="text-lg leading-none mt-0.5">✨</span>
+            <span className="text-lg leading-none mt-0.5"></span>
             <p className="text-sm text-blue-800 dark:text-blue-300 font-medium leading-relaxed m-0 transition-colors duration-300">
               {aiData.mensajeApoyo}
             </p>
@@ -101,7 +101,7 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
                       {/* Priority reason */}
                       <div className="mt-2 bg-white dark:bg-gray-900/50 border border-zinc-100 dark:border-gray-800/50 rounded-lg px-3 py-2 transition-colors duration-300">
                         <p className="text-xs text-zinc-500 dark:text-gray-400 italic m-0 leading-relaxed transition-colors duration-300">
-                          ✨ {itemIA.razonPrioridad}
+                          {itemIA.razonPrioridad}
                         </p>
                       </div>
                     </div>
