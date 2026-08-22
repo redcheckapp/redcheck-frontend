@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* --- CONFIGURACIÓN TAILWIND V4 --- */
+/* 1. Forzar modo oscuro por clase CSS en lugar de por sistema operativo */
+@custom-variant dark (&:is(.dark, .dark *));
+
+/* 2. Recuperar nuestras reglas inteligentes para pantallas táctiles vs ratón */
+@custom-variant can-hover (@media (any-hover: hover));
+@custom-variant no-hover (@media (any-hover: none));
+
+
+/* --- TUS ANIMACIONES --- */
 @keyframes slideDown {
   from {
     opacity: 0;

@@ -69,27 +69,27 @@ export const SubjectSection = ({
     return (
         <div key={subject.id} className="group/section">
             
-            <div className="group/header flex items-start justify-between gap-4 mb-3 border-b border-gray-100 pb-2">
+            <div className="group/header flex items-start justify-between gap-4 mb-3 border-b border-gray-100 dark:border-gray-800 pb-2 transition-colors duration-300">
                 <div className="flex flex-col">
-                    <h2 className="text-lg font-bold text-gray-800 leading-tight">
+                    <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight">
                         {subject.name}
                     </h2>
                     {subject.description && (
-                        <span className="text-xs text-gray-400 font-medium mt-0.5">
+                        <span className="text-xs text-gray-400 dark:text-gray-500 font-medium mt-0.5">
                             {subject.description}
                         </span>
                     )}
                 </div>
                 
                 <div className="flex items-center gap-1 opacity-100 [@media(any-hover:hover)]:opacity-0 [@media(any-hover:hover)]:group-hover/header:opacity-100 transition-opacity duration-200 shrink-0">
-                    <button type="button" className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition" onClick={() => setIsRecurringModalOpen(true)} title="Gestionar rutinas recurrentes"><Repeat size={16} /></button>
-                    <button type="button" className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition" onClick={() => { setOpenFormUpdateSubject(subject.id); setUpdatedSubject({ name: subject.name, description: subject.description || "" }); }} title="Editar asignatura"><Pencil size={16} /></button>
-                    <button type="button" className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" onClick={() => { handleArchiveSubject(subject.id); }} title="Archivar asignatura"><Archive size={16} /></button>
-                    <button type="button" className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" onClick={() => { handleDeleteSubject(subject.id); }} title="Eliminar asignatura"><X size={16} /></button>
+                    <button type="button" className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:text-purple-400 dark:hover:bg-purple-900/30 rounded-lg transition" onClick={() => setIsRecurringModalOpen(true)} title="Gestionar rutinas recurrentes"><Repeat size={16} /></button>
+                    <button type="button" className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 dark:hover:text-yellow-400 dark:hover:bg-yellow-900/30 rounded-lg transition" onClick={() => { setOpenFormUpdateSubject(subject.id); setUpdatedSubject({ name: subject.name, description: subject.description || "" }); }} title="Editar asignatura"><Pencil size={16} /></button>
+                    <button type="button" className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition" onClick={() => { handleArchiveSubject(subject.id); }} title="Archivar asignatura"><Archive size={16} /></button>
+                    <button type="button" className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition" onClick={() => { handleDeleteSubject(subject.id); }} title="Eliminar asignatura"><X size={16} /></button>
                 </div>
             </div>
 
-            {/* FORMULARIO EDITAR ASIGNATURA CON ANIMACIÓN SUAVE */}
+            {/* FORMULARIO EDITAR ASIGNATURA */}
             <div 
                 className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
                     openFormUpdateSubject === subject.id 
@@ -97,29 +97,29 @@ export const SubjectSection = ({
                         : "opacity-0 scale-95 max-h-0 mb-0"
                 }`}
             >
-                <form onSubmit={(e) => handleUpdateSubject(e, subject.id)} className="flex flex-col gap-4 p-6 bg-white border border-gray-100 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] font-normal">
-                    <h3 className="text-sm font-bold text-gray-800 border-b border-gray-50 pb-2">Editar asignatura</h3>
+                <form onSubmit={(e) => handleUpdateSubject(e, subject.id)} className="flex flex-col gap-4 p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] dark:shadow-none font-normal transition-colors duration-300">
+                    <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 border-b border-gray-50 dark:border-gray-800 pb-2">Editar asignatura</h3>
                     <div className="flex flex-col gap-3">
                         <div className="flex flex-col">
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nombre</label>
-                            <input type="text" name="name" value={updatedSubject.name} onChange={handleChangeUpdateSubject} placeholder="Ej. Desarrollo de Interfaces" className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" required />
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Nombre</label>
+                            <input type="text" name="name" value={updatedSubject.name} onChange={handleChangeUpdateSubject} placeholder="Ej. Desarrollo de Interfaces" className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none" required />
                         </div>
                         <div className="flex flex-col">
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Descripción</label>
-                            <input type="text" name="description" value={updatedSubject.description} onChange={handleChangeUpdateSubject} placeholder="Añade detalles..." className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Descripción</label>
+                            <input type="text" name="description" value={updatedSubject.description} onChange={handleChangeUpdateSubject} placeholder="Añade detalles..." className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none" />
                         </div>
                     </div>
-                    {error && <p className="text-red-500 text-sm text-center bg-red-50 p-2 rounded-lg">{error}</p>}
-                    <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-gray-50">
-                        <button type="button" onClick={() => { setOpenFormUpdateSubject(null); }} className="px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200">Cancelar</button>
-                        <button type="submit" disabled={loading} className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0">Guardar cambios</button>
+                    {error && <p className="text-red-500 text-sm text-center bg-red-50 dark:bg-red-900/30 p-2 rounded-lg">{error}</p>}
+                    <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-gray-50 dark:border-gray-800">
+                        <button type="button" onClick={() => { setOpenFormUpdateSubject(null); }} className="px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200">Cancelar</button>
+                        <button type="submit" disabled={loading} className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50">Guardar cambios</button>
                     </div>
                 </form>
             </div>
 
             <div className="flex flex-col gap-2">
                 {normalTasks.length === 0 ? (
-                    <p className="text-[13px] text-gray-400 font-medium italic mb-1 pl-1">
+                    <p className="text-[13px] text-gray-400 dark:text-gray-500 font-medium italic mb-1 pl-1">
                         No hay tareas pendientes para hoy.
                     </p>
                 ) : (
@@ -144,7 +144,6 @@ export const SubjectSection = ({
                     ))
                 )}
 
-                {/* BOTÓN RESPONSIVO: Siempre visible en móvil/tablet, hover en escritorio */}
                 <div className={`grid transition-all duration-300 ease-in-out focus-within:opacity-100 ${
                     openFormSubjectId === subject.id || normalTasks.length === 0 
                         ? 'grid-rows-[1fr] opacity-100' 
@@ -153,7 +152,7 @@ export const SubjectSection = ({
                     <div className="overflow-hidden flex items-center">
                         <button
                             type="button"
-                            className="flex items-center gap-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg px-2 py-2 text-sm transition-all w-fit mt-1"
+                            className="flex items-center gap-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:text-green-400 dark:hover:bg-green-900/20 rounded-lg px-2 py-2 text-sm transition-all w-fit mt-1"
                             onClick={() => { setOpenFormSubjectId(subject.id); }}
                             title="Añadir nueva tarea a esta asignatura"
                         >
@@ -163,7 +162,7 @@ export const SubjectSection = ({
                     </div>
                 </div>
 
-                {/* FORMULARIO AÑADIR TAREA CON ANIMACIÓN SUAVE */}
+                {/* FORMULARIO AÑADIR TAREA */}
                 <div 
                     className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
                         openFormSubjectId === subject.id 
@@ -171,25 +170,25 @@ export const SubjectSection = ({
                             : "opacity-0 scale-95 max-h-0 !mt-0 !mb-0" 
                     }`}
                 >
-                    <form onSubmit={(e) => handleSubmitTask(e, subject.id)} className="flex flex-col gap-4 p-6 bg-white border border-gray-100 rounded-2xl shadow-[0_2px_10px_-3px_rgba(34,197,94,0.1)]">
-                        <h3 className="text-sm font-bold text-gray-800 border-b border-gray-50 pb-2">Nueva tarea para {subject.name}</h3>
+                    <form onSubmit={(e) => handleSubmitTask(e, subject.id)} className="flex flex-col gap-4 p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-[0_2px_10px_-3px_rgba(34,197,94,0.1)] dark:shadow-none transition-colors duration-300">
+                        <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 border-b border-gray-50 dark:border-gray-800 pb-2">Nueva tarea para {subject.name}</h3>
                         <div className="flex flex-col gap-3">
                             <div className="flex flex-col">
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Título de la tarea</label>
-                                <input type="text" name="title" value={newTask.title} onChange={handleChangeTask} placeholder="Ej. Hacer el diagrama de base de datos" className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" required />
+                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Título de la tarea</label>
+                                <input type="text" name="title" value={newTask.title} onChange={handleChangeTask} placeholder="Ej. Hacer el diagrama de base de datos" className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-green-500 outline-none" required />
                             </div>
                             <div className="flex flex-col">
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Descripción</label>
-                                <input type="text" name="description" value={newTask.description} onChange={handleChangeTask} placeholder="Añade detalles..." className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" />
+                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Descripción</label>
+                                <input type="text" name="description" value={newTask.description} onChange={handleChangeTask} placeholder="Añade detalles..." className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-green-500 outline-none" />
                             </div>
                             <div className="flex flex-col sm:flex-row gap-3">
                                 <div className="flex-1 flex flex-col">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Fecha límite</label>
-                                    <input type="datetime-local" name="deadline" value={newTask.deadline} onChange={handleChangeTask} disabled={newTask.recurrence !== "NONE"} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed" />
+                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Fecha límite</label>
+                                    <input type="datetime-local" name="deadline" value={newTask.deadline} onChange={handleChangeTask} disabled={newTask.recurrence !== "NONE"} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-green-500 outline-none disabled:opacity-50" />
                                 </div>
                                 <div className="flex-1 flex flex-col">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Repetición</label>
-                                    <select name="recurrence" value={newTask.recurrence} onChange={handleChangeTask} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none cursor-pointer">
+                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Repetición</label>
+                                    <select name="recurrence" value={newTask.recurrence} onChange={handleChangeTask} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-green-500 outline-none cursor-pointer">
                                         <option value="NONE">No se repite</option>
                                         <option value="DAILY">Diariamente</option>
                                         <option value="WEEKLY">Semanalmente</option>
@@ -199,10 +198,10 @@ export const SubjectSection = ({
                                 </div>
                             </div>
                         </div>
-                        {error && <p className="text-red-600 text-sm bg-red-50 p-2 rounded-lg text-center">{error}</p>}
-                        <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-gray-50">
-                            <button type="button" onClick={() => { setOpenFormSubjectId(null); }} className="px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200">Cancelar</button>
-                            <button type="submit" disabled={loading} className="px-5 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0">Guardar tarea</button>
+                        {error && <p className="text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/30 p-2 rounded-lg text-center">{error}</p>}
+                        <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-gray-50 dark:border-gray-800">
+                            <button type="button" onClick={() => { setOpenFormSubjectId(null); }} className="px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200">Cancelar</button>
+                            <button type="submit" disabled={loading} className="px-5 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:hover:bg-green-500 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50">Guardar tarea</button>
                         </div>
                     </form>
                 </div>

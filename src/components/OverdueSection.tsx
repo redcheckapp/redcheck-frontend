@@ -38,13 +38,13 @@ export const OverdueSection = ({
     if (!hasAnyOverdue) return null;
 
     return (
-        <div className="mb-6 mt-8 border-t border-gray-100 pt-4">
+        <div className="mb-6 mt-8 border-t border-gray-100 dark:border-gray-800 pt-4 transition-colors duration-300">
             <div className="flex items-center gap-2 mb-6">
-                <AlertCircle size={20} className="text-red-500" />
-                <h2 className="text-lg font-bold text-gray-800">Fuera de plazo</h2>
+                <AlertCircle size={20} className="text-red-500 dark:text-red-400" />
+                <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 transition-colors duration-300">Fuera de plazo</h2>
                 {/* The red bubble only shows the number of PENDING ones */}
                 {totalPendingOverdue > 0 && (
-                    <span className="bg-red-100 text-red-600 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                    <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold px-2.5 py-0.5 rounded-full transition-colors duration-300">
                         {totalPendingOverdue}
                     </span>
                 )}
@@ -56,7 +56,7 @@ export const OverdueSection = ({
                     .filter(subject => !subject.archived && subject.tasks.some(task => task.overdue))
                     .map(subject => (
                         <div key={`overdue-${subject.id}`}>
-                            <h2 className="text-md font-semibold text-red-600 mb-3 border-b border-red-100 pb-2">
+                            <h2 className="text-md font-semibold text-red-600 dark:text-red-400 mb-3 border-b border-red-100 dark:border-red-900/30 pb-2 transition-colors duration-300">
                                 {subject.name}
                             </h2>
                             <div className="flex flex-col gap-2">
@@ -78,13 +78,12 @@ export const OverdueSection = ({
                                                 }`}
                                             >
                                                 {/* --- 1. NORMAL MODE (TASK VIEW) --- */}
-                                                {/* Here we change the colors if it is completed */}
-                                                <div className={`flex items-center gap-3 p-3 rounded-xl transition group border ${
+                                                <div className={`flex items-center gap-3 p-3 rounded-xl transition-colors duration-300 group border ${
                                                     isEditing 
-                                                        ? 'bg-red-50 border-red-300 shadow-sm' 
+                                                        ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-800 shadow-sm' 
                                                         : task.completed 
-                                                            ? 'bg-gray-50 border-gray-100 hover:bg-gray-100' // Soft gray if completed
-                                                            : 'bg-red-50 hover:bg-red-100 border-red-100'   // Alert red if pending
+                                                            ? 'bg-gray-50 dark:bg-gray-900/50 border-gray-100 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800' 
+                                                            : 'bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/40 border-red-100 dark:border-red-900/30'   
                                                 }`}>
                                                     
                                                     {/* Animated Checkbox */}
@@ -93,7 +92,7 @@ export const OverdueSection = ({
                                                         className={`w-6 h-6 squared-full border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 ${
                                                             task.completed 
                                                                 ? 'bg-red-500 border-red-500' 
-                                                                : 'border-red-300 hover:border-red-500 bg-white'
+                                                                : 'border-red-300 dark:border-red-500/50 hover:border-red-500 dark:hover:border-red-400 bg-white dark:bg-transparent'
                                                         }`}
                                                     >
                                                         {task.completed && <Check size={12} color="white" />}
@@ -102,23 +101,23 @@ export const OverdueSection = ({
                                                     {/* Texts with strikethrough effect */}
                                                     <div className="flex-1">
                                                         <p className={`text-sm font-medium transition-all ${
-                                                            task.completed ? "line-through text-gray-400" : "text-red-900"
+                                                            task.completed ? "line-through text-gray-400 dark:text-gray-600" : "text-red-900 dark:text-red-200"
                                                         }`}>
                                                             {task.title}
-                                                            {task.description && <span className={`ml-2 font-normal transition ${task.completed ? "text-gray-300" : "text-red-700"}`}>— {task.description}</span>}
+                                                            {task.description && <span className={`ml-2 font-normal transition-colors duration-300 ${task.completed ? "text-gray-300 dark:text-gray-600" : "text-red-700 dark:text-red-300"}`}>— {task.description}</span>}
                                                         </p>
                                                         <p className={`text-xs mt-0.5 font-medium transition-all ${
-                                                            task.completed ? "text-gray-400" : "text-red-500"
+                                                            task.completed ? "text-gray-400 dark:text-gray-600" : "text-red-500 dark:text-red-400"
                                                         }`}>
                                                             {task.deadline ? `Caducó el ${new Date(task.deadline).toLocaleString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}` : "Sin fecha límite"}
                                                         </p>
                                                     </div>
 
-                                                    {/* Buttons */}
-                                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                    {/* BOTONES DE ACCIÓN: Accesibles en táctil, hover en escritorio */}
+                                                    <div className="flex items-center gap-1 opacity-100 [@media(any-hover:hover)]:opacity-0 [@media(any-hover:hover)]:group-hover:opacity-100 transition-opacity duration-200">
                                                         <button 
                                                             type="button" 
-                                                            className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition" 
+                                                            className="p-1.5 text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 rounded-lg transition-colors duration-200" 
                                                             onClick={() => { 
                                                                 setOpenFormSubjectIdTaskId({ subjectId: subject.id, taskId: task.id }); 
                                                                 let formattedDate = "";
@@ -135,7 +134,7 @@ export const OverdueSection = ({
                                                         </button>
                                                         <button 
                                                             type="button" 
-                                                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" 
+                                                            className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors duration-200" 
                                                             onClick={() => { handleDeleteTask(subject.id, task.id); }}
                                                             title="Eliminar tarea atrasada"
                                                         >
@@ -148,9 +147,9 @@ export const OverdueSection = ({
                                                 <AnimatedVisibility isVisible={isEditing}>
                                                     <form 
                                                         onSubmit={(e) => handleUpdateTask(e, subject.id, task.id)}
-                                                        className="flex flex-col gap-4 mt-2 mb-4 ml-10 p-5 bg-white border border-red-100 rounded-2xl shadow-sm"
+                                                        className="flex flex-col gap-4 mt-2 mb-4 ml-10 p-5 bg-white dark:bg-gray-900 border border-red-100 dark:border-gray-800 rounded-2xl shadow-sm dark:shadow-none transition-colors duration-300"
                                                     >
-                                                        <h3 className="text-sm font-bold text-red-800 border-b border-red-50 pb-2">Editar tarea atrasada</h3>
+                                                        <h3 className="text-sm font-bold text-red-800 dark:text-red-400 border-b border-red-50 dark:border-gray-800 pb-2 transition-colors duration-300">Editar tarea atrasada</h3>
 
                                                         <div className="flex flex-col gap-3">
                                                             <div className="flex flex-col gap-1.5">
@@ -159,7 +158,7 @@ export const OverdueSection = ({
                                                                     type="text" name="title" 
                                                                     value={updatedTask.title} onChange={handleChangeUpdateTask}
                                                                     placeholder="Título de la tarea" 
-                                                                    className="w-full bg-red-50/30 border border-red-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100 focus:border-red-400 transition-all"
+                                                                    className="w-full bg-red-50/30 dark:bg-gray-800 border border-red-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-2.5 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all"
                                                                     required
                                                                 />
                                                             </div>
@@ -171,7 +170,7 @@ export const OverdueSection = ({
                                                                         type="text" name="description" 
                                                                         value={updatedTask.description} onChange={handleChangeUpdateTask}
                                                                         placeholder="Añade detalles..." 
-                                                                        className="w-full bg-red-50/30 border border-red-200 text-gray-800 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100 focus:border-red-400 transition-all"
+                                                                        className="w-full bg-red-50/30 dark:bg-gray-800 border border-red-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-2.5 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all"
                                                                     />
                                                                 </div>
 
@@ -180,23 +179,23 @@ export const OverdueSection = ({
                                                                     <input 
                                                                         type="datetime-local" name="deadline" 
                                                                         value={updatedTask.deadline} onChange={handleChangeUpdateTask}
-                                                                        className="w-full bg-red-50/30 border border-red-200 text-gray-600 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100 focus:border-red-400 transition-all"
+                                                                        className="w-full bg-red-50/30 dark:bg-gray-800 border border-red-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl px-4 py-2.5 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all"
                                                                     />
                                                                 </div>
                                                             </div>
                                                         </div>
                                                         
-                                                        <div className="flex justify-end gap-2 mt-2 pt-4 border-t border-red-50">
+                                                        <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-red-50 dark:border-gray-800 transition-colors duration-300">
                                                             <button 
                                                                 type="button" 
                                                                 onClick={() => setOpenFormSubjectIdTaskId(null)} 
-                                                                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
+                                                                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all"
                                                             >
                                                                 Cancelar
                                                             </button>
                                                             <button 
                                                                 type="submit" 
-                                                                className="px-5 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50"
+                                                                className="px-5 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50"
                                                             >
                                                                 Guardar cambios
                                                             </button>
