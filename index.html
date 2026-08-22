@@ -4,7 +4,19 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/redcheck.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RedCheck</title>
+    <title>RedCheck | Agenda Inteligente Interactiva</title>
+    
+    <!-- SCRIPT ANTIDESTELLO: Aplica el modo oscuro de forma síncrona antes de que el navegador pinte la página -->
+    <script>
+      try {
+        const storedTheme = localStorage.getItem('theme');
+        if (storedTheme === 'dark' || (!storedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body class="bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500 m-0 p-0">
     <div id="root"></div>
