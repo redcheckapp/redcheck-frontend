@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom'; // <-- IMPORTACIÓN CLAVE
 import type { SubjectWithTasks } from '../types';
 
 interface SmartCheckModalProps {
@@ -22,8 +23,8 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
 
   const risk = getRiskConfig(aiData.nivelRiesgo);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-all duration-300">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300">
       <div
         className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-xl flex flex-col overflow-hidden transition-colors duration-500"
         style={{ maxHeight: '88vh' }}
@@ -31,7 +32,6 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
 
         {/* ── HEADER ── */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4">
-          {/* Risk badge */}
           <span className={`text-xs font-bold px-3 py-1.5 rounded-full transition-colors duration-300 ${risk.className}`}>
             Riesgo: {risk.label}
           </span>
@@ -47,7 +47,6 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
         {/* ── BODY ── */}
         <div className="overflow-y-auto flex-1 px-6 pb-6 flex flex-col gap-5">
 
-          {/* Support message */}
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50 rounded-xl px-4 py-3 flex gap-3 items-start transition-colors duration-300">
             <span className="text-lg leading-none mt-0.5"></span>
             <p className="text-sm text-blue-800 dark:text-blue-300 font-medium leading-relaxed m-0 transition-colors duration-300">
@@ -55,12 +54,10 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
             </p>
           </div>
 
-          {/* Section subtitle */}
           <h3 className="text-sm font-bold text-zinc-500 dark:text-gray-400 uppercase tracking-widest m-0 transition-colors duration-300">
             Tu estrategia para hoy
           </h3>
 
-          {/* Task cards */}
           <div className="flex flex-col gap-3">
             {aiData.planDeHoy
               ?.sort((a: any, b: any) => a.ordenDefinido - b.ordenDefinido)
@@ -84,12 +81,10 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
                     key={itemIA.id}
                     className="flex gap-4 items-start bg-zinc-50 dark:bg-gray-800 border border-zinc-200 dark:border-gray-700 rounded-xl p-4 transition-colors duration-300"
                   >
-                    {/* Number */}
                     <div className="shrink-0 w-8 h-8 rounded-full bg-zinc-900 dark:bg-gray-200 text-white dark:text-gray-900 text-sm font-bold flex items-center justify-center transition-colors duration-300">
                       {itemIA.ordenDefinido}
                     </div>
 
-                    {/* Content */}
                     <div className="flex flex-col gap-1 flex-1 min-w-0">
                       <p className="text-sm font-bold text-zinc-900 dark:text-gray-100 m-0 leading-snug transition-colors duration-300">
                         {tareaReal.title}
@@ -98,7 +93,6 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
                         Asignatura: {nombreAsignatura}
                       </p>
 
-                      {/* Priority reason */}
                       <div className="mt-2 bg-white dark:bg-gray-900/50 border border-zinc-100 dark:border-gray-800/50 rounded-lg px-3 py-2 transition-colors duration-300">
                         <p className="text-xs text-zinc-500 dark:text-gray-400 italic m-0 leading-relaxed transition-colors duration-300">
                           {itemIA.razonPrioridad}
@@ -122,7 +116,8 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
