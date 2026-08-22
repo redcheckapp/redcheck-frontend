@@ -429,7 +429,7 @@ const DashboardPage = () => {
                                     >
                                         {showCalendar ? <Focus size={18} strokeWidth={2.5} /> : <LayoutGrid size={18} strokeWidth={2.5} />}
                                         <span className="hidden xl:inline">
-                                            {showCalendar ? "Modo Foco" : "Ver Agenda"}
+                                            {showCalendar ? "Modo Foco" : "Ver Calendario"}
                                         </span>
                                     </button>
                                 </div>
