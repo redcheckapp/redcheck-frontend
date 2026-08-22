@@ -141,7 +141,6 @@ const RegisterPage = () => {
                             name="username"
                             value={form.username}
                             onChange={handleChange}
-                            placeholder="tu_usuario"
                             className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
                             required
                         />
@@ -154,7 +153,6 @@ const RegisterPage = () => {
                             name="email"
                             value={form.email}
                             onChange={handleChange}
-                            placeholder="tu@email.com"
                             className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
                             required
                         />
@@ -167,10 +165,23 @@ const RegisterPage = () => {
                             name="password"
                             value={form.password}
                             onChange={handleChange}
-                            placeholder="••••••••"
                             className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
                             required
                         />
+                    </div>
+
+                    {/* --- CASILLA DE ACEPTACIÓN LEGAL --- */}
+                    <div className="flex items-start gap-2.5 mt-1">
+                        <input 
+                            type="checkbox" 
+                            id="terms" 
+                            name="terms"
+                            className="mt-0.5 rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-red-600 focus:ring-red-500 dark:focus:ring-red-500/50 transition-colors cursor-pointer" 
+                            required 
+                        />
+                        <label htmlFor="terms" className="text-xs text-gray-500 dark:text-gray-400 transition-colors duration-300 cursor-pointer leading-relaxed">
+                            He leído y acepto la <a href="/privacy" target="_blank" className="text-red-600 dark:text-red-400 hover:underline transition-colors font-medium">Política de Privacidad</a> y los <a href="/terms" target="_blank" className="text-red-600 dark:text-red-400 hover:underline transition-colors font-medium">Términos de Servicio</a>.
+                        </label>
                     </div>
 
                     {error && (
@@ -192,6 +203,13 @@ const RegisterPage = () => {
                         Inicia sesión aquí
                     </a>
                 </p>
+
+                {/* --- ENLACES LEGALES RGPD --- */}
+                <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 flex justify-center gap-4 text-[11px] text-gray-400 dark:text-gray-500 transition-colors duration-300">
+                    <a href="/terms" target="_blank" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Aviso Legal</a>
+                    <span>•</span>
+                    <a href="/privacy" target="_blank" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Política de Privacidad</a>
+                </div>
 
             </div>
             </div>
