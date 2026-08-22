@@ -186,7 +186,6 @@ export const TaskItem = ({
                                 name="title"
                                 value={updatedTask.title}
                                 onChange={handleChangeUpdateTask}
-                                placeholder="Título de la tarea"
                                 className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-yellow-500 outline-none"
                                 required
                             />
@@ -200,7 +199,6 @@ export const TaskItem = ({
                                     name="description"
                                     value={updatedTask.description}
                                     onChange={handleChangeUpdateTask}
-                                    placeholder="Añade detalles..."
                                     className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-yellow-500 outline-none"
                                 />
                             </div>

@@ -157,7 +157,6 @@ export const OverdueSection = ({
                                                                 <input 
                                                                     type="text" name="title" 
                                                                     value={updatedTask.title} onChange={handleChangeUpdateTask}
-                                                                    placeholder="Título de la tarea" 
                                                                     className="w-full bg-red-50/30 dark:bg-gray-800 border border-red-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-2.5 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all"
                                                                     required
                                                                 />
@@ -169,7 +168,6 @@ export const OverdueSection = ({
                                                                     <input 
                                                                         type="text" name="description" 
                                                                         value={updatedTask.description} onChange={handleChangeUpdateTask}
-                                                                        placeholder="Añade detalles..." 
                                                                         className="w-full bg-red-50/30 dark:bg-gray-800 border border-red-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-2.5 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all"
                                                                     />
                                                                 </div>

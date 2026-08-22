@@ -429,7 +429,7 @@ const DashboardPage = () => {
                                     >
                                         {showCalendar ? <Focus size={18} strokeWidth={2.5} /> : <LayoutGrid size={18} strokeWidth={2.5} />}
                                         <span className="hidden xl:inline">
-                                            {showCalendar ? "Modo Foco" : "Ver Agenda"}
+                                            {showCalendar ? "Modo Foco" : "Ver Calendario"}
                                         </span>
                                     </button>
                                 </div>
@@ -510,7 +510,6 @@ const DashboardPage = () => {
                                                         name="name" 
                                                         value={newSubject.name} 
                                                         onChange={handleChangeSubject} 
-                                                        placeholder="Ej. Desarrollo de Interfaces" 
                                                         className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" 
                                                         required 
                                                     />
@@ -523,7 +522,6 @@ const DashboardPage = () => {
                                                         name="description" 
                                                         value={newSubject.description} 
                                                         onChange={handleChangeSubject} 
-                                                        placeholder="Ej. Asignatura de 3º de carrera" 
                                                         className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" 
                                                     />
                                                 </div>

@@ -160,7 +160,6 @@ const LoginPage = () => {
                             name="email"
                             value={form.email}
                             onChange={handleChange}
-                            placeholder="tu@email.com"
                             className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
                             required
                         />
@@ -173,7 +172,6 @@ const LoginPage = () => {
                             name="password"
                             value={form.password}
                             onChange={handleChange}
-                            placeholder="••••••••"
                             className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
                             required
                         />
@@ -197,7 +195,7 @@ const LoginPage = () => {
                         disabled={loading}
                         className="w-full bg-emerald-600 dark:bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-700 dark:hover:bg-emerald-400 transition-all duration-300 shadow-sm hover:shadow disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                        🚀 Demo
+                        Demo
                     </button>
                 </form>
 
@@ -207,6 +205,13 @@ const LoginPage = () => {
                         Regístrate aquí
                     </a>
                 </p>
+
+                {/* --- ENLACES LEGALES RGPD --- */}
+                <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 flex justify-center gap-4 text-[11px] text-gray-400 dark:text-gray-500 transition-colors duration-300">
+                    <a href="/terms" target="_blank" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Aviso Legal</a>
+                    <span>•</span>
+                    <a href="/privacy" target="_blank" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Política de Privacidad</a>
+                </div>
 
             </div>
             </div>
