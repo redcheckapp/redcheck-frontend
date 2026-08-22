@@ -1,12 +1,12 @@
 import { useState, useEffect, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { register } from "../api/registerApi";
-import { Check } from "lucide-react"; 
+import { Check, Sun, Moon } from "lucide-react"; 
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
 import { PageTransition } from "../components/PageTransition";
+import { useTheme } from "../context/ThemeContext";
 
-// --- Relaxing particles adapted to the light background ---
 const BackgroundParticles = memo(({ init }: { init: boolean }) => {
     if (!init) return null;
     
@@ -20,12 +20,12 @@ const BackgroundParticles = memo(({ init }: { init: boolean }) => {
                 },
                 fpsLimit: 120,
                 particles: {
-                    color: { value: "#9ca3af" }, // Soft gray
+                    color: { value: "#9ca3af" }, 
                     links: {
                         color: "#9ca3af",
                         distance: 150,
                         enable: true,
-                        opacity: 0.2, // More transparent
+                        opacity: 0.2, 
                         width: 1,
                     },
                     move: {
@@ -33,12 +33,12 @@ const BackgroundParticles = memo(({ init }: { init: boolean }) => {
                         enable: true,
                         outModes: { default: "bounce" },
                         random: false,
-                        speed: 1.0, // Slower movement
+                        speed: 1.0, 
                         straight: false,
                     },
                     number: {
                         density: { enable: true, area: 800 },
-                        value: 60, // Less quantity
+                        value: 60, 
                     },
                     opacity: { value: 0.3 },
                     shape: { type: "circle" },
@@ -49,10 +49,10 @@ const BackgroundParticles = memo(({ init }: { init: boolean }) => {
         />
     );
 });
-// -----------------------------------------------------------
 
 const RegisterPage = () => {
     const navigate = useNavigate();
+    const { theme, toggleTheme } = useTheme();
 
     const [init, setInit] = useState(false);
 
@@ -86,7 +86,6 @@ const RegisterPage = () => {
             await register(form);
             navigate("/login");
         } catch(err) {
-            // Traducido y acortado para ser más directo
             setError("Ya existe una cuenta con este correo electrónico");
         } finally {
             setLoading(false);
@@ -95,36 +94,35 @@ const RegisterPage = () => {
 
     return (
         <PageTransition>
-            {/* Same light gray background as Dashboard and Login with dark mode */}
             <div className="relative min-h-screen flex items-center justify-center bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500 overflow-hidden p-4">
             
             <BackgroundParticles init={init} />
 
+            {/* BOTÓN FLOTANTE MODO NOCHE (ESQUINA INFERIOR IZQUIERDA) */}
+            <button
+                onClick={toggleTheme}
+                className="fixed bottom-4 left-4 z-50 p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95"
+                title="Cambiar tema"
+            >
+                {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+            </button>
+
             <div className="relative z-10 bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-2xl w-full max-w-md transition-colors duration-500">
 
                 <div className="flex flex-col items-center mb-8">
-                    
                     <div className="flex items-center justify-center gap-4">
-                        
-                        {/* The red square with the white check */}
                         <div className="bg-[#cc2229] w-[52px] h-[52px] rounded-[14px] flex items-center justify-center shadow-sm flex-shrink-0">
                             <Check size={36} strokeWidth={4} className="text-white" />
                         </div>
-                        
-                        {/* TEXT BLOCK: w-max makes the width marked by "REDCHECK" */}
                         <div className="flex flex-col justify-center w-max">
-                            
                             <span className="text-[34px] font-black text-gray-900 dark:text-white leading-none tracking-tight transition-colors duration-300">
                                 REDCHECK
                             </span>
-                            
-                            {/* flex justify-between pushes the first word to the left and the last to the right */}
                             <div className="flex justify-between w-full text-[11px] font-bold text-gray-800 dark:text-gray-300 mt-1.5 tracking-wide transition-colors duration-300">
                                 <span>Agenda</span>
                                 <span>Inteligente</span>
                                 <span>Interactiva</span>
                             </div>
-
                         </div>
                     </div>
 
@@ -136,7 +134,6 @@ const RegisterPage = () => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">Nombre de usuario</label>
                         <input
@@ -183,12 +180,10 @@ const RegisterPage = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        // Dark button aligned with the login
                         className="w-full bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 py-3 rounded-xl font-medium hover:bg-black dark:hover:bg-white transition-all duration-300 shadow-sm hover:shadow disabled:opacity-50 mt-2"
                     >
                         {loading ? "Cargando..." : "Crear cuenta"}
                     </button>
-
                 </form>
 
                 <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-8 transition-colors duration-300">

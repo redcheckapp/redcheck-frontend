@@ -1,13 +1,13 @@
 import { useState, useEffect, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { login } from "../api/authApi";
-import { Check } from "lucide-react"; 
+import { Check, Sun, Moon } from "lucide-react"; 
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
 import { PageTransition } from "../components/PageTransition";
+import { useTheme } from "../context/ThemeContext";
 
 // --- We extract the particles to an immutable component ---
-// By using memo(), React will only draw it 1 time and will not reload it when writing
 const BackgroundParticles = memo(({ init }: { init: boolean }) => {
     if (!init) return null;
     
@@ -50,10 +50,10 @@ const BackgroundParticles = memo(({ init }: { init: boolean }) => {
         />
     );
 });
-// -----------------------------------------------------------------
 
 const LoginPage = () => {
     const navigate = useNavigate();
+    const { theme, toggleTheme } = useTheme();
 
     const [init, setInit] = useState(false);
 
@@ -93,7 +93,6 @@ const LoginPage = () => {
         }
     };
 
-    // --- NUEVA FUNCIÓN PARA EL LOGIN DE DEMO ---
     const handleDemoLogin = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
         setError(null);
@@ -111,7 +110,6 @@ const LoginPage = () => {
             setLoading(false);
         }
     };
-    // -------------------------------------------
 
     return (
         <PageTransition>
@@ -119,30 +117,31 @@ const LoginPage = () => {
             
             <BackgroundParticles init={init} />
 
+            {/* BOTÓN FLOTANTE MODO NOCHE (ESQUINA INFERIOR IZQUIERDA) */}
+            <button
+                onClick={toggleTheme}
+                className="fixed bottom-4 left-4 z-50 p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95"
+                title="Cambiar tema"
+            >
+                {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+            </button>
+
             <div className="relative z-10 bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-2xl w-full max-w-md transition-colors duration-500">
 
                 <div className="flex flex-col items-center mb-8">
-                    
                     <div className="flex items-center justify-center gap-4">
-                        
-                        {/* The red square with the white check */}
                         <div className="bg-[#cc2229] w-[52px] h-[52px] rounded-[14px] flex items-center justify-center shadow-sm flex-shrink-0">
                             <Check size={36} strokeWidth={4} className="text-white" />
                         </div>
-                        
-                        {/* TEXT BLOCK */}
                         <div className="flex flex-col justify-center w-max">
-                            
                             <span className="text-[34px] font-black text-gray-900 dark:text-white leading-none tracking-tight transition-colors duration-300">
                                 REDCHECK
                             </span>
-                            
                             <div className="flex justify-between w-full text-[11px] font-bold text-gray-800 dark:text-gray-300 mt-1.5 tracking-wide transition-colors duration-300">
                                 <span>Agenda</span>
                                 <span>Inteligente</span>
                                 <span>Interactiva</span>
                             </div>
-
                         </div>
                     </div>
 
@@ -154,7 +153,6 @@ const LoginPage = () => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-6">
-
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">Correo electrónico</label>
                         <input
@@ -193,16 +191,14 @@ const LoginPage = () => {
                         {loading ? "Cargando..." : "Entrar a RedCheck"}
                     </button>
 
-                    {/* --- NUEVO BOTÓN DEMO --- */}
-                        <button
-                            type="button"
-                            onClick={handleDemoLogin}
-                            disabled={loading}
-                            className="w-full bg-emerald-600 dark:bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-700 dark:hover:bg-emerald-400 transition-all duration-300 shadow-sm hover:shadow disabled:opacity-50 flex items-center justify-center gap-2"
-                        >
-                            🚀 Demo
-                        </button>
-
+                    <button
+                        type="button"
+                        onClick={handleDemoLogin}
+                        disabled={loading}
+                        className="w-full bg-emerald-600 dark:bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-700 dark:hover:bg-emerald-400 transition-all duration-300 shadow-sm hover:shadow disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        🚀 Demo
+                    </button>
                 </form>
 
                 <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-8 transition-colors duration-300">
