@@ -1,6 +1,7 @@
+import { createPortal } from "react-dom";
 import { X, ArchiveRestore, Trash2, Moon, Sun } from "lucide-react";
 import type { SubjectWithTasks } from "../types";
-import { useTheme } from "../context/ThemeContext"; // <-- Ajusta la ruta si es necesario
+import { useTheme } from "../context/ThemeContext"; 
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -19,11 +20,12 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
     // We filter to keep ONLY the archived subjects
     const archivedSubjects = subjects.filter(subject => subject.archived);
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 transition-all">
+    // Usamos createPortal para sacarlo al body y que cubra absolutamentre toda la ventana (incluida la Sidebar)
+    return createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 transition-all animate-in fade-in duration-200">
             
             {/* Modal container with entry animation and DARK MODE styles */}
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200 transition-colors">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 transition-colors border border-transparent dark:border-gray-800">
                 
                 {/* Header */}
                 <div className="flex justify-between items-center p-5 border-b border-gray-100 dark:border-gray-800 transition-colors">
@@ -119,6 +121,7 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
 
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
