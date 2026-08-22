@@ -195,7 +195,7 @@ const LoginPage = () => {
                         disabled={loading}
                         className="w-full bg-emerald-600 dark:bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-700 dark:hover:bg-emerald-400 transition-all duration-300 shadow-sm hover:shadow disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                        🚀 Demo
+                        Demo
                     </button>
                 </form>
 
