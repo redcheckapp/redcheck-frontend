@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { getProgressHeatmap } from "../api/progressRecordApi";
 import type { ProgressRecord } from "../types";
 
@@ -55,7 +56,6 @@ export const ProgressHeatmap = () => {
         weeks.push(dateArray.slice(i, i + 7));
     }
 
-    // AHORA DEVOLVEMOS CLASES DE TAILWIND EN LUGAR DE HEXADECIMALES
     const getSquareColorClass = (dateString: string) => {
         const record = records[dateString];
         if (!record || record.totalTasks === 0) return "bg-gray-200 dark:bg-gray-800"; 
@@ -64,7 +64,7 @@ export const ProgressHeatmap = () => {
         if (ratio === 0) return "bg-red-100 dark:bg-red-900/40"; 
         if (ratio < 0.5) return "bg-green-300 dark:bg-green-900/60"; 
         if (ratio < 0.8) return "bg-green-500 dark:bg-green-600"; 
-        return "bg-green-700 dark:bg-green-400"; // Más brillante en modo noche
+        return "bg-green-700 dark:bg-green-400"; 
     };
 
     const getTooltipText = (date: Date, dateString: string) => {
@@ -84,7 +84,7 @@ export const ProgressHeatmap = () => {
             
             <div className="flex gap-2 w-full justify-center overflow-x-visible">
                 
-                {/* L X V Column - Pushed down 18px to perfectly align with the squares below the month header */}
+                {/* L X V Column */}
                 <div className="pt-[18px]">
                     <div className="grid grid-rows-7 gap-1 text-[9px] text-gray-400 dark:text-gray-500 font-medium pr-1 transition-colors duration-300">
                         <div className="h-3 flex items-center leading-none">L</div>
@@ -138,7 +138,6 @@ export const ProgressHeatmap = () => {
                             const isFuture = date > today;
                             const text = isFuture ? "" : getTooltipText(date, dateString);
 
-                            // Aplicamos la clase en lugar del estilo en línea
                             const squareClass = isFuture ? 'bg-transparent opacity-0 cursor-default' : `${getSquareColorClass(dateString)} cursor-pointer hover:scale-125 hover:z-20`;
 
                             return (
@@ -161,16 +160,20 @@ export const ProgressHeatmap = () => {
                 </div>
             </div>
 
-            {/* FLOATING TOOLTIP */}
-            {tooltip.show && (
+            {/* FLOATING TOOLTIP ADAPTADO A MÚLTIPLES LÍNEAS */}
+            {tooltip.show && createPortal(
                 <div 
-                    className="fixed z-[100] px-3 py-1.5 text-xs font-medium text-white dark:text-gray-900 bg-gray-900 dark:bg-gray-100 rounded-lg shadow-xl pointer-events-none transform -translate-x-1/2 -translate-y-full transition-all duration-150 animate-in fade-in"
-                    style={{ left: tooltip.x, top: tooltip.y - 12 }}
+                    className="fixed z-[9999] px-3 py-2 text-xs font-medium text-white dark:text-gray-900 bg-gray-900 dark:bg-gray-100 rounded-lg shadow-xl pointer-events-none max-w-[180px] text-center leading-tight"
+                    style={{ 
+                        left: tooltip.x, 
+                        top: tooltip.y - 12,
+                        transform: 'translate(-50%, -100%)'
+                    }}
                 >
                     {tooltip.text}
-                    {/* Flecha del tooltip adaptada al modo oscuro */}
-                    <div className="absolute w-2 h-2 bg-gray-900 dark:bg-gray-100 transform rotate-45 left-1/2 -translate-x-1/2 -bottom-1 transition-colors duration-150"></div>
-                </div>
+                    <div className="absolute w-2 h-2 bg-gray-900 dark:bg-gray-100 transform rotate-45 left-1/2 -translate-x-1/2 -bottom-1"></div>
+                </div>,
+                document.body
             )}
         </div>
     );
