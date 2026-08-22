@@ -186,6 +186,7 @@ export const Sidebar = ({
                         subtitle={isAiLoading ? "Consultando a SmartCheck..." : "Genera un resumen de tus prioridades para hoy."}
                         onClick={onAiPlanClick}
                         comingSoon={false}
+                        isLoading={isAiLoading}
                     />
 
                     <SmartCheckButton 
