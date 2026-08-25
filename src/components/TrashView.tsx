@@ -4,8 +4,48 @@ import { toast } from "react-hot-toast";
 import { getTrashSubjects, restoreSubject, hardDeleteSubject, getSubjects } from "../api/subjectApi";
 import { getTrashTasks, restoreTask, hardDeleteTask } from "../api/taskApi";
 import type { SubjectResponse, TaskResponse } from "../types";
+import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
+
+// --- Diccionario de traducciones para TrashView ---
+const translations = {
+    es: {
+        title: "Papelera",
+        emptyTrashBtn: "Vaciar papelera",
+        loading: "Cargando...",
+        emptyStateTitle: "La papelera está vacía",
+        emptyStateDesc: "Los elementos que elimines aparecerán aquí.",
+        subjectsTitle: "Asignaturas eliminadas",
+        tasksTitle: "Tareas eliminadas",
+        toastSubjectRestored: "Asignatura restaurada",
+        toastTaskRestored: "Tarea restaurada",
+        toastTrashEmptied: "Papelera vaciada correctamente",
+        confirmDeleteSubject: "¿Borrar definitivamente? Esta acción es irreversible.",
+        confirmDeleteTask: "¿Borrar definitivamente?",
+        confirmEmptyTrash: "¿Estás seguro de que quieres vaciar toda la papelera? Esta acción es irreversible y se perderán todos los datos.",
+        errEmptyTrash: "Hubo un error al vaciar algunos elementos."
+    },
+    en: {
+        title: "Trash",
+        emptyTrashBtn: "Empty trash",
+        loading: "Loading...",
+        emptyStateTitle: "Trash is empty",
+        emptyStateDesc: "Items you delete will appear here.",
+        subjectsTitle: "Deleted subjects",
+        tasksTitle: "Deleted tasks",
+        toastSubjectRestored: "Subject restored",
+        toastTaskRestored: "Task restored",
+        toastTrashEmptied: "Trash emptied successfully",
+        confirmDeleteSubject: "Delete permanently? This action is irreversible.",
+        confirmDeleteTask: "Delete permanently?",
+        confirmEmptyTrash: "Are you sure you want to empty the trash? This action is irreversible and all data will be lost.",
+        errEmptyTrash: "There was an error emptying some items."
+    }
+};
 
 export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onRestore: () => void }) => {
+    const { language } = useLanguage();
+    const t = translations[language as keyof typeof translations];
+
     const [subjects, setSubjects] = useState<SubjectResponse[]>([]);
     const [tasks, setTasks] = useState<TaskResponse[]>([]);
     const [loading, setLoading] = useState(true);
@@ -48,12 +88,12 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
         setTimeout(() => {
             setSubjects(current => current.filter(s => s.id !== id));
             setRemovingSubjects(prev => prev.filter(rId => rId !== id));
-            toast.success("Asignatura restaurada"); 
+            toast.success(t.toastSubjectRestored); 
         }, 400);
     };
 
     const handleHardDeleteSubject = async (id: number) => {
-        if (!window.confirm("¿Borrar definitivamente? Esta acción es irreversible.")) return;
+        if (!window.confirm(t.confirmDeleteSubject)) return;
         setRemovingSubjects(prev => [...prev, id]);
         await hardDeleteSubject(id);
         setTimeout(() => {
@@ -68,12 +108,12 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
         setTimeout(() => {
             setTasks(current => current.filter(t => t.id !== taskId));
             setRemovingTasks(prev => prev.filter(rId => rId !== taskId));
-            toast.success("Tarea restaurada");
+            toast.success(t.toastTaskRestored);
         }, 400);
     };
 
     const handleHardDeleteTask = async (subjectId: number, taskId: number) => {
-        if (!window.confirm("¿Borrar definitivamente?")) return;
+        if (!window.confirm(t.confirmDeleteTask)) return;
         setRemovingTasks(prev => [...prev, taskId]);
         await hardDeleteTask(subjectId, taskId);
         setTimeout(() => {
@@ -83,7 +123,7 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
     };
 
     const handleEmptyTrash = async () => {
-        if (!window.confirm("¿Estás seguro de que quieres vaciar toda la papelera? Esta acción es irreversible y se perderán todos los datos.")) return;
+        if (!window.confirm(t.confirmEmptyTrash)) return;
         
         setLoading(true);
         try {
@@ -97,10 +137,10 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
             // Vaciamos el estado local de la interfaz
             setSubjects([]);
             setTasks([]);
-            toast.success("Papelera vaciada correctamente");
+            toast.success(t.toastTrashEmptied);
         } catch (error) {
             console.error("Error al vaciar la papelera:", error);
-            alert("Hubo un error al vaciar algunos elementos.");
+            alert(t.errEmptyTrash);
         } finally {
             setLoading(false);
         }
@@ -117,7 +157,7 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
                     </button>
                     <div className="flex items-center gap-3 text-red-600 dark:text-red-500 transition-colors duration-300">
                         <Trash2 size={28} />
-                        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 transition-colors duration-300">Papelera</h1>
+                        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 transition-colors duration-300">{t.title}</h1>
                     </div>
                 </div>
 
@@ -129,28 +169,28 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
                         className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-xl transition-all duration-300 disabled:opacity-50"
                     >
                         <Trash2 size={18} />
-                        <span>Vaciar papelera</span>
+                        <span>{t.emptyTrashBtn}</span>
                     </button>
                 )}
             </div>
 
             {loading ? (
-                <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500 transition-colors duration-300">Cargando...</div>
+                <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500 transition-colors duration-300">{t.loading}</div>
             ) : subjects.length === 0 && tasks.length === 0 ? (
                 // Estado vacío más visual adaptado
                 <div className="flex-1 flex flex-col items-center justify-center gap-3 transition-colors duration-300">
                     <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-full text-gray-400 dark:text-gray-600 mb-2 border border-gray-100 dark:border-gray-800 transition-colors duration-300">
                         <Inbox size={48} strokeWidth={1} />
                     </div>
-                    <p className="text-lg font-bold text-gray-800 dark:text-gray-200 transition-colors duration-300">La papelera está vacía</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">Los elementos que elimines aparecerán aquí.</p>
+                    <p className="text-lg font-bold text-gray-800 dark:text-gray-200 transition-colors duration-300">{t.emptyStateTitle}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">{t.emptyStateDesc}</p>
                 </div>
             ) : (
                 <div className="space-y-8 flex-1">
                         {/* Sección Asignaturas */}
                         {subjects.length > 0 && (
                             <div>
-                                <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-6 transition-colors duration-300">Asignaturas eliminadas</h2>
+                                <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-6 transition-colors duration-300">{t.subjectsTitle}</h2>
                                 <div className="flex flex-col gap-3">
                                     {subjects.map(s => {
                                         const isRemoving = removingSubjects.includes(s.id);
@@ -176,7 +216,7 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
                         {/* Sección Tareas */}
                         {tasks.length > 0 && (
                             <div>
-                                <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-6 transition-colors duration-300">Tareas eliminadas</h2>
+                                <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-6 transition-colors duration-300">{t.tasksTitle}</h2>
                                 <div className="flex flex-col gap-3">
                                     {tasks.map(t => {
                                         const isRemoving = removingTasks.includes(t.id);
