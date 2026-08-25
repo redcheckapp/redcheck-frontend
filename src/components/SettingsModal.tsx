@@ -1,7 +1,8 @@
 import { createPortal } from "react-dom";
-import { X, ArchiveRestore, Trash2, Moon, Sun } from "lucide-react";
+import { X, ArchiveRestore, Trash2, Moon, Sun, Globe } from "lucide-react";
 import type { SubjectWithTasks } from "../types";
 import { useTheme } from "../context/ThemeContext"; 
+import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -12,8 +13,50 @@ interface SettingsModalProps {
     userEmail: string;
 }
 
+// --- Diccionario de traducciones para SettingsModal ---
+const translations = {
+    es: {
+        title: "Ajustes",
+        appearance: "Apariencia",
+        darkMode: "Modo Oscuro",
+        themeDesc: "Ajustar el tema visual",
+        ttTheme: "Cambiar tema",
+        language: "Idioma",
+        langDesc: "Cambiar el idioma de la aplicación",
+        ttLanguage: "Cambiar idioma",
+        archived: "Asignaturas Archivadas",
+        noArchived: "No tienes asignaturas archivadas.",
+        btnRestore: "Restaurar",
+        dangerZone: "Zona de peligro",
+        demoWarning: "Por motivos de seguridad, la eliminación de cuenta está desactivada en el entorno de demostración.",
+        btnDeleteDemo: "Borrar cuenta (Deshabilitado)",
+        deleteWarning: "Esta acción es irreversible. Se borrarán todos tus datos y tareas.",
+        btnDelete: "Borrar cuenta"
+    },
+    en: {
+        title: "Settings",
+        appearance: "Appearance",
+        darkMode: "Dark Mode",
+        themeDesc: "Adjust visual theme",
+        ttTheme: "Toggle theme",
+        language: "Language",
+        langDesc: "Change application language",
+        ttLanguage: "Change language",
+        archived: "Archived Subjects",
+        noArchived: "You have no archived subjects.",
+        btnRestore: "Restore",
+        dangerZone: "Danger Zone",
+        demoWarning: "For security reasons, account deletion is disabled in the demo environment.",
+        btnDeleteDemo: "Delete account (Disabled)",
+        deleteWarning: "This action is irreversible. All your data and tasks will be deleted.",
+        btnDelete: "Delete account"
+    }
+};
+
 export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject, handleDeleteAccount, userEmail }: SettingsModalProps) => {
     const { theme, toggleTheme } = useTheme();
+    const { language, toggleLanguage } = useLanguage(); // Extraemos idioma y función para cambiar
+    const t = translations[language as keyof typeof translations];
 
     if (!isOpen) return null;
 
@@ -29,7 +72,7 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
                 
                 {/* Header */}
                 <div className="flex justify-between items-center p-5 border-b border-gray-100 dark:border-gray-800 transition-colors">
-                    <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Ajustes</h2>
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t.title}</h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition rounded-lg p-1 hover:bg-gray-100 dark:hover:bg-gray-800">
                         <X size={20} />
                     </button>
@@ -38,22 +81,44 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
                 {/* Content */}
                 <div className="p-5 flex flex-col gap-6 max-h-[60vh] overflow-y-auto">
                     
-                    {/* Section 1: Appearance */}
+                    {/* Section 1: Appearance & Language */}
                     <div className="flex flex-col gap-3">
-                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Apariencia</h3>
+                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.appearance}</h3>
+                        
+                        {/* Selector de Idioma (Nuevo) */}
                         <div className="flex justify-between items-center p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 transition-colors">
                             <div>
                                 <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                                    Modo Oscuro
+                                    {t.language}
                                 </p>
                                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                                    Ajustar el tema visual
+                                    {t.langDesc}
+                                </p>
+                            </div>
+                            <button 
+                                onClick={toggleLanguage}
+                                className="p-2 w-[38px] h-[38px] flex items-center justify-center rounded-lg transition-all duration-200 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-lg hover:bg-gray-50 dark:hover:bg-gray-600 shadow-sm"
+                                title={t.ttLanguage}
+                            >
+                                {/* Mostramos la bandera del idioma actual */}
+                                {language === 'es' ? '🇪🇸' : '🇬🇧'}
+                            </button>
+                        </div>
+
+                        {/* Selector Modo Noche (Original) */}
+                        <div className="flex justify-between items-center p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 transition-colors">
+                            <div>
+                                <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                                    {t.darkMode}
+                                </p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                    {t.themeDesc}
                                 </p>
                             </div>
                             <button 
                                 onClick={toggleTheme}
-                                className="p-2 rounded-lg transition-all duration-200 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-sm"
-                                title="Cambiar tema"
+                                className="p-2 w-[38px] h-[38px] flex items-center justify-center rounded-lg transition-all duration-200 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-sm"
+                                title={t.ttTheme}
                             >
                                 {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
                             </button>
@@ -62,10 +127,10 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
 
                     {/* Section 2: Archived Subjects */}
                     <div className="flex flex-col gap-3">
-                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Asignaturas Archivadas</h3>
+                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.archived}</h3>
                         
                         {archivedSubjects.length === 0 ? (
-                            <p className="text-sm text-gray-400 italic">No tienes asignaturas archivadas.</p>
+                            <p className="text-sm text-gray-400 italic">{t.noArchived}</p>
                         ) : (
                             <div className="flex flex-col gap-2">
                                 {archivedSubjects.map(subject => (
@@ -80,7 +145,7 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
                                             className="p-2 rounded-lg transition flex items-center gap-2 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50"
                                         >
                                             <ArchiveRestore size={14} />
-                                            Restaurar
+                                            {t.btnRestore}
                                         </button>
                                     </div>
                                 ))}
@@ -90,30 +155,30 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
 
                     {/* Section 3: Danger Zone */}
                     <div className="flex flex-col gap-3 pt-4 border-t border-gray-100 dark:border-gray-800 transition-colors">
-                        <h3 className="text-sm font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">Zona de peligro</h3>
+                        <h3 className="text-sm font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">{t.dangerZone}</h3>
                         
                         {userEmail === 'demo@redcheck.com' ? (
                             <>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                                    Por motivos de seguridad, la eliminación de cuenta está desactivada en el entorno de demostración.
+                                    {t.demoWarning}
                                 </p>
                                 <button 
                                     disabled
                                     className="flex justify-center items-center gap-2 w-full p-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed font-medium text-sm transition-colors"
                                 >
                                     <Trash2 size={16} />
-                                    Borrar cuenta (Deshabilitado)
+                                    {t.btnDeleteDemo}
                                 </button>
                             </>
                         ) : (
                             <>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Esta acción es irreversible. Se borrarán todos tus datos y tareas.</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">{t.deleteWarning}</p>
                                 <button 
                                     onClick={handleDeleteAccount}
                                     className="flex justify-center items-center gap-2 w-full p-3 rounded-xl bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-700 dark:hover:text-red-300 transition font-medium text-sm"
                                 >
                                     <Trash2 size={16} />
-                                    Borrar cuenta
+                                    {t.btnDelete}
                                 </button>
                             </>
                         )}
