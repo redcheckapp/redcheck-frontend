@@ -3,6 +3,7 @@ import { TaskItem } from "./TaskItem";
 import { RecurringTasksModal } from "./RecurringTasksModal";
 import { useState } from "react";
 import type { SubjectWithTasks } from "../types";
+import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
 
 interface SubjectSectionProps {
     subject: SubjectWithTasks;
@@ -33,6 +34,58 @@ interface SubjectSectionProps {
     setUpdatedSubject: (subject: { name: string; description: string }) => void;
 }
 
+// --- Diccionario de traducciones para SubjectSection ---
+const translations = {
+    es: {
+        ttRoutines: "Gestionar rutinas recurrentes",
+        ttEditSubject: "Editar asignatura",
+        ttArchive: "Archivar asignatura",
+        ttDelete: "Eliminar asignatura",
+        editSubjectTitle: "Editar asignatura",
+        lblName: "Nombre",
+        lblDesc: "Descripción",
+        btnCancel: "Cancelar",
+        btnSaveSubject: "Guardar cambios",
+        noTasks: "No hay tareas pendientes para hoy.",
+        ttAddTask: "Añadir nueva tarea a esta asignatura",
+        btnAddTask: "Añadir tarea",
+        newTaskTitle: "Nueva tarea para",
+        lblTaskTitle: "Título de la tarea",
+        lblDeadline: "Fecha límite",
+        lblRecurrence: "Repetición",
+        optNone: "No se repite",
+        optDaily: "Diariamente",
+        optWeekly: "Semanalmente",
+        optBiweekly: "Quincenalmente",
+        optMonthly: "Mensualmente",
+        btnSaveTask: "Guardar tarea"
+    },
+    en: {
+        ttRoutines: "Manage recurring routines",
+        ttEditSubject: "Edit subject",
+        ttArchive: "Archive subject",
+        ttDelete: "Delete subject",
+        editSubjectTitle: "Edit subject",
+        lblName: "Name",
+        lblDesc: "Description",
+        btnCancel: "Cancel",
+        btnSaveSubject: "Save changes",
+        noTasks: "No pending tasks for today.",
+        ttAddTask: "Add new task to this subject",
+        btnAddTask: "Add task",
+        newTaskTitle: "New task for",
+        lblTaskTitle: "Task title",
+        lblDeadline: "Deadline",
+        lblRecurrence: "Recurrence",
+        optNone: "Does not repeat",
+        optDaily: "Daily",
+        optWeekly: "Weekly",
+        optBiweekly: "Biweekly",
+        optMonthly: "Monthly",
+        btnSaveTask: "Save task"
+    }
+};
+
 export const SubjectSection = ({
     subject,
     setOpenFormUpdateSubject,
@@ -62,6 +115,9 @@ export const SubjectSection = ({
     addingTasks
 }: SubjectSectionProps) => {
 
+    const { language } = useLanguage();
+    const t = translations[language as keyof typeof translations];
+
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
     
     const normalTasks = subject.tasks.filter((task) => !task.overdue);
@@ -82,10 +138,10 @@ export const SubjectSection = ({
                 </div>
                 
                 <div className="flex items-center gap-1 opacity-100 [@media(any-hover:hover)]:opacity-0 [@media(any-hover:hover)]:group-hover/header:opacity-100 transition-opacity duration-200 shrink-0">
-                    <button type="button" className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:text-purple-400 dark:hover:bg-purple-900/30 rounded-lg transition" onClick={() => setIsRecurringModalOpen(true)} title="Gestionar rutinas recurrentes"><Repeat size={16} /></button>
-                    <button type="button" className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 dark:hover:text-yellow-400 dark:hover:bg-yellow-900/30 rounded-lg transition" onClick={() => { setOpenFormUpdateSubject(subject.id); setUpdatedSubject({ name: subject.name, description: subject.description || "" }); }} title="Editar asignatura"><Pencil size={16} /></button>
-                    <button type="button" className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition" onClick={() => { handleArchiveSubject(subject.id); }} title="Archivar asignatura"><Archive size={16} /></button>
-                    <button type="button" className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition" onClick={() => { handleDeleteSubject(subject.id); }} title="Eliminar asignatura"><X size={16} /></button>
+                    <button type="button" className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:text-purple-400 dark:hover:bg-purple-900/30 rounded-lg transition" onClick={() => setIsRecurringModalOpen(true)} title={t.ttRoutines}><Repeat size={16} /></button>
+                    <button type="button" className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 dark:hover:text-yellow-400 dark:hover:bg-yellow-900/30 rounded-lg transition" onClick={() => { setOpenFormUpdateSubject(subject.id); setUpdatedSubject({ name: subject.name, description: subject.description || "" }); }} title={t.ttEditSubject}><Pencil size={16} /></button>
+                    <button type="button" className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition" onClick={() => { handleArchiveSubject(subject.id); }} title={t.ttArchive}><Archive size={16} /></button>
+                    <button type="button" className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition" onClick={() => { handleDeleteSubject(subject.id); }} title={t.ttDelete}><X size={16} /></button>
                 </div>
             </div>
 
@@ -98,21 +154,21 @@ export const SubjectSection = ({
                 }`}
             >
                 <form onSubmit={(e) => handleUpdateSubject(e, subject.id)} className="flex flex-col gap-4 p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] dark:shadow-none font-normal transition-colors duration-300">
-                    <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 border-b border-gray-50 dark:border-gray-800 pb-2">Editar asignatura</h3>
+                    <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 border-b border-gray-50 dark:border-gray-800 pb-2">{t.editSubjectTitle}</h3>
                     <div className="flex flex-col gap-3">
                         <div className="flex flex-col">
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Nombre</label>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblName}</label>
                             <input type="text" name="name" value={updatedSubject.name} onChange={handleChangeUpdateSubject} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none" required />
                         </div>
                         <div className="flex flex-col">
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Descripción</label>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblDesc}</label>
                             <input type="text" name="description" value={updatedSubject.description} onChange={handleChangeUpdateSubject} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none" />
                         </div>
                     </div>
                     {error && <p className="text-red-500 text-sm text-center bg-red-50 dark:bg-red-900/30 p-2 rounded-lg">{error}</p>}
                     <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-gray-50 dark:border-gray-800">
-                        <button type="button" onClick={() => { setOpenFormUpdateSubject(null); }} className="px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200">Cancelar</button>
-                        <button type="submit" disabled={loading} className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50">Guardar cambios</button>
+                        <button type="button" onClick={() => { setOpenFormUpdateSubject(null); }} className="px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200">{t.btnCancel}</button>
+                        <button type="submit" disabled={loading} className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50">{t.btnSaveSubject}</button>
                     </div>
                 </form>
             </div>
@@ -120,7 +176,7 @@ export const SubjectSection = ({
             <div className="flex flex-col gap-2">
                 {normalTasks.length === 0 ? (
                     <p className="text-[13px] text-gray-400 dark:text-gray-500 font-medium italic mb-1 pl-1">
-                        No hay tareas pendientes para hoy.
+                        {t.noTasks}
                     </p>
                 ) : (
                     normalTasks.map((task) => (
@@ -154,10 +210,10 @@ export const SubjectSection = ({
                             type="button"
                             className="flex items-center gap-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:text-green-400 dark:hover:bg-green-900/20 rounded-lg px-2 py-2 text-sm transition-all w-fit mt-1"
                             onClick={() => { setOpenFormSubjectId(subject.id); }}
-                            title="Añadir nueva tarea a esta asignatura"
+                            title={t.ttAddTask}
                         >
                             <Plus size={16} className="transition-transform group-hover/section:scale-110" />
-                            <span className="font-medium">Añadir tarea</span>
+                            <span className="font-medium">{t.btnAddTask}</span>
                         </button>
                     </div>
                 </div>
@@ -171,37 +227,37 @@ export const SubjectSection = ({
                     }`}
                 >
                     <form onSubmit={(e) => handleSubmitTask(e, subject.id)} className="flex flex-col gap-4 p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-[0_2px_10px_-3px_rgba(34,197,94,0.1)] dark:shadow-none transition-colors duration-300">
-                        <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 border-b border-gray-50 dark:border-gray-800 pb-2">Nueva tarea para {subject.name}</h3>
+                        <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 border-b border-gray-50 dark:border-gray-800 pb-2">{t.newTaskTitle} {subject.name}</h3>
                         <div className="flex flex-col gap-3">
                             <div className="flex flex-col">
-                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Título de la tarea</label>
+                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblTaskTitle}</label>
                                 <input type="text" name="title" value={newTask.title} onChange={handleChangeTask} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-green-500 outline-none" required />
                             </div>
                             <div className="flex flex-col">
-                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Descripción</label>
+                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblDesc}</label>
                                 <input type="text" name="description" value={newTask.description} onChange={handleChangeTask} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-green-500 outline-none" />
                             </div>
                             <div className="flex flex-col sm:flex-row gap-3">
                                 <div className="flex-1 flex flex-col">
-                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Fecha límite</label>
+                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblDeadline}</label>
                                     <input type="datetime-local" name="deadline" value={newTask.deadline} onChange={handleChangeTask} disabled={newTask.recurrence !== "NONE"} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-green-500 outline-none disabled:opacity-50" />
                                 </div>
                                 <div className="flex-1 flex flex-col">
-                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Repetición</label>
+                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblRecurrence}</label>
                                     <select name="recurrence" value={newTask.recurrence} onChange={handleChangeTask} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-green-500 outline-none cursor-pointer">
-                                        <option value="NONE">No se repite</option>
-                                        <option value="DAILY">Diariamente</option>
-                                        <option value="WEEKLY">Semanalmente</option>
-                                        <option value="BIWEEKLY">Quincenalmente</option>
-                                        <option value="MONTHLY">Mensualmente</option>
+                                        <option value="NONE">{t.optNone}</option>
+                                        <option value="DAILY">{t.optDaily}</option>
+                                        <option value="WEEKLY">{t.optWeekly}</option>
+                                        <option value="BIWEEKLY">{t.optBiweekly}</option>
+                                        <option value="MONTHLY">{t.optMonthly}</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
                         {error && <p className="text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/30 p-2 rounded-lg text-center">{error}</p>}
                         <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-gray-50 dark:border-gray-800">
-                            <button type="button" onClick={() => { setOpenFormSubjectId(null); }} className="px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200">Cancelar</button>
-                            <button type="submit" disabled={loading} className="px-5 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:hover:bg-green-500 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50">Guardar tarea</button>
+                            <button type="button" onClick={() => { setOpenFormSubjectId(null); }} className="px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200">{t.btnCancel}</button>
+                            <button type="submit" disabled={loading} className="px-5 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:hover:bg-green-500 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50">{t.btnSaveTask}</button>
                         </div>
                     </form>
                 </div>
