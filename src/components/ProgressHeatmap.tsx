@@ -2,8 +2,33 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { getProgressHeatmap } from "../api/progressRecordApi";
 import type { ProgressRecord } from "../types";
+import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
+
+// --- Diccionario de traducciones para el Heatmap ---
+const translations = {
+    es: {
+        dailyActivity: "Actividad Diaria",
+        day1: "L", // Lunes
+        day3: "X", // Miércoles
+        day5: "V", // Viernes
+        noTasks: "Sin tareas el",
+        tasksCompleted: "tareas completadas el"
+    },
+    en: {
+        dailyActivity: "Daily Activity",
+        day1: "M", // Monday
+        day3: "W", // Wednesday
+        day5: "F", // Friday
+        noTasks: "No tasks on",
+        tasksCompleted: "tasks completed on"
+    }
+};
 
 export const ProgressHeatmap = () => {
+    const { language } = useLanguage();
+    const t = translations[language as keyof typeof translations];
+    const locale = language === 'es' ? 'es-ES' : 'en-US'; // Idioma para el formateador de fechas
+
     const [records, setRecords] = useState<Record<string, ProgressRecord>>({});
     const [loading, setLoading] = useState(true);
 
@@ -69,9 +94,11 @@ export const ProgressHeatmap = () => {
 
     const getTooltipText = (date: Date, dateString: string) => {
         const record = records[dateString];
-        const dateFormatted = date.toLocaleDateString("es-ES", { month: "short", day: "numeric" });
-        if (!record || record.totalTasks === 0) return `Sin tareas el ${dateFormatted}`;
-        return `${record.completedTasks}/${record.totalTasks} tareas completadas el ${dateFormatted}`;
+        // Formateamos la fecha usando el locale dinámico (es-ES o en-US)
+        const dateFormatted = date.toLocaleDateString(locale, { month: "short", day: "numeric" });
+        
+        if (!record || record.totalTasks === 0) return `${t.noTasks} ${dateFormatted}`;
+        return `${record.completedTasks}/${record.totalTasks} ${t.tasksCompleted} ${dateFormatted}`;
     };
 
     if (loading) return <div className="h-24 w-full animate-pulse bg-gray-200 dark:bg-gray-800 rounded-xl mb-6 transition-colors duration-300"></div>;
@@ -79,19 +106,19 @@ export const ProgressHeatmap = () => {
     return (
         <div className="flex flex-col items-center w-full px-2 relative transition-colors duration-300">
             <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mb-3 w-full text-left tracking-wide transition-colors duration-300">
-                Actividad Diaria
+                {t.dailyActivity}
             </p>
             
             <div className="flex gap-2 w-full justify-center overflow-x-visible">
                 
-                {/* L X V Column */}
+                {/* Días de la semana (L X V / M W F) */}
                 <div className="pt-[18px]">
                     <div className="grid grid-rows-7 gap-1 text-[9px] text-gray-400 dark:text-gray-500 font-medium pr-1 transition-colors duration-300">
-                        <div className="h-3 flex items-center leading-none">L</div>
+                        <div className="h-3 flex items-center leading-none">{t.day1}</div>
                         <div className="h-3"></div>
-                        <div className="h-3 flex items-center leading-none">X</div>
+                        <div className="h-3 flex items-center leading-none">{t.day3}</div>
                         <div className="h-3"></div>
-                        <div className="h-3 flex items-center leading-none">V</div>
+                        <div className="h-3 flex items-center leading-none">{t.day5}</div>
                         <div className="h-3"></div>
                         <div className="h-3"></div>
                     </div>
@@ -115,7 +142,8 @@ export const ProgressHeatmap = () => {
 
                             let monthName = "";
                             if (showMonth) {
-                                const rawMonth = week[0].toLocaleDateString("es-ES", { month: "short" }).replace('.', '');
+                                // Aplicamos el locale para obtener el mes en inglés o en español
+                                const rawMonth = week[0].toLocaleDateString(locale, { month: "short" }).replace('.', '');
                                 monthName = rawMonth.charAt(0).toUpperCase() + rawMonth.slice(1);
                             }
 
