@@ -6,6 +6,7 @@ import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
 import { PageTransition } from "../components/PageTransition";
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto de idioma
 
 const BackgroundParticles = memo(({ init }: { init: boolean }) => {
     if (!init) return null;
@@ -50,18 +51,56 @@ const BackgroundParticles = memo(({ init }: { init: boolean }) => {
     );
 });
 
+// --- Diccionario de traducciones para el Register ---
+const translations = {
+    es: {
+        title: "Crear cuenta",
+        username: "Nombre de usuario",
+        email: "Correo electrónico",
+        password: "Contraseña",
+        termsText: "He leído y acepto la ",
+        privacyLink: "Política de Privacidad",
+        andText: " y los ",
+        termsLink: "Términos de Servicio",
+        submitBtn: "Crear cuenta",
+        loading: "Cargando...",
+        hasAccount: "¿Ya tienes una cuenta?",
+        loginLink: "Inicia sesión aquí",
+        legal: "Aviso Legal",
+        privacy: "Política de Privacidad",
+        errorMsg: "Ya existe una cuenta con este correo electrónico",
+        tags: ["Agenda", "Inteligente", "Interactiva"],
+        copyright: "© 2026 RedCheck. Desarrollado por Francisco Javier Molina. Todos los derechos reservados." // <-- NUEVA LÍNEA
+    },
+    en: {
+        title: "Create account",
+        username: "Username",
+        email: "Email address",
+        password: "Password",
+        termsText: "I have read and accept the ",
+        privacyLink: "Privacy Policy",
+        andText: " and the ",
+        termsLink: "Terms of Service",
+        submitBtn: "Create account",
+        loading: "Loading...",
+        hasAccount: "Already have an account?",
+        loginLink: "Log in here",
+        legal: "Legal Notice",
+        privacy: "Privacy Policy",
+        errorMsg: "An account with this email already exists",
+        tags: ["AI-Powered", "Smart", "Planner"],
+        copyright: "© 2026 RedCheck. Developed by Francisco Javier Molina. All rights reserved." // <-- NUEVA LÍNEA
+    }
+};
+
 const RegisterPage = () => {
     const navigate = useNavigate();
     const { theme, toggleTheme } = useTheme();
+    const { language, toggleLanguage } = useLanguage(); // Hook de idioma
+    const t = translations[language as keyof typeof translations];
 
     const [init, setInit] = useState(false);
-
-    const [form, setForm] = useState({
-        username: "",
-        email: "",
-        password: ""
-    });
-
+    const [form, setForm] = useState({ username: "", email: "", password: "" });
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -86,7 +125,7 @@ const RegisterPage = () => {
             await register(form);
             navigate("/login");
         } catch(err) {
-            setError("Ya existe una cuenta con este correo electrónico");
+            setError(t.errorMsg);
         } finally {
             setLoading(false);
         }
@@ -98,14 +137,24 @@ const RegisterPage = () => {
             
             <BackgroundParticles init={init} />
 
-            {/* BOTÓN FLOTANTE MODO NOCHE (ESQUINA INFERIOR IZQUIERDA) */}
-            <button
-                onClick={toggleTheme}
-                className="fixed bottom-4 left-4 z-50 p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95"
-                title="Cambiar tema"
-            >
-                {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-            </button>
+            {/* CONTROLES FLOTANTES (IDIOMA Y TEMA) */}
+            <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-3">
+                <button
+                    onClick={toggleLanguage}
+                    className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 flex items-center justify-center text-lg"
+                    title={language === 'es' ? 'Switch to English' : 'Cambiar a Español'}
+                >
+                    {language === 'es' ? '🇬🇧' : '🇪🇸'}
+                </button>
+                
+                <button
+                    onClick={toggleTheme}
+                    className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 flex items-center justify-center"
+                    title={language === 'es' ? 'Cambiar tema' : 'Toggle theme'}
+                >
+                    {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+                </button>
+            </div>
 
             <div className="relative z-10 bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-2xl w-full max-w-md transition-colors duration-500">
 
@@ -119,9 +168,9 @@ const RegisterPage = () => {
                                 REDCHECK
                             </span>
                             <div className="flex justify-between w-full text-[11px] font-bold text-gray-800 dark:text-gray-300 mt-1.5 tracking-wide transition-colors duration-300">
-                                <span>Agenda</span>
-                                <span>Inteligente</span>
-                                <span>Interactiva</span>
+                                <span>{t.tags[0]}</span>
+                                <span>{t.tags[1]}</span>
+                                <span>{t.tags[2]}</span>
                             </div>
                         </div>
                     </div>
@@ -129,13 +178,15 @@ const RegisterPage = () => {
                     <div className="w-full h-px bg-gray-100 dark:bg-gray-800 my-6 transition-colors duration-300"></div>
 
                     <h2 className="text-gray-500 dark:text-gray-400 font-medium transition-colors duration-300">
-                        Crear cuenta
+                        {t.title}
                     </h2>
                 </div>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">Nombre de usuario</label>
+                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
+                            {t.username}
+                        </label>
                         <input
                             type="text"
                             name="username"
@@ -147,7 +198,9 @@ const RegisterPage = () => {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">Correo electrónico</label>
+                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
+                            {t.email}
+                        </label>
                         <input
                             type="email"
                             name="email"
@@ -159,7 +212,9 @@ const RegisterPage = () => {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">Contraseña</label>
+                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
+                            {t.password}
+                        </label>
                         <input
                             type="password"
                             name="password"
@@ -180,7 +235,10 @@ const RegisterPage = () => {
                             required 
                         />
                         <label htmlFor="terms" className="text-xs text-gray-500 dark:text-gray-400 transition-colors duration-300 cursor-pointer leading-relaxed">
-                            He leído y acepto la <a href="/privacy" target="_blank" className="text-red-600 dark:text-red-400 hover:underline transition-colors font-medium">Política de Privacidad</a> y los <a href="/terms" target="_blank" className="text-red-600 dark:text-red-400 hover:underline transition-colors font-medium">Términos de Servicio</a>.
+                            {t.termsText}
+                            <a href="/privacy" target="_blank" className="text-red-600 dark:text-red-400 hover:underline transition-colors font-medium">{t.privacyLink}</a>
+                            {t.andText}
+                            <a href="/terms" target="_blank" className="text-red-600 dark:text-red-400 hover:underline transition-colors font-medium">{t.termsLink}</a>.
                         </label>
                     </div>
 
@@ -193,22 +251,27 @@ const RegisterPage = () => {
                         disabled={loading}
                         className="w-full bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 py-3 rounded-xl font-medium hover:bg-black dark:hover:bg-white transition-all duration-300 shadow-sm hover:shadow disabled:opacity-50 mt-2"
                     >
-                        {loading ? "Cargando..." : "Crear cuenta"}
+                        {loading ? t.loading : t.submitBtn}
                     </button>
                 </form>
 
                 <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-8 transition-colors duration-300">
-                    ¿Ya tienes una cuenta?{" "}
+                    {t.hasAccount}{" "}
                     <a href="/login" className="text-red-600 dark:text-red-400 font-semibold hover:text-red-700 dark:hover:text-red-300 hover:underline transition-colors duration-300">
-                        Inicia sesión aquí
+                        {t.loginLink}
                     </a>
                 </p>
 
-                {/* --- ENLACES LEGALES RGPD --- */}
-                <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 flex justify-center gap-4 text-[11px] text-gray-400 dark:text-gray-500 transition-colors duration-300">
-                    <a href="/terms" target="_blank" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Aviso Legal</a>
-                    <span>•</span>
-                    <a href="/privacy" target="_blank" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Política de Privacidad</a>
+                {/* --- ENLACES LEGALES RGPD Y COPYRIGHT --- */}
+                <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col items-center gap-3 transition-colors duration-300">
+                    <div className="flex justify-center gap-4 text-[11px] text-gray-400 dark:text-gray-500">
+                        <a href="/terms" target="_blank" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t.legal}</a>
+                        <span>•</span>
+                        <a href="/privacy" target="_blank" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t.privacy}</a>
+                    </div>
+                    <p className="text-[10px] text-gray-400/80 dark:text-gray-500/70 text-center">
+                        {t.copyright}
+                    </p>
                 </div>
 
             </div>
