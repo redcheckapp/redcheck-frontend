@@ -6,6 +6,7 @@ import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
 import { PageTransition } from "../components/PageTransition";
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext"; // <-- Nuevo contexto
 
 // --- We extract the particles to an immutable component ---
 const BackgroundParticles = memo(({ init }: { init: boolean }) => {
@@ -51,17 +52,50 @@ const BackgroundParticles = memo(({ init }: { init: boolean }) => {
     );
 });
 
+// --- Diccionario de traducciones ---
+const translations = {
+    es: {
+        loginTitle: "Iniciar sesión",
+        email: "Correo electrónico",
+        password: "Contraseña",
+        loginBtn: "Entrar a RedCheck",
+        loading: "Cargando...",
+        demoBtn: "Demo",
+        noAccount: "¿Aún no tienes una cuenta?",
+        register: "Regístrate aquí",
+        legal: "Aviso Legal",
+        privacy: "Política de Privacidad",
+        errCreds: "Correo o contraseña incorrectos",
+        errDemo: "Error al acceder a la cuenta de demostración. Asegúrate de que el backend la ha inicializado.",
+        tags: ["Agenda", "Inteligente", "Interactiva"],
+        copyright: "© 2026 RedCheck. Desarrollado por Francisco Javier Molina. Todos los derechos reservados." // <-- NUEVA LÍNEA
+    },
+    en: {
+        loginTitle: "Sign in",
+        email: "Email address",
+        password: "Password",
+        loginBtn: "Log in to RedCheck",
+        loading: "Loading...",
+        demoBtn: "Demo",
+        noAccount: "Don't have an account yet?",
+        register: "Register here",
+        legal: "Legal Notice",
+        privacy: "Privacy Policy",
+        errCreds: "Incorrect email or password",
+        errDemo: "Error accessing demo account. Make sure the backend initialized it.",
+        tags: ["AI-Powered", "Smart", "Planner"],
+        copyright: "© 2026 RedCheck. Developed by Francisco Javier Molina. All rights reserved." // <-- NUEVA LÍNEA
+    }
+};
+
 const LoginPage = () => {
     const navigate = useNavigate();
     const { theme, toggleTheme } = useTheme();
+    const { language, toggleLanguage } = useLanguage(); // Usamos el nuevo hook
+    const t = translations[language as keyof typeof translations];
 
     const [init, setInit] = useState(false);
-
-    const [form, setForm] = useState({
-        email: "",
-        password: ""
-    });
-
+    const [form, setForm] = useState({ email: "", password: "" });
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -87,7 +121,7 @@ const LoginPage = () => {
             localStorage.setItem("token", response.token); 
             navigate("/dashboard");
         } catch(err) {
-            setError("Correo o contraseña incorrectos");
+            setError(t.errCreds);
         } finally {
             setLoading(false);
         }
@@ -105,7 +139,7 @@ const LoginPage = () => {
             localStorage.setItem("token", response.token); 
             navigate("/dashboard");
         } catch(err) {
-            setError("Error al acceder a la cuenta de demostración. Asegúrate de que el backend la ha inicializado.");
+            setError(t.errDemo);
         } finally {
             setLoading(false);
         }
@@ -117,14 +151,24 @@ const LoginPage = () => {
             
             <BackgroundParticles init={init} />
 
-            {/* BOTÓN FLOTANTE MODO NOCHE (ESQUINA INFERIOR IZQUIERDA) */}
-            <button
-                onClick={toggleTheme}
-                className="fixed bottom-4 left-4 z-50 p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95"
-                title="Cambiar tema"
-            >
-                {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-            </button>
+            {/* CONTROLES FLOTANTES (IDIOMA Y TEMA) */}
+            <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-3">
+                <button
+                    onClick={toggleLanguage}
+                    className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 flex items-center justify-center text-lg"
+                    title={language === 'es' ? 'Switch to English' : 'Cambiar a Español'}
+                >
+                    {language === 'es' ? '🇬🇧' : '🇪🇸'}
+                </button>
+                
+                <button
+                    onClick={toggleTheme}
+                    className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 flex items-center justify-center"
+                    title={language === 'es' ? 'Cambiar tema' : 'Toggle theme'}
+                >
+                    {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+                </button>
+            </div>
 
             <div className="relative z-10 bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-2xl w-full max-w-md transition-colors duration-500">
 
@@ -138,9 +182,9 @@ const LoginPage = () => {
                                 REDCHECK
                             </span>
                             <div className="flex justify-between w-full text-[11px] font-bold text-gray-800 dark:text-gray-300 mt-1.5 tracking-wide transition-colors duration-300">
-                                <span>Agenda</span>
-                                <span>Inteligente</span>
-                                <span>Interactiva</span>
+                                <span>{t.tags[0]}</span>
+                                <span>{t.tags[1]}</span>
+                                <span>{t.tags[2]}</span>
                             </div>
                         </div>
                     </div>
@@ -148,13 +192,15 @@ const LoginPage = () => {
                     <div className="w-full h-px bg-gray-100 dark:bg-gray-800 my-6 transition-colors duration-300"></div>
 
                     <h2 className="text-gray-500 dark:text-gray-400 font-medium transition-colors duration-300">
-                        Iniciar sesión
+                        {t.loginTitle}
                     </h2>
                 </div>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-6">
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">Correo electrónico</label>
+                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
+                            {t.email}
+                        </label>
                         <input
                             type="email"
                             name="email"
@@ -166,7 +212,9 @@ const LoginPage = () => {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">Contraseña</label>
+                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
+                            {t.password}
+                        </label>
                         <input
                             type="password"
                             name="password"
@@ -186,7 +234,7 @@ const LoginPage = () => {
                         disabled={loading}
                         className="w-full bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 py-3 rounded-xl font-medium hover:bg-black dark:hover:bg-white transition-all duration-300 shadow-sm hover:shadow disabled:opacity-50 mt-2"
                     >
-                        {loading ? "Cargando..." : "Entrar a RedCheck"}
+                        {loading ? t.loading : t.loginBtn}
                     </button>
 
                     <button
@@ -195,22 +243,27 @@ const LoginPage = () => {
                         disabled={loading}
                         className="w-full bg-emerald-600 dark:bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-700 dark:hover:bg-emerald-400 transition-all duration-300 shadow-sm hover:shadow disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                        Demo
+                        {t.demoBtn}
                     </button>
                 </form>
 
                 <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-8 transition-colors duration-300">
-                    ¿Aún no tienes una cuenta?{" "}
+                    {t.noAccount}{" "}
                     <a href="/register" className="text-red-600 dark:text-red-400 font-semibold hover:text-red-700 dark:hover:text-red-300 hover:underline transition-colors duration-300">
-                        Regístrate aquí
+                        {t.register}
                     </a>
                 </p>
 
-                {/* --- ENLACES LEGALES RGPD --- */}
-                <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 flex justify-center gap-4 text-[11px] text-gray-400 dark:text-gray-500 transition-colors duration-300">
-                    <a href="/terms" target="_blank" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Aviso Legal</a>
-                    <span>•</span>
-                    <a href="/privacy" target="_blank" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Política de Privacidad</a>
+                {/* --- ENLACES LEGALES RGPD Y COPYRIGHT --- */}
+                <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col items-center gap-3 transition-colors duration-300">
+                    <div className="flex justify-center gap-4 text-[11px] text-gray-400 dark:text-gray-500">
+                        <a href="/terms" target="_blank" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t.legal}</a>
+                        <span>•</span>
+                        <a href="/privacy" target="_blank" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t.privacy}</a>
+                    </div>
+                    <p className="text-[10px] text-gray-400/80 dark:text-gray-500/70 text-center">
+                        {t.copyright}
+                    </p>
                 </div>
 
             </div>
