@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { SubjectStat, SubjectWithTasks } from "../types";
 import { SmartCheckButton } from "./SmartCheckButton";
 import { SubjectBalance } from "./SubjectBalance";
+import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
 
 interface SidebarProps {
     sidebarOpen: boolean;
@@ -20,6 +21,50 @@ interface SidebarProps {
     onOpenTrash: () => void;
     onGoHome: () => void;
 }
+
+// --- Diccionario de traducciones para el Sidebar ---
+const translations = {
+    es: {
+        closeMenu: "Cerrar menú",
+        openMenu: "Abrir menú",
+        goHome: "Ir al inicio",
+        notifications: "Notificaciones",
+        markRead: "Marcar leídas",
+        aiReadyTitle: "SmartCheck listo",
+        aiReadyDesc: "¡Tu plan diario ya está disponible!",
+        aiReadySub: "Haz clic para ver tu plan priorizado.",
+        noNotifications: "No tienes notificaciones nuevas.",
+        analysisEngine: "Motor de análisis",
+        dailyAnalysisTitle: "Análisis Diario de Tareas",
+        dailyAnalysisSub: "Genera un resumen de tus prioridades para hoy.",
+        aiConsulting: "Consultando a SmartCheck...",
+        riskAnalysisTitle: "Analizar riesgos",
+        riskAnalysisSub: "Identifica posibles bloqueos o retrasos.",
+        trash: "Papelera",
+        settings: "Ajustes",
+        logout: "Cerrar sesión"
+    },
+    en: {
+        closeMenu: "Close menu",
+        openMenu: "Open menu",
+        goHome: "Go to Home",
+        notifications: "Notifications",
+        markRead: "Mark as read",
+        aiReadyTitle: "SmartCheck Ready",
+        aiReadyDesc: "Your daily plan is now available!",
+        aiReadySub: "Click to view your prioritized plan.",
+        noNotifications: "You have no new notifications.",
+        analysisEngine: "Analysis Engine",
+        dailyAnalysisTitle: "Daily Task Analysis",
+        dailyAnalysisSub: "Generate a summary of your priorities for today.",
+        aiConsulting: "Consulting SmartCheck...",
+        riskAnalysisTitle: "Analyze Risks",
+        riskAnalysisSub: "Identify potential blockers or delays.",
+        trash: "Trash",
+        settings: "Settings",
+        logout: "Log out"
+    }
+};
 
 export const Sidebar = ({ 
     sidebarOpen, 
@@ -38,6 +83,8 @@ export const Sidebar = ({
 }: SidebarProps) => {
     const navigate = useNavigate();
     const [showNotifications, setShowNotifications] = useState(false);
+    const { language } = useLanguage();
+    const t = translations[language as keyof typeof translations];
 
     const totalTasks = subjects.reduce((acc, subject) => acc + subject.tasks.length, 0);
     const completedTasks = totalTasks - totalPending; 
@@ -56,7 +103,7 @@ export const Sidebar = ({
                         setShowNotifications(false);
                     }}
                     className="flex items-center justify-center shrink-0 w-10 h-10 text-red-700 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors"
-                    title={sidebarOpen ? "Cerrar menú" : "Abrir menú"}
+                    title={sidebarOpen ? t.closeMenu : t.openMenu}
                 >
                     <div className="bg-[#cc2229] w-9 h-9 rounded-[10px] flex items-center justify-center shadow-sm flex-shrink-0">
                         <Check size={22} strokeWidth={4} className="text-white" />
@@ -66,7 +113,7 @@ export const Sidebar = ({
                 <div 
                     onClick={onGoHome}
                     className={`flex items-center overflow-hidden cursor-pointer hover:opacity-80 transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[150px] opacity-100 ml-2" : "w-0 opacity-0 ml-0"}`}
-                    title="Ir al inicio"
+                    title={t.goHome}
                 >
                     <span className="text-[22px] font-black text-gray-900 dark:text-white tracking-tight leading-none mt-1">
                         REDCHECK
@@ -77,7 +124,7 @@ export const Sidebar = ({
                     <button 
                         onClick={() => setShowNotifications(!showNotifications)}
                         className="relative p-2 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 active:scale-90 shrink-0" 
-                        title="Notificaciones"
+                        title={t.notifications}
                     >
                         <Bell size={20} />
                         {aiNotificationReady && (
@@ -88,8 +135,8 @@ export const Sidebar = ({
                     {showNotifications && (
                         <div className="absolute left-0 top-12 w-80 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 origin-top-left animate-in fade-in zoom-in-95 duration-200 z-[60]">
                             <div className="p-4 border-b border-gray-50 dark:border-gray-800 flex justify-between items-center">
-                                <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">Notificaciones</h3>
-                                <span className="text-xs text-gray-400 dark:text-gray-500 cursor-pointer hover:text-gray-600 dark:hover:text-gray-300 transition-colors">Marcar leídas</span>
+                                <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">{t.notifications}</h3>
+                                <span className="text-xs text-gray-400 dark:text-gray-500 cursor-pointer hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t.markRead}</span>
                             </div>
 
                             <div className="max-h-64 overflow-y-auto">
@@ -103,15 +150,15 @@ export const Sidebar = ({
                                     >
                                         <div className="flex items-center gap-2">
                                             <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>
-                                            <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider italic">SmartCheck listo</span>
+                                            <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider italic">{t.aiReadyTitle}</span>
                                         </div>
-                                        <p className="text-sm text-gray-700 dark:text-gray-200 font-semibold">¡Tu plan diario ya está disponible!</p>
-                                        <p className="text-[11px] text-gray-400 dark:text-gray-500">Haz clic para ver tu plan priorizado.</p>
+                                        <p className="text-sm text-gray-700 dark:text-gray-200 font-semibold">{t.aiReadyDesc}</p>
+                                        <p className="text-[11px] text-gray-400 dark:text-gray-500">{t.aiReadySub}</p>
                                     </div>
                                 ) : (
                                     <div className="p-8 text-center text-sm text-gray-400 dark:text-gray-500">
                                         <Bell size={24} className="mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-                                        No tienes notificaciones nuevas.
+                                        {t.noNotifications}
                                     </div>
                                 )}
                             </div>
@@ -166,7 +213,7 @@ export const Sidebar = ({
                             SmartCheck AI
                         </h3>
                         <p className="text-[11px] text-gray-400 dark:text-gray-500 font-medium mt-0.5 tracking-wide uppercase">
-                            Motor de análisis
+                            {t.analysisEngine}
                         </p>
                     </div>
                 </div>
@@ -182,8 +229,8 @@ export const Sidebar = ({
   
                     <SmartCheckButton
                         icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>}
-                        title="Análisis Diario de Tareas"
-                        subtitle={isAiLoading ? "Consultando a SmartCheck..." : "Genera un resumen de tus prioridades para hoy."}
+                        title={t.dailyAnalysisTitle}
+                        subtitle={isAiLoading ? t.aiConsulting : t.dailyAnalysisSub}
                         onClick={onAiPlanClick}
                         comingSoon={false}
                         isLoading={isAiLoading}
@@ -191,8 +238,8 @@ export const Sidebar = ({
 
                     <SmartCheckButton 
                         icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
-                        title="Analizar riesgos"
-                        subtitle="Identifica posibles bloqueos o retrasos."
+                        title={t.riskAnalysisTitle}
+                        subtitle={t.riskAnalysisSub}
                         onClick={() => console.log("Clic en el análisis de riesgos")}
                         comingSoon={true}
                     />
@@ -205,36 +252,36 @@ export const Sidebar = ({
                 <button 
                     onClick={onOpenTrash} 
                     className={`flex items-center p-2 rounded-xl transition-colors w-full ${showTrash ? "bg-gray-800 dark:bg-gray-800 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800"}`} 
-                    title="Papelera"
+                    title={t.trash}
                 >
                     <div className="flex items-center justify-center shrink-0 w-6 h-6">
                         <Trash2 size={20} />
                     </div>
                     <div className={`flex items-center overflow-hidden transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[120px] opacity-100" : "w-0 opacity-0"}`}>
                         <span className="text-sm font-medium whitespace-nowrap ml-3">
-                            Papelera
+                            {t.trash}
                         </span>
                     </div>
                 </button>
 
-                <button onClick={onOpenSettings} className="flex items-center p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors w-full" title="Ajustes">
+                <button onClick={onOpenSettings} className="flex items-center p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors w-full" title={t.settings}>
                     <div className="flex items-center justify-center shrink-0 w-6 h-6">
                         <Settings size={20} />
                     </div>
                     <div className={`flex items-center overflow-hidden transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[120px] opacity-100" : "w-0 opacity-0"}`}>
                         <span className="text-sm font-medium whitespace-nowrap ml-3">
-                            Ajustes
+                            {t.settings}
                         </span>
                     </div>
                 </button>
 
-                <button onClick={() => { localStorage.removeItem("token"); navigate("/login"); }} className="flex items-center p-2 rounded-xl text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:bg-transparent dark:hover:bg-red-900/30 transition-colors w-full" title="Cerrar sesión">
+                <button onClick={() => { localStorage.removeItem("token"); navigate("/login"); }} className="flex items-center p-2 rounded-xl text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:bg-transparent dark:hover:bg-red-900/30 transition-colors w-full" title={t.logout}>
                     <div className="flex items-center justify-center shrink-0 w-6 h-6">
                         <LogOut size={20} />
                     </div>
                     <div className={`flex items-center overflow-hidden transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[120px] opacity-100" : "w-0 opacity-0"}`}>
                         <span className="text-sm font-medium whitespace-nowrap ml-3">
-                            Cerrar sesión
+                            {t.logout}
                         </span>
                     </div>
                 </button>
