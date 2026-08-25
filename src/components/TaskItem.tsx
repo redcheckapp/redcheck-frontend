@@ -1,5 +1,6 @@
 import { Check, Pencil, X } from "lucide-react";
 import type { SubjectWithTasks } from "../types";
+import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
 
 type Task = SubjectWithTasks["tasks"][0]; 
 
@@ -23,73 +24,110 @@ interface TaskItemProps {
     isDeleting?: boolean;
 }
 
-    // Function that formats the date and gives it a "bubble" design according to proximity
-    const renderDeadline = (deadlineStr: string | null, isCompleted: boolean) => {
-        if (!deadlineStr) return "Sin fecha límite";
+// --- Diccionario de traducciones para TaskItem ---
+const translations = {
+    es: {
+        noDeadline: "Sin fecha límite",
+        today: "Hoy",
+        tomorrow: "Mañana",
+        dayAfter: "Pasado mañana",
+        ttEdit: "Editar tarea",
+        ttDelete: "Eliminar tarea",
+        editTitle: "Editar tarea",
+        lblTitle: "Título de la tarea",
+        lblDesc: "Descripción",
+        lblDeadline: "Fecha límite",
+        btnCancel: "Cancelar",
+        btnSave: "Guardar cambios"
+    },
+    en: {
+        noDeadline: "No deadline",
+        today: "Today",
+        tomorrow: "Tomorrow",
+        dayAfter: "Day after tomorrow",
+        ttEdit: "Edit task",
+        ttDelete: "Delete task",
+        editTitle: "Edit task",
+        lblTitle: "Task title",
+        lblDesc: "Description",
+        lblDeadline: "Deadline",
+        btnCancel: "Cancel",
+        btnSave: "Save changes"
+    }
+};
 
-        const deadlineDate = new Date(deadlineStr);
-        
-        const taskDate = new Date(deadlineDate);
-        taskDate.setHours(0, 0, 0, 0);
+// Pasamos `t` (traducciones) y `locale` como parámetros a la función auxiliar
+const renderDeadline = (deadlineStr: string | null, isCompleted: boolean, t: any, locale: string) => {
+    if (!deadlineStr) return t.noDeadline;
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+    const deadlineDate = new Date(deadlineStr);
+    
+    const taskDate = new Date(deadlineDate);
+    taskDate.setHours(0, 0, 0, 0);
 
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-        const dayAfter = new Date(today);
-        dayAfter.setDate(dayAfter.getDate() + 2);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-        const timeStr = deadlineDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+    const dayAfter = new Date(today);
+    dayAfter.setDate(dayAfter.getDate() + 2);
 
-        if (!isCompleted) {
-            if (taskDate.getTime() === today.getTime()) {
-                return (
-                    <span className="inline-flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                        <span className="bg-red-100 dark:bg-red-900/30 text-red-900 dark:text-red-400 px-2 py-0.5 rounded-md font-medium tracking-wide">
-                            Hoy, {timeStr}
-                        </span>
+    // Usa el locale dinámico para formatear la hora (ej: 10:00 vs 10:00 AM)
+    const timeStr = deadlineDate.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+
+    if (!isCompleted) {
+        if (taskDate.getTime() === today.getTime()) {
+            return (
+                <span className="inline-flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                    <span className="bg-red-100 dark:bg-red-900/30 text-red-900 dark:text-red-400 px-2 py-0.5 rounded-md font-medium tracking-wide">
+                        {t.today}, {timeStr}
                     </span>
-                );
-            }
-            if (taskDate.getTime() === tomorrow.getTime()) {
-                return (
-                    <span className="inline-flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
-                        <span className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-400 px-2 py-0.5 rounded-md font-medium tracking-wide">
-                            Mañana, {timeStr}
-                        </span>
-                    </span>
-                );
-            }
-            if (taskDate.getTime() === dayAfter.getTime()) {
-                return (
-                    <span className="inline-flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                        <span className="bg-green-100 dark:bg-green-900/30 text-green-900 dark:text-green-400 px-2 py-0.5 rounded-md font-medium tracking-wide">
-                            Pasado mañana, {timeStr}
-                        </span>
-                    </span>
-                );
-            }
+                </span>
+            );
         }
+        if (taskDate.getTime() === tomorrow.getTime()) {
+            return (
+                <span className="inline-flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+                    <span className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-400 px-2 py-0.5 rounded-md font-medium tracking-wide">
+                        {t.tomorrow}, {timeStr}
+                    </span>
+                </span>
+            );
+        }
+        if (taskDate.getTime() === dayAfter.getTime()) {
+            return (
+                <span className="inline-flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                    <span className="bg-green-100 dark:bg-green-900/30 text-green-900 dark:text-green-400 px-2 py-0.5 rounded-md font-medium tracking-wide">
+                        {t.dayAfter}, {timeStr}
+                    </span>
+                </span>
+            );
+        }
+    }
 
-        return (
-            <span>
-                {deadlineDate.toLocaleString("es-ES", { 
-                    day: "2-digit", month: "2-digit", year: "numeric", 
-                    hour: "2-digit", minute: "2-digit" 
-                })}
-            </span>
-        );
-    };
+    return (
+        <span>
+            {deadlineDate.toLocaleString(locale, { 
+                day: "2-digit", month: "2-digit", year: "numeric", 
+                hour: "2-digit", minute: "2-digit" 
+            })}
+        </span>
+    );
+};
 
 export const TaskItem = ({
     subjectId, task, handleToggleTask, handleDeleteTask, setOpenFormSubjectIdTaskId,
     openFormSubjectIdTaskId, handleUpdateTask, updatedTask, handleChangeUpdateTask, setUpdatedTask, loading, error, isAdding, isDeleting,
 }: TaskItemProps) => {
+
+    const { language } = useLanguage();
+    const t = translations[language as keyof typeof translations];
+    const locale = language === 'es' ? 'es-ES' : 'en-US';
 
     return (
         <div className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
@@ -128,7 +166,7 @@ export const TaskItem = ({
                         )}
                     </p>
                     <p className={`text-xs mt-0.5 font-medium transition-all ${task.completed ? "text-gray-400 dark:text-gray-600" : "text-gray-500 dark:text-gray-400"}`}>
-                        {renderDeadline(task.deadline, task.completed)}
+                        {renderDeadline(task.deadline, task.completed, t, locale)}
                     </p>
                 </div>
 
@@ -152,7 +190,7 @@ export const TaskItem = ({
                                 deadline: formattedDate
                             });
                         }}
-                        title="Editar tarea"
+                        title={t.ttEdit}
                     >
                         <Pencil size={16} />
                     </button>
@@ -160,7 +198,7 @@ export const TaskItem = ({
                     <button type="button" 
                         className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition"
                         onClick={() => { handleDeleteTask(subjectId, task.id); }}  
-                        title="Eliminar tarea"
+                        title={t.ttDelete}
                     >
                         <X size={16} />
                     </button>
@@ -176,11 +214,11 @@ export const TaskItem = ({
                 <form onSubmit={(e) => handleUpdateTask(e, subjectId, task.id)}
                     className="flex flex-col gap-4 ml-10 p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-[0_2px_10px_-3px_rgba(234,179,8,0.1)] dark:shadow-none transition-colors duration-300">
                                                         
-                    <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 border-b border-gray-50 dark:border-gray-800 pb-2">Editar tarea</h3>
+                    <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 border-b border-gray-50 dark:border-gray-800 pb-2">{t.editTitle}</h3>
 
                     <div className="flex flex-col gap-3">
                         <div className="flex flex-col">
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Título de la tarea</label>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblTitle}</label>
                             <input
                                 type="text"
                                 name="title"
@@ -193,7 +231,7 @@ export const TaskItem = ({
 
                         <div className="flex flex-col sm:flex-row gap-3">
                             <div className="flex-1 flex flex-col">
-                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Descripción</label>
+                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblDesc}</label>
                                 <input
                                     type="text"
                                     name="description"
@@ -204,7 +242,7 @@ export const TaskItem = ({
                             </div>
                             
                             <div className="flex-1 flex flex-col">
-                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Fecha límite</label>
+                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblDeadline}</label>
                                 <input
                                     type="datetime-local"
                                     name="deadline"
@@ -225,7 +263,7 @@ export const TaskItem = ({
                             onClick={() => {setOpenFormSubjectIdTaskId(null)}}
                             className="px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200"
                         >
-                            Cancelar
+                            {t.btnCancel}
                         </button>
                         
                         <button
@@ -233,7 +271,7 @@ export const TaskItem = ({
                             disabled={loading}
                             className="px-5 py-2.5 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 dark:hover:bg-yellow-500 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50"
                         >
-                            Guardar cambios
+                            {t.btnSave}
                         </button>
                     </div>
                 </form>
