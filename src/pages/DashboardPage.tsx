@@ -137,7 +137,7 @@ const DashboardPage = () => {
         setIsAiLoading(true);
         alert(t.alertAiAnalyzing);
         try {
-            await dailyAnalysis();
+            await dailyAnalysis(language);
         } catch (error) {
             console.warn("dailyAnalysis() lanzó error, pero continuamos el polling:", error);
         }
