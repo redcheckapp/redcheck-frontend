@@ -70,7 +70,7 @@ const translations = {
         privacy: "Política de Privacidad",
         errorMsg: "Ya existe una cuenta con este correo electrónico",
         tags: ["Agenda", "Inteligente", "Interactiva"],
-        copyright: "© 2026 RedCheck. Desarrollado por Francisco Javier Molina. Todos los derechos reservados." // <-- NUEVA LÍNEA
+        copyright: "© 2026 RedCheck. Desarrollado por Francisco Javier Molina Cuenca. Todos los derechos reservados."
     },
     en: {
         title: "Create account",
@@ -89,7 +89,7 @@ const translations = {
         privacy: "Privacy Policy",
         errorMsg: "An account with this email already exists",
         tags: ["AI-Powered", "Smart", "Planner"],
-        copyright: "© 2026 RedCheck. Developed by Francisco Javier Molina. All rights reserved." // <-- NUEVA LÍNEA
+        copyright: "© 2026 RedCheck. Developed by Francisco Javier Molina Cuenca. All rights reserved."
     }
 };
 

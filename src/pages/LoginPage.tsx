@@ -68,7 +68,7 @@ const translations = {
         errCreds: "Correo o contraseña incorrectos",
         errDemo: "Error al acceder a la cuenta de demostración. Asegúrate de que el backend la ha inicializado.",
         tags: ["Agenda", "Inteligente", "Interactiva"],
-        copyright: "© 2026 RedCheck. Desarrollado por Francisco Javier Molina. Todos los derechos reservados." // <-- NUEVA LÍNEA
+        copyright: "© 2026 RedCheck. Desarrollado por Francisco Javier Molina Cuenca. Todos los derechos reservados."
     },
     en: {
         loginTitle: "Sign in",
@@ -84,14 +84,14 @@ const translations = {
         errCreds: "Incorrect email or password",
         errDemo: "Error accessing demo account. Make sure the backend initialized it.",
         tags: ["AI-Powered", "Smart", "Planner"],
-        copyright: "© 2026 RedCheck. Developed by Francisco Javier Molina. All rights reserved." // <-- NUEVA LÍNEA
+        copyright: "© 2026 RedCheck. Developed by Francisco Javier Molina Cuenca. All rights reserved."
     }
 };
 
 const LoginPage = () => {
     const navigate = useNavigate();
     const { theme, toggleTheme } = useTheme();
-    const { language, toggleLanguage } = useLanguage(); // Usamos el nuevo hook
+    const { language, toggleLanguage } = useLanguage();
     const t = translations[language as keyof typeof translations];
 
     const [init, setInit] = useState(false);

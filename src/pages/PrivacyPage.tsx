@@ -35,10 +35,10 @@ const BackgroundParticles = memo(({ init }: { init: boolean }) => {
 // Añadimos el copyright al diccionario
 const translations = {
     es: {
-        copyright: "© 2026 RedCheck. Desarrollado por Francisco Javier Molina. Todos los derechos reservados."
+        copyright: "© 2026 RedCheck. Desarrollado por Francisco Javier Molina Cuenca. Todos los derechos reservados."
     },
     en: {
-        copyright: "© 2026 RedCheck. Developed by Francisco Javier Molina. All rights reserved."
+        copyright: "© 2026 RedCheck. Developed by Francisco Javier Molina Cuenca. All rights reserved."
     }
 };
 
