@@ -132,10 +132,13 @@ const LoginPage = () => {
         setError(null);
         setLoading(true);
 
-        setForm({ email: "demo@redcheck.com", password: "demo1234" });
+        // Seleccionamos el correo de la demo en función del idioma
+        const demoEmail = language === 'en' ? "demo-en@redcheck.com" : "demo-es@redcheck.com";
+
+        setForm({ email: demoEmail, password: "demo1234" });
 
         try {
-            const response = await login({ email: "demo@redcheck.com", password: "demo1234" });
+            const response = await login({ email: demoEmail, password: "demo1234" });
             localStorage.setItem("token", response.token); 
             navigate("/dashboard");
         } catch(err) {
