@@ -17,9 +17,87 @@ import { dailyAnalysis, pollForAnalysis } from "../api/smartCheckApi";
 import { PageTransition } from "../components/PageTransition";
 import { AgendaView } from "../components/AgendaView";
 import { TrashView } from "../components/TrashView";
+import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
+
+// --- Diccionario de traducciones para el Dashboard ---
+const translations = {
+    es: {
+        alertAiAnalyzing: "🧠 SmartCheck está analizando tus tareas. Te avisaremos cuando esté listo (Suele tardar unos 15-20 segundos).",
+        alertAiTimeout: "SmartCheck tardó demasiado en responder. Inténtalo de nuevo.",
+        alertAiError: "Error al obtener el análisis.",
+        alertRecurringCreated: "Tarea recurrente creada. Aparecerá según su periodicidad a partir de mañana.",
+        errCreateTask: "Error al crear la tarea",
+        errGeneric: "Error",
+        errTrash: "No se pudo enviar la asignatura a la papelera.",
+        errArchive: "No se pudo cambiar el estado de la asignatura.",
+        confirmDeleteAccount: "¿Estás seguro de que quieres borrar tu cuenta permanentemente? Esta acción no se puede deshacer.",
+        errDeleteAccount: "Hubo un problema al intentar borrar la cuenta. Inténtalo de nuevo.",
+        errLoadData: "Error al cargar los datos",
+        errCreateSubject: "No se pudo crear la asignatura. Inténtalo de nuevo.",
+        greetingMorning: "Buenos días,",
+        greetingAfternoon: "Buenas tardes,",
+        greetingNight: "Buenas noches,",
+        noPendingTasks: "¡No tienes tareas pendientes hoy!",
+        hideAgendaTitle: "Ocultar agenda (Modo Foco)",
+        showAgendaTitle: "Mostrar agenda",
+        focusMode: "Modo Foco",
+        viewCalendar: "Ver Calendario",
+        addNewSubject: "Añadir nueva asignatura",
+        newSubjectTitle: "Nueva asignatura",
+        newSubjectDesc: "Añade una nueva materia para organizar tus tareas.",
+        formName: "Nombre",
+        formDesc: "Descripción",
+        formOptional: "(opcional)",
+        btnCancel: "Cancelar",
+        btnSaveSubject: "Guardar asignatura",
+        perfTitle: "Tu rendimiento",
+        perfSubtitle: "Historial de constancia",
+        focusActiveTitle: "Modo Foco Activo",
+        focusActiveDesc: "El calendario principal está oculto. Concéntrate en completar tus tareas de hoy para mantener tu racha de progreso en verde.",
+        loadingSpace: "Cargando tu espacio..."
+    },
+    en: {
+        alertAiAnalyzing: "🧠 SmartCheck is analyzing your tasks. We'll notify you when it's ready (Usually takes 15-20 seconds).",
+        alertAiTimeout: "SmartCheck took too long to respond. Please try again.",
+        alertAiError: "Error fetching analysis.",
+        alertRecurringCreated: "Recurring task created. It will appear according to its periodicity starting tomorrow.",
+        errCreateTask: "Error creating task",
+        errGeneric: "Error",
+        errTrash: "Could not send the subject to the trash.",
+        errArchive: "Could not change the subject's status.",
+        confirmDeleteAccount: "Are you sure you want to permanently delete your account? This action cannot be undone.",
+        errDeleteAccount: "There was a problem trying to delete the account. Please try again.",
+        errLoadData: "Error loading data",
+        errCreateSubject: "Could not create the subject. Please try again.",
+        greetingMorning: "Good morning,",
+        greetingAfternoon: "Good afternoon,",
+        greetingNight: "Good evening,",
+        noPendingTasks: "You have no pending tasks today!",
+        hideAgendaTitle: "Hide agenda (Focus Mode)",
+        showAgendaTitle: "Show agenda",
+        focusMode: "Focus Mode",
+        viewCalendar: "View Calendar",
+        addNewSubject: "Add new subject",
+        newSubjectTitle: "New subject",
+        newSubjectDesc: "Add a new subject to organize your tasks.",
+        formName: "Name",
+        formDesc: "Description",
+        formOptional: "(optional)",
+        btnCancel: "Cancel",
+        btnSaveSubject: "Save subject",
+        perfTitle: "Your performance",
+        perfSubtitle: "Consistency history",
+        focusActiveTitle: "Focus Mode Active",
+        focusActiveDesc: "The main calendar is hidden. Focus on completing your tasks today to keep your progress streak green.",
+        loadingSpace: "Loading your space..."
+    }
+};
 
 const DashboardPage = () => {
     const navigate = useNavigate();
+    const { language } = useLanguage();
+    const t = translations[language as keyof typeof translations];
+
     const [subjects, setSubjects] = useState<SubjectWithTasks[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -57,9 +135,9 @@ const DashboardPage = () => {
     
     const handleGenerateAiPlan = async () => {
         setIsAiLoading(true);
-        alert("🧠 SmartCheck está analizando tus tareas. Te avisaremos cuando esté listo (Suele tardar unos 15-20 segundos).");
+        alert(t.alertAiAnalyzing);
         try {
-            await dailyAnalysis();
+            await dailyAnalysis(language);
         } catch (error) {
             console.warn("dailyAnalysis() lanzó error, pero continuamos el polling:", error);
         }
@@ -71,10 +149,10 @@ const DashboardPage = () => {
             })
             .catch((err) => {
                 if (err?.message === "TIMEOUT") {
-                    alert("SmartCheck tardó demasiado en responder. Inténtalo de nuevo.");
+                    alert(t.alertAiTimeout);
                 } else {
                     console.error("Error en polling:", err);
-                    alert("Error al obtener el análisis.");
+                    alert(t.alertAiError);
                 }
             })
             .finally(() => {
@@ -118,7 +196,7 @@ const DashboardPage = () => {
                     description: newTask.description,
                     periodicidad: newTask.recurrence
                 });
-                alert("Tarea recurrente creada. Aparecerá según su periodicidad a partir de mañana.");
+                alert(t.alertRecurringCreated);
                 
                 setOpenFormSubjectId(null);
                 setTimeout(() => {
@@ -126,7 +204,7 @@ const DashboardPage = () => {
                 }, 500);
             }
         } catch(err) { 
-            setError("Error al crear la tarea"); 
+            setError(t.errCreateTask); 
         }
     };
 
@@ -138,7 +216,7 @@ const DashboardPage = () => {
             setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: subject.tasks.map(task => task.id !== taskId ? task : response) }));
             setOpenFormSubjectIdTaskId(null);
             setUpdatedTask({title: "", description: "", deadline: ""});
-        } catch(err) { setError("Error"); }
+        } catch(err) { setError(t.errGeneric); }
     };
 
     const handleDeleteTask = async (subjectId: number, taskId: number) => {
@@ -172,7 +250,7 @@ const DashboardPage = () => {
             
         } catch(err) { 
             console.error("Error al enviar a la papelera:", err);
-            setError("No se pudo enviar la asignatura a la papelera."); 
+            setError(t.errTrash); 
             setDeletingSubjects(prev => prev.filter(id => id !== subjectId));
         } 
     };
@@ -185,7 +263,7 @@ const DashboardPage = () => {
             setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, ...response, tasks: subject.tasks }));
             setOpenFormUpdateSubject(null);
             setUpdatedSubject({ name: "", description: "" });
-        } catch (err) { setError("Error"); }
+        } catch (err) { setError(t.errGeneric); }
     };
 
     const handleArchiveSubject = async (subjectId: number) => {
@@ -200,30 +278,32 @@ const DashboardPage = () => {
             ));
         } catch (err) { 
             console.error("Error al archivar/desarchivar:", err);
-            alert("No se pudo cambiar el estado de la asignatura.");
+            alert(t.errArchive);
         }
     };
 
     const handleDeleteAccount = async () => {
-        if (window.confirm("¿Estás seguro de que quieres borrar tu cuenta permanentemente? Esta acción no se puede deshacer.")) {
+        if (window.confirm(t.confirmDeleteAccount)) {
             try {
                 await deleteUser(); 
                 localStorage.removeItem("token");
                 navigate("/login");
             } catch (err) {
-                alert("Hubo un problema al intentar borrar la cuenta. Inténtalo de nuevo.");
+                alert(t.errDeleteAccount);
             }
         }
     };
 
+    // Modificado para usar los saludos traducidos
     const getGreeting = (username: string): string => {
         const hour = new Date().getHours();
-        if (hour >= 6 && hour < 12) return `Buenos días, ${username}`;
-        if (hour >= 12 && hour < 21) return `Buenas tardes, ${username}`;
-        return `Buenas noches, ${username}`;
+        if (hour >= 6 && hour < 12) return `${t.greetingMorning} ${username}`;
+        if (hour >= 12 && hour < 21) return `${t.greetingAfternoon} ${username}`;
+        return `${t.greetingNight} ${username}`;
     };
 
-    const today = new Date().toLocaleDateString("es-ES", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+    // Modificado para adaptar la fecha al idioma
+    const today = new Date().toLocaleDateString(language === 'es' ? "es-ES" : "en-US", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
 
     const refreshData = async () => {
         try {
@@ -248,7 +328,7 @@ const DashboardPage = () => {
                 setUserEmail(profile.email);
                 await refreshData(); 
             } catch (err) {
-                setError("Error al cargar los datos");
+                setError(t.errLoadData);
             } finally { 
                 setLoading(false); 
             }
@@ -324,7 +404,7 @@ const DashboardPage = () => {
             
         } catch(err) { 
             console.error("Error al crear asignatura:", err);
-            setError("No se pudo crear la asignatura. Inténtalo de nuevo."); 
+            setError(t.errCreateSubject); 
         } 
     };
 
@@ -339,7 +419,7 @@ const DashboardPage = () => {
                         <Check size={40} strokeWidth={4} className="text-white" />
                     </div>
                     <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mt-1">
-                        Cargando tu espacio...
+                        {t.loadingSpace}
                     </span>
                 </div>
             </div>
@@ -410,7 +490,7 @@ const DashboardPage = () => {
                                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
                                             {totalPending === 0 ? (
                                                 <>
-                                                    ¡No tienes tareas pendientes hoy! <Coffee size={16} />
+                                                    {t.noPendingTasks} <Coffee size={16} />
                                                 </>
                                             ) : (
                                                 <span>&nbsp;</span>
@@ -425,11 +505,11 @@ const DashboardPage = () => {
                                                 ? "bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700" 
                                                 : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 shadow-sm"
                                         }`}
-                                        title={showCalendar ? "Ocultar agenda (Modo Foco)" : "Mostrar agenda"}
+                                        title={showCalendar ? t.hideAgendaTitle : t.showAgendaTitle}
                                     >
                                         {showCalendar ? <Focus size={18} strokeWidth={2.5} /> : <LayoutGrid size={18} strokeWidth={2.5} />}
                                         <span className="hidden xl:inline">
-                                            {showCalendar ? "Modo Foco" : "Ver Calendario"}
+                                            {showCalendar ? t.focusMode : t.viewCalendar}
                                         </span>
                                     </button>
                                 </div>
@@ -485,7 +565,7 @@ const DashboardPage = () => {
                                         onClick={() => { setOpenFormNewSubject(true); }}
                                     >
                                         <Plus size={18} className="transition-transform group-hover:scale-110" />
-                                        <span>Añadir nueva asignatura</span>
+                                        <span>{t.addNewSubject}</span>
                                     </button>
 
                                     {/* Contenedor animado del formulario de Nueva Asignatura */}
@@ -498,13 +578,13 @@ const DashboardPage = () => {
                                     >
                                         <form onSubmit={handleSubmitSubject} className="flex flex-col gap-4 p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] dark:shadow-none transition-colors duration-300">
                                             <div>
-                                                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">Nueva asignatura</h3>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Añade una nueva materia para organizar tus tareas.</p>
+                                                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t.newSubjectTitle}</h3>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t.newSubjectDesc}</p>
                                             </div>
 
                                             <div className="flex flex-col gap-3">
                                                 <div className="flex flex-col">
-                                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Nombre</label>
+                                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.formName}</label>
                                                     <input 
                                                         type="text" 
                                                         name="name" 
@@ -516,7 +596,7 @@ const DashboardPage = () => {
                                                 </div>
                                                 
                                                 <div className="flex flex-col">
-                                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Descripción <span className="text-gray-400 dark:text-gray-500 font-normal lowercase">(opcional)</span></label>
+                                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.formDesc} <span className="text-gray-400 dark:text-gray-500 font-normal lowercase">{t.formOptional}</span></label>
                                                     <input 
                                                         type="text" 
                                                         name="description" 
@@ -535,14 +615,14 @@ const DashboardPage = () => {
                                                     onClick={() => { setOpenFormNewSubject(false) }} 
                                                     className="px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200"
                                                 >
-                                                    Cancelar
+                                                    {t.btnCancel}
                                                 </button>
                                                 <button 
                                                     type="submit" 
                                                     disabled={loading} 
                                                     className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
                                                 >
-                                                    Guardar asignatura
+                                                    {t.btnSaveSubject}
                                                 </button>
                                             </div>
                                         </form>
@@ -576,8 +656,8 @@ const DashboardPage = () => {
                                         <LayoutGrid size={20} />
                                     </div>
                                     <div>
-                                        <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">Tu rendimiento</h3>
-                                        <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">Historial de constancia</p>
+                                        <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">{t.perfTitle}</h3>
+                                        <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">{t.perfSubtitle}</p>
                                     </div>
                                 </div>
                                 
@@ -589,10 +669,10 @@ const DashboardPage = () => {
                                 <div className="mt-8 p-5 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-2xl border border-green-100/50 dark:border-green-900/50 shadow-sm shrink-0 transition-colors duration-500">
                                     <h4 className="text-green-800 dark:text-green-400 font-bold text-sm mb-2 flex items-center gap-2">
                                         <Check size={16} /> 
-                                        Modo Foco Activo
+                                        {t.focusActiveTitle}
                                     </h4>
                                     <p className="text-[13px] text-green-700/80 dark:text-green-500/80 font-medium leading-relaxed">
-                                        El calendario principal está oculto. Concéntrate en completar tus tareas de hoy para mantener tu racha de progreso en verde.
+                                        {t.focusActiveDesc}
                                     </p>
                                 </div>
                             </div>

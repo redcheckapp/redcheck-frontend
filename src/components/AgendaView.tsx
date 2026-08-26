@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Clock, CheckCircle2 } from "lucide-react";
 import { getProgressHeatmap } from "../api/progressRecordApi";
 import type { ProgressRecord, SubjectWithTasks } from "../types";
+import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
 
 type ViewMode = "day" | "week" | "month";
 
@@ -9,7 +10,42 @@ interface AgendaViewProps {
     subjects?: SubjectWithTasks[]; 
 }
 
+// --- Diccionario de traducciones para AgendaView ---
+const translations = {
+    es: {
+        btnToday: "Hoy",
+        btnDay: "Día",
+        btnWeek: "Semana",
+        btnMonth: "Mes",
+        loadingHistory: "Cargando historial...",
+        lblTasks: "Tareas",
+        lblViewTasks: "Ver tareas",
+        lblAllDay: "Todo el día",
+        dayOffTitle: "¡Día libre!",
+        dayOffDesc: "No hay tareas programadas para este día.",
+        weekDays: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
+        months: ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+    },
+    en: {
+        btnToday: "Today",
+        btnDay: "Day",
+        btnWeek: "Week",
+        btnMonth: "Month",
+        loadingHistory: "Loading history...",
+        lblTasks: "Tasks",
+        lblViewTasks: "View tasks",
+        lblAllDay: "All day",
+        dayOffTitle: "Day off!",
+        dayOffDesc: "No tasks scheduled for this day.",
+        weekDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    }
+};
+
 export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
+    const { language } = useLanguage();
+    const t = translations[language as keyof typeof translations];
+
     const [view, setView] = useState<ViewMode>("month");
     
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -97,22 +133,19 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
         return (dayNumber > 0 && dayNumber <= daysInMonth) ? dayNumber : null;
     });
 
-    const weekDaysNames = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-    const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-
     let headerTitle = "";
     if (view === "month") {
-        headerTitle = `${monthNames[currentMonth]} ${currentYear}`;
+        headerTitle = `${t.months[currentMonth]} ${currentYear}`;
     } else if (view === "week") {
         const first = currentWeekDays[0];
         const last = currentWeekDays[6];
         if (first.getMonth() === last.getMonth()) {
-            headerTitle = `${first.getDate()} - ${last.getDate()} ${monthNames[first.getMonth()]} ${first.getFullYear()}`;
+            headerTitle = `${first.getDate()} - ${last.getDate()} ${t.months[first.getMonth()]} ${first.getFullYear()}`;
         } else {
-            headerTitle = `${first.getDate()} ${monthNames[first.getMonth()].substring(0,3)} - ${last.getDate()} ${monthNames[last.getMonth()].substring(0,3)} ${last.getFullYear()}`;
+            headerTitle = `${first.getDate()} ${t.months[first.getMonth()].substring(0,3)} - ${last.getDate()} ${t.months[last.getMonth()].substring(0,3)} ${last.getFullYear()}`;
         }
     } else {
-        headerTitle = `${currentDate.getDate()} ${monthNames[currentDate.getMonth()]} ${currentYear}`;
+        headerTitle = `${currentDate.getDate()} ${t.months[currentDate.getMonth()]} ${currentYear}`;
     }
 
     const getSquareColor = (dateString: string) => {
@@ -142,7 +175,7 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                             <ChevronLeft size={20} />
                         </button>
                         <button onClick={() => setCurrentDate(new Date())} className="px-3 py-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors">
-                            Hoy
+                            {t.btnToday}
                         </button>
                         <button onClick={handleNext} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md text-gray-500 dark:text-gray-400 transition-colors">
                             <ChevronRight size={20} />
@@ -151,9 +184,9 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                 </div>
 
                 <div className="flex bg-white dark:bg-gray-900 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300">
-                    <button onClick={() => setView("day")} className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${view === "day" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>Día</button>
-                    <button onClick={() => setView("week")} className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${view === "week" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>Semana</button>
-                    <button onClick={() => setView("month")} className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${view === "month" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>Mes</button>
+                    <button onClick={() => setView("day")} className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${view === "day" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>{t.btnDay}</button>
+                    <button onClick={() => setView("week")} className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${view === "week" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>{t.btnWeek}</button>
+                    <button onClick={() => setView("month")} className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${view === "month" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>{t.btnMonth}</button>
                 </div>
             </div>
 
@@ -162,7 +195,7 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                 
                 {loadingRecords && (
                     <div className="absolute inset-0 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center transition-colors duration-300">
-                        <span className="text-gray-500 dark:text-gray-400 font-bold animate-pulse">Cargando historial...</span>
+                        <span className="text-gray-500 dark:text-gray-400 font-bold animate-pulse">{t.loadingHistory}</span>
                     </div>
                 )}
 
@@ -170,7 +203,7 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                 {view === "month" && (
                     <>
                         <div className="grid grid-cols-7 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 shrink-0 transition-colors duration-300">
-                            {weekDaysNames.map(day => (
+                            {t.weekDays.map(day => (
                                 <div key={day} className="py-3 text-center text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{day.substring(0,3)}</div>
                             ))}
                         </div>
@@ -201,7 +234,7 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                         {record && record.totalTasks > 0 && (
                                             <div className="flex-1 flex flex-col gap-1 overflow-y-auto no-scrollbar">
                                                 <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-black/5 dark:border-white/10 text-gray-700 dark:text-gray-300 text-[10px] font-bold px-1.5 py-1 rounded truncate shadow-sm flex items-center justify-between transition-colors duration-300">
-                                                    <span>Tareas</span>
+                                                    <span>{t.lblTasks}</span>
                                                     <span className={record.completionRate === 1 ? "text-green-600 dark:text-green-400" : ""}>{record.completedTasks}/{record.totalTasks}</span>
                                                 </div>
                                             </div>
@@ -222,7 +255,7 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                 return (
                                     <div key={i} className={`py-4 flex flex-col items-center justify-center gap-1 border-r border-gray-100 dark:border-gray-800 last:border-0 transition-colors duration-300 ${isToday ? "bg-red-50/50 dark:bg-red-900/20" : ""}`}>
                                         <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${isToday ? "text-red-500 dark:text-red-400" : "text-gray-400 dark:text-gray-500"}`}>
-                                            {weekDaysNames[i].substring(0,3)}
+                                            {t.weekDays[i].substring(0,3)}
                                         </span>
                                         <span className={`w-8 h-8 flex items-center justify-center rounded-full text-xl font-black transition-colors duration-300 ${isToday ? "bg-red-600 text-white shadow-sm mt-0.5" : "text-gray-800 dark:text-gray-200"}`}>
                                             {date.getDate()}
@@ -244,7 +277,7 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                 return (
                                     <div key={i} className={`${bgColorClass} p-3 transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/50`}>
                                         <div className="w-full h-full border-2 border-dashed border-gray-200/50 dark:border-gray-700/50 rounded-xl flex items-center justify-center transition-colors duration-300">
-                                            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium opacity-0 hover:opacity-100 transition-opacity">Ver tareas</span>
+                                            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium opacity-0 hover:opacity-100 transition-opacity">{t.lblViewTasks}</span>
                                         </div>
                                     </div>
                                 );
@@ -281,8 +314,8 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                 {tasksForCurrentDay.length === 0 ? (
                                     <div className="mt-10 p-6 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center text-center bg-white/50 dark:bg-gray-800/50 transition-colors duration-300">
                                         <CheckCircle2 size={32} className="text-gray-300 dark:text-gray-600 mb-2 transition-colors duration-300" />
-                                        <h3 className="text-gray-500 dark:text-gray-400 font-bold transition-colors duration-300">¡Día libre!</h3>
-                                        <p className="text-sm text-gray-400 dark:text-gray-500 transition-colors duration-300">No hay tareas programadas para este día.</p>
+                                        <h3 className="text-gray-500 dark:text-gray-400 font-bold transition-colors duration-300">{t.dayOffTitle}</h3>
+                                        <p className="text-sm text-gray-400 dark:text-gray-500 transition-colors duration-300">{t.dayOffDesc}</p>
                                     </div>
                                 ) : (
                                     tasksForCurrentDay.map(task => {
@@ -290,7 +323,7 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                         const hasTime = tDate.getHours() !== 0 || tDate.getMinutes() !== 0;
                                         const timeString = hasTime 
                                             ? tDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-                                            : "Todo el día";
+                                            : t.lblAllDay;
 
                                         return (
                                             <div 

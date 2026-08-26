@@ -5,8 +5,9 @@ export const getTodaysAnalysis = async (): Promise<string> => {
     return response.data;
 }
 
-export const dailyAnalysis = async (): Promise<string> => {
-    const response = await api.post("ai/analyze");
+// Añadimos el parámetro lang (con 'es' por defecto por seguridad)
+export const dailyAnalysis = async (lang: string = 'es'): Promise<string> => {
+    const response = await api.post(`/ai/analyze?lang=${lang}`);
     return response.data;
 }
 

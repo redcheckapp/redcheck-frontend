@@ -1,6 +1,7 @@
 import { AlertCircle, Check, Pencil, X } from "lucide-react";
 import type { SubjectWithTasks } from "../types";
 import { AnimatedVisibility } from "./AnimatedVisibility";
+import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
 
 interface OverdueSectionProps {
     subjects: SubjectWithTasks[];
@@ -16,6 +17,36 @@ interface OverdueSectionProps {
     deletingTasks: number[];
 }
 
+// --- Diccionario de traducciones para OverdueSection ---
+const translations = {
+    es: {
+        title: "Fuera de plazo",
+        expiredOn: "Caducó el",
+        noDeadline: "Sin fecha límite",
+        editTooltip: "Editar tarea atrasada",
+        deleteTooltip: "Eliminar tarea atrasada",
+        editFormTitle: "Editar tarea atrasada",
+        taskTitleLabel: "Título de la tarea",
+        descLabel: "Descripción",
+        deadlineLabel: "Fecha límite",
+        btnCancel: "Cancelar",
+        btnSave: "Guardar cambios"
+    },
+    en: {
+        title: "Overdue",
+        expiredOn: "Expired on",
+        noDeadline: "No deadline",
+        editTooltip: "Edit overdue task",
+        deleteTooltip: "Delete overdue task",
+        editFormTitle: "Edit overdue task",
+        taskTitleLabel: "Task title",
+        descLabel: "Description",
+        deadlineLabel: "Deadline",
+        btnCancel: "Cancel",
+        btnSave: "Save changes"
+    }
+};
+
 export const OverdueSection = ({
     subjects, 
     totalPendingOverdue, 
@@ -30,6 +61,9 @@ export const OverdueSection = ({
     deletingTasks
 }: OverdueSectionProps) => {
 
+    const { language } = useLanguage();
+    const t = translations[language as keyof typeof translations];
+
     const hasAnyOverdue = subjects.some(subject => 
         !subject.archived && subject.tasks.some(task => task.overdue)
     );
@@ -41,7 +75,7 @@ export const OverdueSection = ({
         <div className="mb-6 mt-8 border-t border-gray-100 dark:border-gray-800 pt-4 transition-colors duration-300">
             <div className="flex items-center gap-2 mb-6">
                 <AlertCircle size={20} className="text-red-500 dark:text-red-400" />
-                <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 transition-colors duration-300">Fuera de plazo</h2>
+                <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 transition-colors duration-300">{t.title}</h2>
                 {/* The red bubble only shows the number of PENDING ones */}
                 {totalPendingOverdue > 0 && (
                     <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold px-2.5 py-0.5 rounded-full transition-colors duration-300">
@@ -109,7 +143,7 @@ export const OverdueSection = ({
                                                         <p className={`text-xs mt-0.5 font-medium transition-all ${
                                                             task.completed ? "text-gray-400 dark:text-gray-600" : "text-red-500 dark:text-red-400"
                                                         }`}>
-                                                            {task.deadline ? `Caducó el ${new Date(task.deadline).toLocaleString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}` : "Sin fecha límite"}
+                                                            {task.deadline ? `${t.expiredOn} ${new Date(task.deadline).toLocaleString(language === 'es' ? "es-ES" : "en-US", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}` : t.noDeadline}
                                                         </p>
                                                     </div>
 
@@ -128,7 +162,7 @@ export const OverdueSection = ({
                                                                 }
                                                                 setUpdatedTask({ title: task.title, description: task.description || "", deadline: formattedDate });
                                                             }}
-                                                            title="Editar tarea atrasada"
+                                                            title={t.editTooltip}
                                                         >
                                                             <Pencil size={16} />
                                                         </button>
@@ -136,7 +170,7 @@ export const OverdueSection = ({
                                                             type="button" 
                                                             className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors duration-200" 
                                                             onClick={() => { handleDeleteTask(subject.id, task.id); }}
-                                                            title="Eliminar tarea atrasada"
+                                                            title={t.deleteTooltip}
                                                         >
                                                             <X size={16} />
                                                         </button>
@@ -149,11 +183,11 @@ export const OverdueSection = ({
                                                         onSubmit={(e) => handleUpdateTask(e, subject.id, task.id)}
                                                         className="flex flex-col gap-4 mt-2 mb-4 ml-10 p-5 bg-white dark:bg-gray-900 border border-red-100 dark:border-gray-800 rounded-2xl shadow-sm dark:shadow-none transition-colors duration-300"
                                                     >
-                                                        <h3 className="text-sm font-bold text-red-800 dark:text-red-400 border-b border-red-50 dark:border-gray-800 pb-2 transition-colors duration-300">Editar tarea atrasada</h3>
+                                                        <h3 className="text-sm font-bold text-red-800 dark:text-red-400 border-b border-red-50 dark:border-gray-800 pb-2 transition-colors duration-300">{t.editFormTitle}</h3>
 
                                                         <div className="flex flex-col gap-3">
                                                             <div className="flex flex-col gap-1.5">
-                                                                <label className="text-xs font-bold text-red-400 uppercase tracking-wider">Título de la tarea</label>
+                                                                <label className="text-xs font-bold text-red-400 uppercase tracking-wider">{t.taskTitleLabel}</label>
                                                                 <input 
                                                                     type="text" name="title" 
                                                                     value={updatedTask.title} onChange={handleChangeUpdateTask}
@@ -164,7 +198,7 @@ export const OverdueSection = ({
                                                             
                                                             <div className="flex flex-col sm:flex-row gap-3">
                                                                 <div className="flex-1 flex flex-col gap-1.5">
-                                                                    <label className="text-xs font-bold text-red-400 uppercase tracking-wider">Descripción</label>
+                                                                    <label className="text-xs font-bold text-red-400 uppercase tracking-wider">{t.descLabel}</label>
                                                                     <input 
                                                                         type="text" name="description" 
                                                                         value={updatedTask.description} onChange={handleChangeUpdateTask}
@@ -173,7 +207,7 @@ export const OverdueSection = ({
                                                                 </div>
 
                                                                 <div className="flex-1 flex flex-col gap-1.5">
-                                                                    <label className="text-xs font-bold text-red-400 uppercase tracking-wider">Fecha límite</label>
+                                                                    <label className="text-xs font-bold text-red-400 uppercase tracking-wider">{t.deadlineLabel}</label>
                                                                     <input 
                                                                         type="datetime-local" name="deadline" 
                                                                         value={updatedTask.deadline} onChange={handleChangeUpdateTask}
@@ -189,13 +223,13 @@ export const OverdueSection = ({
                                                                 onClick={() => setOpenFormSubjectIdTaskId(null)} 
                                                                 className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all"
                                                             >
-                                                                Cancelar
+                                                                {t.btnCancel}
                                                             </button>
                                                             <button 
                                                                 type="submit" 
                                                                 className="px-5 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50"
                                                             >
-                                                                Guardar cambios
+                                                                {t.btnSave}
                                                             </button>
                                                         </div>
                                                     </form>

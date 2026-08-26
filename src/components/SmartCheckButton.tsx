@@ -1,5 +1,6 @@
 import React from "react";
 import { Loader2 } from "lucide-react"; // Importamos el spinner de tu librería
+import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
 
 interface SmartCheckCardProps {
   icon: React.ReactNode;
@@ -10,7 +11,22 @@ interface SmartCheckCardProps {
   isLoading?: boolean; // Añadimos la propiedad de carga
 }
 
+// --- Diccionario de traducciones para el SmartCheckButton ---
+const translations = {
+    es: {
+        analyzing: "Analizando tareas...",
+        comingSoon: "Próximamente"
+    },
+    en: {
+        analyzing: "Analyzing tasks...",
+        comingSoon: "Coming soon"
+    }
+};
+
 export const SmartCheckButton = ({ icon, title, subtitle, onClick, comingSoon, isLoading }: SmartCheckCardProps) => {
+  const { language } = useLanguage();
+  const t = translations[language as keyof typeof translations];
+
   return (
     <button 
       onClick={comingSoon || isLoading ? undefined : onClick}
@@ -34,7 +50,7 @@ export const SmartCheckButton = ({ icon, title, subtitle, onClick, comingSoon, i
 
       {/* 2. Título (cambia limpiamente cuando carga) */}
       <h3 className="font-semibold text-zinc-900 dark:text-gray-100 text-sm m-0 mb-1 transition-colors duration-300">
-        {isLoading ? "Analizando tareas..." : title}
+        {isLoading ? t.analyzing : title}
       </h3>
 
       {/* 3. Subtítulo (se oculta al cargar para dar un aspecto más minimalista) */}
@@ -47,7 +63,7 @@ export const SmartCheckButton = ({ icon, title, subtitle, onClick, comingSoon, i
       {/* 4. Etiqueta Próximamente */}
       {comingSoon && (
         <span className="mt-2 px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 text-[10px] leading-none font-bold rounded-md transition-colors duration-300">
-          Próximamente
+          {t.comingSoon}
         </span>
       )}
     </button>
