@@ -2,7 +2,7 @@ import { createPortal } from "react-dom";
 import { X, ArchiveRestore, Trash2, Moon, Sun, Globe } from "lucide-react";
 import type { SubjectWithTasks } from "../types";
 import { useTheme } from "../context/ThemeContext"; 
-import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
+import { useLanguage } from "../context/LanguageContext";
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -157,7 +157,7 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
                     <div className="flex flex-col gap-3 pt-4 border-t border-gray-100 dark:border-gray-800 transition-colors">
                         <h3 className="text-sm font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">{t.dangerZone}</h3>
                         
-                        {userEmail === 'demo@redcheck.com' ? (
+                        {userEmail === 'demo-es@redcheck.com' || userEmail === 'demo-en@redcheck.com' ? (
                             <>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">
                                     {t.demoWarning}
