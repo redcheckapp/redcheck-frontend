@@ -25,7 +25,7 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/redcheck-frontend:latest
           # Variable injection for Vite pointing to the API
           build-args: |
-            VITE_API_URL=https://redcheck.es
+            VITE_API_URL=https://my.redcheckapp.com
 
   deploy:
     needs: build-and-push
