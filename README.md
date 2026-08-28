@@ -103,7 +103,9 @@ docker-compose up -d --build
 
 ## Demo Environment
 
-To facilitate technical reviews by recruiters and other developers, the login screen includes a Demo Button. This feature injects test credentials (```demo@redcheck.com```) and performs automatic authentication, allowing instant access to the application without manual registration.
+To facilitate technical reviews by recruiters and other developers, the login screen features a one-click Demo access. Depending on the selected interface language, the system automatically injects the corresponding test credentials (`demo-en@redcheck.com` or `demo-es@redcheck.com`) and performs instant authentication. This allows seamless exploration of the application without requiring manual registration. 
+
+*Note: For consistency and security, all data within the demo environments is automatically wiped and reset to its initial state every hour.*
 
 ## Architecture Highlights
 
@@ -112,3 +114,6 @@ The project follows a clean architectural pattern, strictly decoupling business 
 - ```/components```: Reusable and purely visual UI components (modals, transitions, animated visibility). Heavy utilization of ```createPortal``` to manage complex floating elements (like tooltips and dialogs) avoiding ```z-index``` conflicts.
 - ```/api```: Abstraction layer for HTTP requests (Axios/Fetch), fully typed with TypeScript, separating endpoints by domain (Auth, Tasks, Progress, etc.).
 - ```/context```: Lightweight global state management (e.g., ```ThemeContext```).
+
+## Copyright and License
+© 2026 RedCheck. Developed by Francisco Javier Molina Cuenca. All rights reserved.
