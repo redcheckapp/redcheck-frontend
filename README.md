@@ -115,5 +115,35 @@ The project follows a clean architectural pattern, strictly decoupling business 
 - ```/api```: Abstraction layer for HTTP requests (Axios/Fetch), fully typed with TypeScript, separating endpoints by domain (Auth, Tasks, Progress, etc.).
 - ```/context```: Lightweight global state management (e.g., ```ThemeContext```).
 
+```mermaid
+graph TD
+    %% Node Styles
+    classDef client fill:#2d3436,stroke:#636e72,stroke-width:2px,color:#fff;
+    classDef proxy fill:#009639,stroke:#00732c,stroke-width:2px,color:#fff;
+    classDef frontend fill:#61DAFB,stroke:#00b8d4,stroke-width:2px,color:#000,font-weight:bold;
+    classDef backend fill:#6DB33F,stroke:#4a8229,stroke-width:2px,color:#fff;
+
+    Users(("Users<br>Browser / Mobile")):::client
+
+    subgraph Host ["Ubuntu Server"]
+        style Host fill:none,stroke:#636e72,stroke-width:2px,stroke-dasharray: 5 5
+
+        NGINX["NGINX<br>(Web Server & Reverse Proxy)"]:::proxy
+
+        subgraph DockerNet ["Internal Network: redcheck-net"]
+            style DockerNet fill:none,stroke:#0984e3,stroke-width:2px
+            
+            React["SPA Container<br>(React + Vite)"]:::frontend
+            Spring["Backend API Container<br>(Abstracted)"]:::backend
+        end
+    end
+
+    %% Flow
+    Users -- "HTTPS (my.redcheckapp.com)" --> NGINX
+    NGINX -- "Serves Static Assets<br>(index.html, JS, CSS)" --> React
+    React -. "Axios/Fetch API Calls<br>w/ JWT Bearer" .-> NGINX
+    NGINX -- "Reverse Proxy Route<br>(/auth, /tasks, etc.)" --> Spring
+```
+
 ## Copyright and License
 © 2026 RedCheck. Developed by Francisco Javier Molina Cuenca. All rights reserved.
