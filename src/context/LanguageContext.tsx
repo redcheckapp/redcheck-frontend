@@ -1,33 +1,41 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { getSharedCookie, setSharedCookie } from '../utils/cookies';
+
+type Language = "es" | "en";
 
 type LanguageContextType = {
-    language: string;
+    language: Language;
     toggleLanguage: () => void;
 };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [language, setLanguage] = useState<string>("es");
+    const [language, setLanguage] = useState<Language>(() => {
+        // 1. Prioridad máxima: Cookie compartida
+        const cookieLang = getSharedCookie('rc_lang');
+        if (cookieLang === 'es' || cookieLang === 'en') return cookieLang as Language;
+        
+        // 2. Prioridad media: LocalStorage (por retrocompatibilidad)
+        const savedLang = localStorage.getItem('language');
+        if (savedLang === 'es' || savedLang === 'en') return savedLang as Language;
+        
+        // 3. Prioridad baja: Idioma del navegador
+        if (typeof navigator !== 'undefined' && navigator.language.startsWith('en')) {
+            return 'en';
+        }
+        
+        return 'es';
+    });
 
     useEffect(() => {
-        // Cargar el idioma guardado o usar español por defecto
-        const savedLang = localStorage.getItem("language");
-        if (savedLang) {
-            setLanguage(savedLang);
-        } else {
-            // Opcional: Detectar idioma del navegador
-            const browserLang = navigator.language.startsWith("en") ? "en" : "es";
-            setLanguage(browserLang);
-        }
-    }, []);
+        // Persistir en ambos mecanismos simultáneamente
+        localStorage.setItem('language', language);
+        setSharedCookie('rc_lang', language);
+    }, [language]);
 
     const toggleLanguage = () => {
-        setLanguage((prevLang) => {
-            const newLang = prevLang === "es" ? "en" : "es";
-            localStorage.setItem("language", newLang);
-            return newLang;
-        });
+        setLanguage((prevLang) => (prevLang === "es" ? "en" : "es"));
     };
 
     return (
