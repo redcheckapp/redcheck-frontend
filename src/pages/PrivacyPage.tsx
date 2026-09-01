@@ -151,6 +151,11 @@ const PrivacyPage = () => {
                                                 <li><strong>Supresión (Derecho al olvido):</strong> RedCheck incorpora una opción directa en la pestaña "Ajustes" que permite al usuario eliminar su cuenta y todo su historial de progreso de manera inmediata y autónoma, sin necesidad de intervención de un administrador.</li>
                                             </ul>
                                         </section>
+
+                                        <section>
+                                            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3 transition-colors duration-300">6. Uso de Cookies</h2>
+                                            <p>RedCheck utiliza cookies técnicas propias (rc_theme, rc_lang) que son estrictamente necesarias para recordar las preferencias de interfaz del usuario (modo de color e idioma) a través del ecosistema de la aplicación. Estas cookies no recopilan datos personales ni se utilizan para seguimiento analítico o publicitario.</p>
+                                        </section>
                                     </>
                                 )}
 
@@ -188,6 +193,11 @@ const PrivacyPage = () => {
                                                 <li><strong>Access, Rectification, and Limitation:</strong> You can view and edit your information and tasks directly from the application's dashboard.</li>
                                                 <li><strong>Deletion (Right to be forgotten):</strong> RedCheck incorporates a direct option in the "Settings" tab that allows the user to delete their account and their entire progress history immediately and autonomously, without the need for administrator intervention.</li>
                                             </ul>
+                                        </section>
+
+                                        <section>
+                                            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3 transition-colors duration-300">6. Use of Cookies</h2>
+                                            <p>RedCheck uses its own technical cookies (rc_theme, rc_lang) that are strictly necessary to remember the user's interface preferences (color mode and language) across the application ecosystem. These cookies do not collect personal data nor are they used for analytical or advertising tracking.</p>
                                         </section>
                                     </>
                                 )}
