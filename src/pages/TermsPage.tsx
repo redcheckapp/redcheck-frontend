@@ -1,36 +1,8 @@
-import { useState, useEffect, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Sun, Moon } from "lucide-react";
-import Particles, { initParticlesEngine } from "@tsparticles/react";
-import { loadSlim } from "@tsparticles/slim";
 import { PageTransition } from "../components/PageTransition";
 import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
-
-const BackgroundParticles = memo(({ init }: { init: boolean }) => {
-    if (!init) return null;
-
-    return (
-        <Particles
-            id="tsparticles-terms"
-            className="fixed inset-0 z-0"
-            options={{
-                background: { color: { value: "transparent" } },
-                fpsLimit: 120,
-                particles: {
-                    color: { value: "#9ca3af" }, 
-                    links: { color: "#9ca3af", distance: 150, enable: true, opacity: 0.2, width: 1 },
-                    move: { direction: "none", enable: true, outModes: { default: "bounce" }, random: false, speed: 1.0, straight: false },
-                    number: { density: { enable: true, width: 800, height: 800 }, value: 60 },
-                    opacity: { value: 0.3 },
-                    shape: { type: "circle" },
-                    size: { value: { min: 1, max: 2 } },
-                },
-                detectRetina: true,
-            }}
-        />
-    );
-});
 
 // We add the copyright to the dictionary
 const translations = {
@@ -47,15 +19,6 @@ const TermsPage = () => {
     const { theme, toggleTheme } = useTheme();
     const { language, toggleLanguage } = useLanguage();
     const t = translations[language as keyof typeof translations];
-    const [init, setInit] = useState(false);
-
-    useEffect(() => {
-        initParticlesEngine(async (engine) => {
-            await loadSlim(engine);
-        }).then(() => {
-            setInit(true);
-        });
-    }, []);
 
     const handleBack = () => {
         if (window.history.length > 2) {
@@ -68,9 +31,7 @@ const TermsPage = () => {
 
     return (
         <PageTransition>
-            <div className="relative min-h-screen flex flex-col bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500 overflow-y-auto">
-
-                <BackgroundParticles init={init} />
+            <div className="relative min-h-screen flex flex-col overflow-y-auto">
 
                 {/* FLOATING BACK BUTTON */}
                 <button

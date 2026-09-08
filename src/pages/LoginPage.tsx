@@ -1,56 +1,10 @@
-import { useState, useEffect, memo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { login } from "../api/authApi";
 import { Check, ChevronLeft, Sun, Moon } from "lucide-react";
-import Particles, { initParticlesEngine } from "@tsparticles/react";
-import { loadSlim } from "@tsparticles/slim";
 import { PageTransition } from "../components/PageTransition";
 import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext"; // <-- New context
-
-// --- We extract the particles to an immutable component ---
-const BackgroundParticles = memo(({ init }: { init: boolean }) => {
-    if (!init) return null;
-    
-    return (
-        <Particles
-            id="tsparticles"
-            className="absolute inset-0 z-0"
-            options={{
-                background: {
-                    color: { value: "transparent" },
-                },
-                fpsLimit: 120,
-                particles: {
-                    color: { value: "#9ca3af" }, 
-                    links: {
-                        color: "#9ca3af",      
-                        distance: 150,
-                        enable: true,
-                        opacity: 0.2,          
-                        width: 1,
-                    },
-                    move: {
-                        direction: "none",
-                        enable: true,
-                        outModes: { default: "bounce" },
-                        random: false,
-                        speed: 1.0,            
-                        straight: false,
-                    },
-                    number: {
-                        density: { enable: true, width: 800, height: 800 },
-                        value: 60,             
-                    },
-                    opacity: { value: 0.3 },
-                    shape: { type: "circle" },
-                    size: { value: { min: 1, max: 2 } },
-                },
-                detectRetina: true,
-            }}
-        />
-    );
-});
 
 // --- Translation dictionary ---
 const translations = {
@@ -94,18 +48,9 @@ const LoginPage = () => {
     const { language, toggleLanguage } = useLanguage();
     const t = translations[language as keyof typeof translations];
 
-    const [init, setInit] = useState(false);
     const [form, setForm] = useState({ email: "", password: "" });
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        initParticlesEngine(async (engine) => {
-            await loadSlim(engine);
-        }).then(() => {
-            setInit(true);
-        });
-    }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setForm({ ...form, [e.target.name]: e.target.value});
@@ -150,9 +95,7 @@ const LoginPage = () => {
 
     return (
         <PageTransition>
-            <div className="relative min-h-screen flex items-center justify-center bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500 overflow-hidden p-4">
-            
-            <BackgroundParticles init={init} />
+            <div className="relative min-h-screen flex items-center justify-center overflow-hidden p-4">
 
             {/* FLOATING BACK-TO-HOME BUTTON */}
             <a
@@ -261,9 +204,9 @@ const LoginPage = () => {
 
                 <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-8 transition-colors duration-300">
                     {t.noAccount}{" "}
-                    <a href="/register" className="text-red-600 dark:text-red-400 font-semibold hover:text-red-700 dark:hover:text-red-300 hover:underline transition-colors duration-300">
+                    <Link to="/register" className="text-red-600 dark:text-red-400 font-semibold hover:text-red-700 dark:hover:text-red-300 hover:underline transition-colors duration-300">
                         {t.register}
-                    </a>
+                    </Link>
                 </p>
 
                 {/* --- GDPR LEGAL LINKS AND COPYRIGHT --- */}
