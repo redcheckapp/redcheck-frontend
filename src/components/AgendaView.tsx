@@ -21,6 +21,7 @@ const translations = {
         lblTasks: "Tareas",
         lblViewTasks: "Ver tareas",
         lblAllDay: "Todo el día",
+        moreTasks: "más",
         dayOffTitle: "¡Día libre!",
         dayOffDesc: "No hay tareas programadas para este día.",
         weekDays: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
@@ -35,12 +36,36 @@ const translations = {
         lblTasks: "Tasks",
         lblViewTasks: "View tasks",
         lblAllDay: "All day",
+        moreTasks: "more",
         dayOffTitle: "Day off!",
         dayOffDesc: "No tasks scheduled for this day.",
         weekDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
         months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
     }
 };
+
+// Tasks due on a given calendar day, across all subjects — pulled out to
+// module scope (rather than a closure inside the component) so it can be
+// called once per day-of-the-week in Week view without fighting
+// useMemo's exhaustive-deps over a recreated-every-render closure.
+const getTasksForDate = (subjects: SubjectWithTasks[], date: Date) => {
+    return subjects
+        .flatMap(subject =>
+            subject.tasks
+                .filter(task => {
+                    if (!task.deadline) return false;
+                    const taskDate = new Date(task.deadline);
+                    return taskDate.getFullYear() === date.getFullYear() &&
+                           taskDate.getMonth() === date.getMonth() &&
+                           taskDate.getDate() === date.getDate();
+                })
+                .map(task => ({ ...task, subjectName: subject.name }))
+        )
+        .sort((a, b) => (a.completed === b.completed) ? 0 : a.completed ? 1 : -1);
+};
+
+const DAY_VIEW_HOUR_START = 8;
+const DAY_VIEW_HOUR_END = 20;
 
 export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
     const { language } = useLanguage();
@@ -102,23 +127,40 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
         });
     }, [currentDate]);
 
-    const tasksForCurrentDay = useMemo(() => {
-        if (!subjects || subjects.length === 0) return [];
-        
-        return subjects.flatMap(subject => {
-            return subject.tasks
-                .filter(task => {
-                    if (!task.deadline) return false;
-                    const taskDate = new Date(task.deadline);
-                    return taskDate.getFullYear() === currentDate.getFullYear() &&
-                           taskDate.getMonth() === currentDate.getMonth() &&
-                           taskDate.getDate() === currentDate.getDate();
-                })
-                .map(task => ({ ...task, subjectName: subject.name })); 
-        }).sort((a, b) => {
-            return (a.completed === b.completed) ? 0 : a.completed ? 1 : -1; 
-        });
-    }, [subjects, currentDate]);
+    const tasksForCurrentDay = useMemo(
+        () => getTasksForDate(subjects, currentDate),
+        [subjects, currentDate]
+    );
+
+    // One list per day of the visible week, for the Week view's per-day
+    // task chips — same underlying filter as Day view, just run 7 times.
+    const tasksByWeekDay = useMemo(
+        () => currentWeekDays.map(date => getTasksForDate(subjects, date)),
+        [subjects, currentWeekDays]
+    );
+
+    // Buckets currentDate's tasks so Day view can actually place them on
+    // the hourly grid instead of floating an unrelated list over it:
+    // tasks with no time (deadline at midnight) go in an "all day" strip
+    // above the grid, and timed tasks go in their hour's row — clamped to
+    // the visible 8-20 range so a very early/late deadline still shows
+    // (at the nearest edge row) rather than disappearing, with its real
+    // time still shown on the card itself.
+    const { allDayTasks, timedTasksByHour } = useMemo(() => {
+        const allDay: typeof tasksForCurrentDay = [];
+        const byHour: Record<number, typeof tasksForCurrentDay> = {};
+        for (const task of tasksForCurrentDay) {
+            const d = new Date(task.deadline!);
+            const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0;
+            if (!hasTime) {
+                allDay.push(task);
+                continue;
+            }
+            const hour = Math.min(Math.max(d.getHours(), DAY_VIEW_HOUR_START), DAY_VIEW_HOUR_END);
+            (byHour[hour] ??= []).push(task);
+        }
+        return { allDayTasks: allDay, timedTasksByHour: byHour };
+    }, [tasksForCurrentDay]);
 
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     let firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
@@ -159,6 +201,63 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
     };
 
     const hours = Array.from({ length: 13 }, (_, i) => i + 8);
+
+    // Shared between the "all day" strip and the hourly grid — one card
+    // style, just placed in different containers.
+    const renderDayTaskCard = (task: (typeof tasksForCurrentDay)[number]) => {
+        const tDate = new Date(task.deadline!);
+        const hasTime = tDate.getHours() !== 0 || tDate.getMinutes() !== 0;
+        const timeString = hasTime
+            ? tDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : t.lblAllDay;
+
+        return (
+            <div
+                key={task.id}
+                title={task.title}
+                className={`bg-white dark:bg-gray-800 border p-2 sm:p-3 rounded-xl shadow-sm flex items-start gap-2 sm:gap-3 transition-all hover:shadow-md ${task.completed ? 'opacity-60 bg-gray-50 dark:bg-gray-900/50 dark:border-gray-800' : 'border-blue-100 dark:border-blue-900/30'}`}
+            >
+                <div className={`mt-1 w-3 h-3 rounded-full border-2 shrink-0 transition-colors duration-300 ${task.completed ? 'border-green-500 bg-green-100 dark:bg-green-900/30' : 'border-blue-500 bg-blue-100 dark:bg-blue-900/30'}`} />
+                <div className="flex flex-col flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider truncate transition-colors duration-300">
+                            {task.subjectName}
+                        </span>
+                        <div className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 sm:px-2 py-0.5 rounded-md shrink-0 transition-colors duration-300">
+                            <Clock size={11} />
+                            {timeString}
+                        </div>
+                    </div>
+                    <h4 className={`text-sm font-bold truncate transition-colors duration-300 ${task.completed ? 'line-through text-gray-500 dark:text-gray-500' : 'text-gray-800 dark:text-gray-200'}`}>
+                        {task.title}
+                    </h4>
+                </div>
+            </div>
+        );
+    };
+
+    // A genuinely single-line variant for the hourly grid specifically —
+    // each hour row is a fixed 80px (matching the ruled-line background
+    // and the "now" indicator's math), and the full renderDayTaskCard
+    // above doesn't fit two of itself in that space even with an overflow
+    // fallback. This one comfortably fits 2-3 per row instead.
+    const renderCompactHourTask = (task: (typeof tasksForCurrentDay)[number]) => {
+        const timeString = new Date(task.deadline!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return (
+            <div
+                key={task.id}
+                title={`${task.subjectName} — ${task.title}`}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs shrink-0 transition-colors ${
+                    task.completed
+                        ? 'bg-gray-50 dark:bg-gray-900/50 border-gray-100 dark:border-gray-800 text-gray-400 dark:text-gray-500 line-through'
+                        : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900/30 text-gray-700 dark:text-gray-200'
+                }`}
+            >
+                <span className="shrink-0 font-semibold text-gray-400 dark:text-gray-500">{timeString}</span>
+                <span className="truncate font-medium">{task.title}</span>
+            </div>
+        );
+    };
 
     return (
         <div className="flex-1 flex flex-col h-full bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500 p-3 sm:p-8 overflow-hidden">
@@ -274,11 +373,40 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                     bgColorClass = "bg-red-50/50 dark:bg-red-900/20";
                                 }
                                 
+                                const dayTasks = tasksByWeekDay[i];
+
                                 return (
-                                    <div key={i} className={`${bgColorClass} p-1 sm:p-3 transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/50`}>
-                                        <div className="w-full h-full border-2 border-dashed border-gray-200/50 dark:border-gray-700/50 rounded-xl flex items-center justify-center transition-colors duration-300">
-                                            <span className="hidden sm:inline text-xs text-gray-400 dark:text-gray-500 font-medium opacity-0 hover:opacity-100 transition-opacity">{t.lblViewTasks}</span>
-                                        </div>
+                                    <div
+                                        key={i}
+                                        onClick={() => { setCurrentDate(date); setView("day"); }}
+                                        className={`${bgColorClass} p-1 sm:p-2 flex flex-col gap-1 overflow-y-auto no-scrollbar cursor-pointer transition-colors hover:brightness-95 dark:hover:brightness-110`}
+                                    >
+                                        {dayTasks.length === 0 ? (
+                                            <div className="flex-1 flex items-center justify-center">
+                                                <span className="hidden sm:inline text-[10px] text-gray-300 dark:text-gray-600 font-medium">{t.dayOffTitle}</span>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {dayTasks.slice(0, 4).map(task => (
+                                                    <div
+                                                        key={task.id}
+                                                        title={task.title}
+                                                        className={`text-[9px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 sm:py-1 rounded-md truncate transition-colors ${
+                                                            task.completed
+                                                                ? "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 line-through"
+                                                                : "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                                                        }`}
+                                                    >
+                                                        {task.title}
+                                                    </div>
+                                                ))}
+                                                {dayTasks.length > 4 && (
+                                                    <span className="text-[9px] sm:text-[10px] text-gray-400 dark:text-gray-500 font-bold px-1">
+                                                        +{dayTasks.length - 4} {t.moreTasks}
+                                                    </span>
+                                                )}
+                                            </>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -288,77 +416,63 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
 
                 {/* --- VIEW: DAY --- */}
                 {view === "day" && (
-                    <div className="flex-1 flex overflow-hidden">
-                        
-                        <div className="w-12 sm:w-20 border-r border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 py-6 flex flex-col overflow-y-auto no-scrollbar shrink-0 transition-colors duration-300">
-                            {hours.map(hour => (
-                                <div key={hour} className="h-20 flex justify-end pr-1.5 sm:pr-4 text-[10px] sm:text-xs font-bold text-gray-400 dark:text-gray-500 relative transition-colors duration-300">
-                                    <span className="-mt-2">{hour.toString().padStart(2, '0')}:00</span>
-                                </div>
-                            ))}
-                        </div>
+                    <div className="flex-1 flex flex-col overflow-hidden">
 
-                        {/* Notebook-style ruled lines, adapted to #1f2937 (gray-800) in dark mode */}
-                        <div className="flex-1 relative overflow-y-auto bg-[linear-gradient(to_bottom,#f9fafb_1px,transparent_1px)] dark:bg-[linear-gradient(to_bottom,#1f2937_1px,transparent_1px)] bg-[size:100%_5rem] p-3 sm:p-6 transition-colors duration-300">
+                        {/* All-day tasks (no specific time) sit above the hourly
+                            grid, calendar-convention style, instead of being
+                            squeezed into a midnight row. */}
+                        {allDayTasks.length > 0 && (
+                            <div className="shrink-0 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 p-2 sm:p-3 flex flex-col gap-1.5 transition-colors duration-300">
+                                <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">{t.lblAllDay}</span>
+                                {allDayTasks.map(task => renderDayTaskCard(task))}
+                            </div>
+                        )}
 
-                            {currentDate.toDateString() === todayObj.toDateString() && (
-                                <div
-                                    className="absolute left-0 right-0 border-t-2 border-red-500 z-10 flex items-center pointer-events-none"
-                                    style={{ top: `${((todayObj.getHours() - 8) * 5) + (todayObj.getMinutes() / 12)}rem` }}
-                                >
-                                    <div className="w-3 h-3 bg-red-500 rounded-full -ml-1.5 border-2 border-white dark:border-gray-900 transition-colors duration-300"></div>
-                                </div>
-                            )}
+                        {/* Both columns below share this ONE scroll container rather
+                            than each scrolling independently — two separate
+                            overflow-y-auto elements that are supposed to stay
+                            row-aligned can drift out of sync (they did, visibly,
+                            once tasks were actually placed per-hour-row). */}
+                        <div className="flex-1 flex overflow-y-auto">
+                            <div className="w-12 sm:w-20 border-r border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 pt-3 sm:pt-6 pb-6 flex flex-col shrink-0 transition-colors duration-300">
+                                {hours.map(hour => (
+                                    <div key={hour} className="h-20 shrink-0 flex justify-end pr-1.5 sm:pr-4 text-[10px] sm:text-xs font-bold text-gray-400 dark:text-gray-500 relative transition-colors duration-300">
+                                        <span className="-mt-2">{hour.toString().padStart(2, '0')}:00</span>
+                                    </div>
+                                ))}
+                            </div>
 
-                            <div className="relative z-20 flex flex-col gap-3 sm:max-w-xl sm:ml-4">
+                            {/* Notebook-style ruled lines, adapted to #1f2937 (gray-800) in dark mode */}
+                            <div className="flex-1 relative bg-[linear-gradient(to_bottom,#f9fafb_1px,transparent_1px)] dark:bg-[linear-gradient(to_bottom,#1f2937_1px,transparent_1px)] bg-[size:100%_5rem] p-3 sm:p-6 transition-colors duration-300">
+
+                                {currentDate.toDateString() === todayObj.toDateString() && (
+                                    <div
+                                        className="absolute left-0 right-0 border-t-2 border-red-500 z-10 flex items-center pointer-events-none"
+                                        style={{ top: `${((todayObj.getHours() - 8) * 5) + (todayObj.getMinutes() / 12)}rem` }}
+                                    >
+                                        <div className="w-3 h-3 bg-red-500 rounded-full -ml-1.5 border-2 border-white dark:border-gray-900 transition-colors duration-300"></div>
+                                    </div>
+                                )}
+
                                 {tasksForCurrentDay.length === 0 ? (
-                                    <div className="mt-10 p-6 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center text-center bg-white/50 dark:bg-gray-800/50 transition-colors duration-300">
+                                    <div className="relative z-20 mt-10 p-6 sm:max-w-xl sm:ml-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center text-center bg-white/50 dark:bg-gray-800/50 transition-colors duration-300">
                                         <CheckCircle2 size={32} className="text-gray-300 dark:text-gray-600 mb-2 transition-colors duration-300" />
                                         <h3 className="text-gray-500 dark:text-gray-400 font-bold transition-colors duration-300">{t.dayOffTitle}</h3>
                                         <p className="text-sm text-gray-400 dark:text-gray-500 transition-colors duration-300">{t.dayOffDesc}</p>
                                     </div>
                                 ) : (
-                                    tasksForCurrentDay.map(task => {
-                                        const tDate = new Date(task.deadline!);
-                                        const hasTime = tDate.getHours() !== 0 || tDate.getMinutes() !== 0;
-                                        const timeString = hasTime 
-                                            ? tDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-                                            : t.lblAllDay;
-
-                                        return (
-                                            <div
-                                                key={task.id}
-                                                className={`bg-white dark:bg-gray-800 border p-3 sm:p-4 rounded-xl shadow-sm flex items-start gap-3 sm:gap-4 transition-all hover:shadow-md ${task.completed ? 'opacity-60 bg-gray-50 dark:bg-gray-900/50 dark:border-gray-800' : 'border-blue-100 dark:border-blue-900/30'}`}
-                                            >
-                                                <div className={`mt-1 w-3 h-3 rounded-full border-2 shrink-0 transition-colors duration-300 ${task.completed ? 'border-green-500 bg-green-100 dark:bg-green-900/30' : 'border-blue-500 bg-blue-100 dark:bg-blue-900/30'}`} />
-                                                
-                                                <div className="flex flex-col flex-1">
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider transition-colors duration-300">
-                                                            {task.subjectName}
-                                                        </span>
-                                                        <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-md transition-colors duration-300">
-                                                            <Clock size={12} />
-                                                            {timeString}
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <h4 className={`text-sm font-bold transition-colors duration-300 ${task.completed ? 'line-through text-gray-500 dark:text-gray-500' : 'text-gray-800 dark:text-gray-200'}`}>
-                                                        {task.title}
-                                                    </h4>
-                                                    
-                                                    {task.description && (
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2 transition-colors duration-300">
-                                                            {task.description}
-                                                        </p>
-                                                    )}
-                                                </div>
+                                    // Tasks are placed in the row for their own hour — clamped
+                                    // to the visible 8-20 range — instead of floating in an
+                                    // unrelated list on top of the (previously decorative) grid.
+                                    <div className="relative z-20 sm:max-w-xl sm:ml-4">
+                                        {hours.map(hour => (
+                                            <div key={hour} className="h-20 shrink-0 flex flex-col justify-center gap-1 overflow-y-auto no-scrollbar py-0.5">
+                                                {(timedTasksByHour[hour] ?? []).map(task => renderCompactHourTask(task))}
                                             </div>
-                                        );
-                                    })
+                                        ))}
+                                    </div>
                                 )}
                             </div>
-
                         </div>
                     </div>
                 )}
