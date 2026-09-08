@@ -47,7 +47,7 @@ const PrivacyPage = () => {
                     <div className="flex items-center gap-2">
                         <button
                             onClick={toggleLanguage}
-                            className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center text-base leading-none"
+                            className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center text-lg"
                             title={language === 'es' ? 'Switch to English' : 'Cambiar a Español'}
                         >
                             {language === 'es' ? '🇬🇧' : '🇪🇸'}
@@ -75,7 +75,7 @@ const PrivacyPage = () => {
                 <div className="hidden sm:flex fixed bottom-4 left-4 z-50 flex-col gap-3">
                     <button
                         onClick={toggleLanguage}
-                        className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 flex items-center justify-center text-base leading-none"
+                        className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 flex items-center justify-center text-lg"
                         title={language === 'es' ? 'Switch to English' : 'Cambiar a Español'}
                     >
                         {language === 'es' ? '🇬🇧' : '🇪🇸'}

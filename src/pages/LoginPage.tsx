@@ -95,33 +95,33 @@ const LoginPage = () => {
 
     return (
         <PageTransition>
-            <div className="relative min-h-screen flex flex-col items-center justify-center overflow-y-auto p-4 py-2 sm:py-8">
+            <div className="relative min-h-screen flex flex-col items-center justify-center overflow-y-auto p-4 py-8">
 
             {/* Mobile-only controls row: back + language + theme, in normal
                 document flow so they never overlap the card the way the
                 fixed versions below would on a narrow/short viewport. */}
-            <div className="flex sm:hidden items-center justify-between w-full max-w-md mb-1.5">
+            <div className="flex sm:hidden items-center justify-between w-full max-w-md mb-4">
                 <a
                     href="https://redcheckapp.com"
-                    className="p-2 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center"
+                    className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center"
                     aria-label="Back to redcheckapp.com"
                 >
-                    <ChevronLeft size={18} />
+                    <ChevronLeft size={20} />
                 </a>
                 <div className="flex items-center gap-2">
                     <button
                         onClick={toggleLanguage}
-                        className="p-2 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center text-sm leading-none"
+                        className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center text-lg"
                         title={language === 'es' ? 'Switch to English' : 'Cambiar a Español'}
                     >
                         {language === 'es' ? '🇬🇧' : '🇪🇸'}
                     </button>
                     <button
                         onClick={toggleTheme}
-                        className="p-2 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center"
+                        className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center"
                         title={language === 'es' ? 'Cambiar tema' : 'Toggle theme'}
                     >
-                        {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+                        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
                     </button>
                 </div>
             </div>
@@ -139,7 +139,7 @@ const LoginPage = () => {
             <div className="hidden sm:flex fixed bottom-4 left-4 z-50 flex-col gap-3">
                 <button
                     onClick={toggleLanguage}
-                    className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 flex items-center justify-center text-base leading-none"
+                    className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 flex items-center justify-center text-lg"
                     title={language === 'es' ? 'Switch to English' : 'Cambiar a Español'}
                 >
                     {language === 'es' ? '🇬🇧' : '🇪🇸'}
@@ -154,18 +154,18 @@ const LoginPage = () => {
                 </button>
             </div>
 
-            <div className="relative z-10 bg-white dark:bg-gray-900 p-3.5 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md transition-colors duration-500">
+            <div className="relative z-10 bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md transition-colors duration-500">
 
-                <div className="flex flex-col items-center mb-4 sm:mb-8">
-                    <div className="flex items-center justify-center gap-3 sm:gap-4">
-                        <div className="bg-[#cc2229] w-10 h-10 sm:w-[52px] sm:h-[52px] rounded-[14px] flex items-center justify-center shadow-sm flex-shrink-0">
-                            <Check size={36} strokeWidth={4} className="text-white w-6 h-6 sm:w-9 sm:h-9" />
+                <div className="flex flex-col items-center mb-8">
+                    <div className="flex items-center justify-center gap-4">
+                        <div className="bg-[#cc2229] w-[52px] h-[52px] rounded-[14px] flex items-center justify-center shadow-sm flex-shrink-0">
+                            <Check size={36} strokeWidth={4} className="text-white" />
                         </div>
                         <div className="flex flex-col justify-center w-max">
-                            <span className="text-2xl sm:text-[34px] font-black text-gray-900 dark:text-white leading-none tracking-tight transition-colors duration-300">
+                            <span className="text-[34px] font-black text-gray-900 dark:text-white leading-none tracking-tight transition-colors duration-300">
                                 REDCHECK
                             </span>
-                            <div className="flex justify-between w-full text-[11px] font-bold text-gray-800 dark:text-gray-300 mt-1 sm:mt-1.5 tracking-wide transition-colors duration-300">
+                            <div className="flex justify-between w-full text-[11px] font-bold text-gray-800 dark:text-gray-300 mt-1.5 tracking-wide transition-colors duration-300">
                                 <span>{t.tags[0]}</span>
                                 <span>{t.tags[1]}</span>
                                 <span>{t.tags[2]}</span>
@@ -173,15 +173,15 @@ const LoginPage = () => {
                         </div>
                     </div>
 
-                    <div className="w-full h-px bg-gray-100 dark:bg-gray-800 my-3 sm:my-6 transition-colors duration-300"></div>
+                    <div className="w-full h-px bg-gray-100 dark:bg-gray-800 my-6 transition-colors duration-300"></div>
 
                     <h2 className="text-gray-500 dark:text-gray-400 font-medium transition-colors duration-300">
                         {t.loginTitle}
                     </h2>
                 </div>
 
-                <form onSubmit={handleSubmit} className="flex flex-col gap-2.5 sm:gap-5 mt-2.5 sm:mt-6">
-                    <div className="flex flex-col gap-1 sm:gap-1.5">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-6">
+                    <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
                             {t.email}
                         </label>
@@ -190,12 +190,12 @@ const LoginPage = () => {
                             name="email"
                             value={form.email}
                             onChange={handleChange}
-                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-2 sm:py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
+                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
                             required
                         />
                     </div>
 
-                    <div className="flex flex-col gap-1 sm:gap-1.5">
+                    <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
                             {t.password}
                         </label>
@@ -204,7 +204,7 @@ const LoginPage = () => {
                             name="password"
                             value={form.password}
                             onChange={handleChange}
-                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-2 sm:py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
+                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
                             required
                         />
                     </div>
@@ -216,7 +216,7 @@ const LoginPage = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 py-2 sm:py-3 rounded-xl font-medium hover:bg-black dark:hover:bg-white transition-all duration-300 shadow-sm hover:shadow disabled:opacity-50 mt-1 sm:mt-2"
+                        className="w-full bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 py-3 rounded-xl font-medium hover:bg-black dark:hover:bg-white transition-all duration-300 shadow-sm hover:shadow disabled:opacity-50 mt-2"
                     >
                         {loading ? t.loading : t.loginBtn}
                     </button>
@@ -225,13 +225,13 @@ const LoginPage = () => {
                         type="button"
                         onClick={handleDemoLogin}
                         disabled={loading}
-                        className="w-full bg-emerald-600 dark:bg-emerald-500 text-white py-2 sm:py-3 rounded-xl font-medium hover:bg-emerald-700 dark:hover:bg-emerald-400 transition-all duration-300 shadow-sm hover:shadow disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full bg-emerald-600 dark:bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-700 dark:hover:bg-emerald-400 transition-all duration-300 shadow-sm hover:shadow disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                         {t.demoBtn}
                     </button>
                 </form>
 
-                <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-4 sm:mt-8 transition-colors duration-300">
+                <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-8 transition-colors duration-300">
                     {t.noAccount}{" "}
                     <Link to="/register" className="text-red-600 dark:text-red-400 font-semibold hover:text-red-700 dark:hover:text-red-300 hover:underline transition-colors duration-300">
                         {t.register}
@@ -239,7 +239,7 @@ const LoginPage = () => {
                 </p>
 
                 {/* --- GDPR LEGAL LINKS AND COPYRIGHT --- */}
-                <div className="mt-3 pt-3 sm:mt-6 sm:pt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col items-center gap-2 sm:gap-3 transition-colors duration-300">
+                <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col items-center gap-3 transition-colors duration-300">
                     <div className="flex justify-center gap-4 text-[11px] text-gray-400 dark:text-gray-500">
                         <a href="/terms" target="_blank" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t.legal}</a>
                         <span>•</span>
