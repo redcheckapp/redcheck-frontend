@@ -10,15 +10,17 @@ Write new code comments and commit messages in English, even though some existin
 
 Commits follow Conventional Commits style: `feat: ...`, `fix: ...`, `chore: ...`, `refactor: ...`, `docs: ...`, etc.
 
-There is no automated test suite in this project, and none is planned — don't introduce a test framework unless explicitly asked.
+Automated tests use Vitest + React Testing Library (added 2026-09-09) — see the Testing section below. Coverage is intentionally a smoke-test layer (renders without crashing, key interactions), not exhaustive; don't assume every component has a test.
 
 ## Commands
 
 ```bash
-npm run dev       # start Vite dev server
-npm run build     # tsc -b && vite build (type-checks, then bundles)
-npm run lint      # eslint .
-npm run preview   # preview the production build locally
+npm run dev         # start Vite dev server
+npm run build       # vite build (bundles only — does NOT type-check; run `npx tsc -b --noEmit` separately, e.g. before committing)
+npm run lint        # eslint .
+npm run preview     # preview the production build locally
+npm run test        # vitest run — one-shot, CI-friendly
+npm run test:watch  # vitest — interactive watch mode
 ```
 
 ## Environment
@@ -39,7 +41,7 @@ npm run preview   # preview the production build locally
 
 **Provider order** (`App.tsx`): `LanguageProvider` wraps `ThemeProvider` wraps `BrowserRouter`. Both contexts read/write shared cookies, so keep this nesting if adding related providers.
 
-**Styling:** Tailwind CSS v4 (via `@tailwindcss/vite` plugin, not a PostCSS config file). Dark mode is class-based (`dark` class toggled on `documentElement` by `ThemeContext`), palette centers on `zinc`/`gray` for WCAG contrast. Animations use `framer-motion`; `tsparticles` is used for the auth-page interactive background.
+**Styling:** Tailwind CSS v4 (via `@tailwindcss/vite` plugin, not a PostCSS config file). Dark mode is class-based (`dark` class toggled on `documentElement` by `ThemeContext`), palette centers on `zinc`/`gray` for WCAG contrast. `tsparticles` (the `@tsparticles/slim` bundle, not the full engine) is used for the auth-page interactive background, lazy-loaded with its own `Suspense` boundary so it never blocks the dashboard's initial load. There is no animation library — `framer-motion` was removed (see Bundle size below); simple mount transitions are plain CSS (`transition-*` classes + a two-phase `shouldRender`/`isVisible` state, as in `PageTransition.tsx` and `ModalOverlay.tsx`) rather than reaching for a library.
 
 **i18n:** handled by `LanguageContext` (not an external i18n library) — same cookie+localStorage persistence pattern as theme.
 
@@ -58,3 +60,13 @@ npm run preview   # preview the production build locally
 **Task reminders:** `DashboardPage.tsx` polls pending tasks every 60s (plus once immediately) for ones due within the next 30 minutes, firing a `toast(...)` and a browser `Notification` for each (deduped per task via `remindedTaskIdsRef`, a `Set` of task IDs). This is client-side only — no service worker, no backend push — so it only fires while RedCheck is open in a tab or installed PWA, never when closed. Enabled via a Settings-modal toggle (`remindersEnabled`, persisted in `localStorage`) that calls `Notification.requestPermission()` on first enable. The firing code deliberately does **not** re-check the static `Notification.permission` getter before calling `new Notification(...)` — that getter was observed to lag behind the resolved `requestPermission()` result (at least under headless/CDP-driven browsers) — it trusts `remindersEnabled` instead (which only becomes true right after a "granted" resolution) and wraps the call in try/catch as the real safety net. A real push-notification system (works when the app is closed) needs a service worker, VAPID keys, a subscription endpoint, and a backend trigger — none of that exists yet; this reminder system is deliberately the lighter-weight alternative.
 
 **Forgot password:** not implemented — `redcheck-backend` has no password-reset endpoints yet (no email sending, no reset-token issuance/validation). Deferred until backend adds them; don't build frontend-only UI against undefined endpoints.
+
+**Testing:** Vitest (`vite.config.ts`'s `test` block; the file imports `defineConfig` from `vitest/config`, not `vite`, so the same config serves both) + React Testing Library, `environment: 'jsdom'`. `test.globals` is deliberately **off** — every test file imports `describe`/`it`/`expect`/`vi` explicitly from `"vitest"` rather than relying on ambient globals. Because of that, RTL's auto-cleanup-between-tests (which hooks itself to a global `afterEach`) doesn't self-register either — `src/test/setup.ts` calls `cleanup()` in an explicit `afterEach` itself; don't remove that or tests will bleed DOM state into each other. That same setup file also stubs `window.matchMedia` (jsdom doesn't implement it, and `ThemeContext` calls it on init) — any other browser API a test newly depends on that jsdom lacks belongs there too. Tests live next to what they test (`Foo.tsx` → `Foo.test.tsx`), not in a separate `__tests__` tree. A page/component that uses `useTheme`/`useLanguage` needs to be rendered wrapped in `<LanguageProvider><ThemeProvider>` (see `LoginPage.test.tsx`/`AuthFloatingNav.test.tsx` for the pattern); one that calls `useNavigate`/`<Link>` needs `<MemoryRouter>`. Mock API modules per-file with `vi.mock("../api/xxxApi")` rather than letting real network calls hit `axiosConfig`'s real `api` instance.
+
+Known pre-existing gap surfaced while adding the `LoginPage` test: its email/password `<input>`s aren't associated with their `<label>` via `htmlFor`/`id`, so they have no accessible name (`getByLabelText`/`getByRole` can't find them — the test falls back to `container.querySelector`). Worth fixing for accessibility if the login form is touched again, but wasn't in scope for adding the test itself.
+
+**Shared auth-page chrome:** `src/components/AuthFloatingNav.tsx` is the mobile-row + floating back/language/theme controls used by `LoginPage`, `RegisterPage`, `TermsPage`, and `PrivacyPage` — this used to be ~55 lines of copy-pasted JSX per page (4×). The back action differs per caller (Login links out to `redcheckapp.com` via `backHref`; the other three navigate internally via `onBack`), and the mobile row's own spacing differs too (Login/Register center a card and pass nothing, defaulting to `w-full max-w-md mb-4`; Terms/Privacy are full-width scrollable documents and pass `mobileRowClassName="px-4 pt-4"`) — check both call sites again before assuming one prop set fits all four pages.
+
+**Bundle size:** `framer-motion` (~120KB) was removed — it was used in exactly one place (`PageTransition.tsx`) for a two-property enter animation, and its `exit` prop was dead code (needs `<AnimatePresence>` to do anything, and nothing in the app renders one). If a future animation need seems to call for a library, confirm first that plain CSS transitions (the pattern in `PageTransition.tsx`/`ModalOverlay.tsx`) genuinely can't do it — the bundle cost surfaces immediately in `npm run build`'s chunk-size output. `BackgroundParticles.tsx`'s `@tsparticles/slim` chunk (~145KB) was reviewed and left alone: it's already the lighter of the two tsparticles bundles, it's lazy-loaded behind its own `Suspense` boundary so it never delays the dashboard's initial load, and hand-picking individual tsparticles plugins to shave it further wasn't judged worth the added fragility for a decorative background effect.
+
+**Error monitoring / analytics:** not integrated — no Sentry, PostHog, or similar. The user asked for this to stay documented-but-inactive until an account/DSN is provided, so **don't add a monitoring SDK dependency speculatively**. When one is ready to wire up: `ErrorBoundary.tsx`'s `componentDidCatch` is the natural hook for render-error reporting, and a `window.addEventListener("unhandledrejection", ...)` /`window.onerror` pair (not yet present anywhere) would be needed alongside it to catch errors outside the render tree (e.g. in event handlers, async code). `PrivacyPage.tsx` already has a cookie-usage disclosure section — adding any analytics/monitoring tool that sets cookies or does fingerprinting needs that section updated too, for GDPR consistency with the rest of the app's privacy posture.

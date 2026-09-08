@@ -2,7 +2,17 @@ export const getSharedCookie = (name: string): string | null => {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
     if (parts.length === 2) {
-        return parts.pop()?.split(';').shift() || null;
+        const raw = parts.pop()?.split(';').shift();
+        if (!raw) return null;
+        // Mirrors setSharedCookie's encodeURIComponent — without this, a
+        // value containing reserved characters (;, =, spaces...) comes
+        // back still encoded. Harmless today (every value stored is a
+        // plain word like "dark"/"es") but wrong for anything else.
+        try {
+            return decodeURIComponent(raw);
+        } catch {
+            return raw;
+        }
     }
     return null;
 };
