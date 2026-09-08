@@ -2,7 +2,8 @@ import { Sidebar } from "../components/Sidebar";
 import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
 import { useState, useEffect, useMemo, useRef, Suspense, lazy } from "react";
-import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2 } from "lucide-react";
+import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2, Settings, Moon, Sun, Languages } from "lucide-react";
+import type { CommandAction } from "../components/CommandPalette";
 import { ProgressHeatmap } from "../components/ProgressHeatmap";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
 import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
@@ -14,7 +15,11 @@ import { dailyAnalysis, pollForAnalysis } from "../api/smartCheckApi";
 import { PageTransition } from "../components/PageTransition";
 import { AgendaView } from "../components/AgendaView";
 import { DashboardSkeleton } from "../components/DashboardSkeleton";
+import { Confetti } from "../components/Confetti";
+import { WelcomeIllustration } from "../components/illustrations/WelcomeIllustration";
+import { triggerHapticFeedback, playTaskCompleteSound } from "../utils/feedback";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
+import { useTheme } from "../context/ThemeContext";
 import { toast } from "react-hot-toast";
 
 // These are only needed after a deliberate user action (open settings, run
@@ -22,6 +27,7 @@ import { toast } from "react-hot-toast";
 const SettingsModal = lazy(() => import("../components/SettingsModal").then(m => ({ default: m.SettingsModal })));
 const SmartCheckModal = lazy(() => import("../components/SmartCheckModal"));
 const TrashView = lazy(() => import("../components/TrashView").then(m => ({ default: m.TrashView })));
+const CommandPalette = lazy(() => import("../components/CommandPalette").then(m => ({ default: m.CommandPalette })));
 
 // --- Translation dictionary for the Dashboard ---
 const translations = {
@@ -84,7 +90,22 @@ const translations = {
         bulkDelete: "Eliminar",
         confirmBulkDelete: "¿Seguro que quieres eliminar las tareas seleccionadas?",
         bulkCompletedToast: "Tareas completadas.",
-        bulkDeletedToast: "Tareas eliminadas."
+        bulkDeletedToast: "Tareas eliminadas.",
+        palettePlaceholder: "Buscar tareas o escribe un comando...",
+        paletteTasksGroup: "Tareas",
+        paletteActionsGroup: "Comandos",
+        paletteEmpty: "Sin resultados.",
+        actionToggleThemeDark: "Cambiar a modo oscuro",
+        actionToggleThemeLight: "Cambiar a modo claro",
+        actionToggleLanguage: "Cambiar idioma",
+        actionOpenSettings: "Abrir ajustes",
+        actionOpenTrash: "Abrir papelera",
+        actionCloseTrash: "Cerrar papelera",
+        actionGeneratePlan: "Generar plan de SmartCheck",
+        actionViewPlan: "Ver plan de hoy",
+        actionAddSubject: "Añadir nueva asignatura",
+        actionShowAgenda: "Mostrar agenda",
+        actionFocusMode: "Activar Modo Foco"
     },
     en: {
         alertAiAnalyzing: "🧠 SmartCheck is analyzing your tasks...",
@@ -145,7 +166,22 @@ const translations = {
         bulkDelete: "Delete",
         confirmBulkDelete: "Are you sure you want to delete the selected tasks?",
         bulkCompletedToast: "Tasks completed.",
-        bulkDeletedToast: "Tasks deleted."
+        bulkDeletedToast: "Tasks deleted.",
+        palettePlaceholder: "Search tasks or type a command...",
+        paletteTasksGroup: "Tasks",
+        paletteActionsGroup: "Commands",
+        paletteEmpty: "No results.",
+        actionToggleThemeDark: "Switch to dark mode",
+        actionToggleThemeLight: "Switch to light mode",
+        actionToggleLanguage: "Switch language",
+        actionOpenSettings: "Open settings",
+        actionOpenTrash: "Open trash",
+        actionCloseTrash: "Close trash",
+        actionGeneratePlan: "Generate SmartCheck plan",
+        actionViewPlan: "View today's plan",
+        actionAddSubject: "Add new subject",
+        actionShowAgenda: "Show agenda",
+        actionFocusMode: "Turn on Focus Mode"
     }
 };
 
@@ -157,7 +193,8 @@ const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigat
 
 const DashboardPage = () => {
     const navigate = useNavigate();
-    const { language } = useLanguage();
+    const { language, toggleLanguage } = useLanguage();
+    const { theme, toggleTheme } = useTheme();
     const t = translations[language as keyof typeof translations];
 
     const [subjects, setSubjects] = useState<SubjectWithTasks[]>([]);
@@ -177,6 +214,30 @@ const DashboardPage = () => {
     const [showTrash, setShowTrash] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const searchInputRef = useRef<HTMLInputElement>(null);
+
+    // Command palette (Ctrl/Cmd+K) — a superset of the inline search above:
+    // same task/subject matching, plus jump-to-action commands.
+    const [paletteOpen, setPaletteOpen] = useState(false);
+
+    const handleOpenTaskEditor = (subjectId: number, taskId: number) => {
+        const subject = subjects.find(s => s.id === subjectId);
+        const task = subject?.tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        setOpenFormSubjectIdTaskId({ subjectId, taskId });
+
+        let formattedDate = "";
+        if (task.deadline) {
+            const d = new Date(task.deadline);
+            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+            formattedDate = d.toISOString().slice(0, 16);
+        }
+        setUpdatedTask({
+            title: task.title,
+            description: task.description || "",
+            deadline: formattedDate
+        });
+    };
 
     // Bulk task actions — selection is a set of "subjectId:taskId" keys
     // rather than per-subject state, since a selection can span subjects.
@@ -211,6 +272,10 @@ const DashboardPage = () => {
                 return toggleTask(Number(subjectIdStr), Number(taskIdStr), true);
             }));
             toast.success(t.bulkCompletedToast);
+            if (taskFeedbackEnabled) {
+                triggerHapticFeedback();
+                playTaskCompleteSound();
+            }
             exitSelectionMode();
             await refreshData();
         } catch (err) {
@@ -262,6 +327,17 @@ const DashboardPage = () => {
         } else {
             toast.error(t.remindersDenied);
         }
+    };
+
+    // Sound + haptic feedback on task completion — opt-out (defaults on)
+    // rather than opt-in, since it's a subtle, feature-detected touch.
+    const [taskFeedbackEnabled, setTaskFeedbackEnabled] = useState(
+        () => localStorage.getItem("taskFeedbackEnabled") !== "false"
+    );
+    const handleToggleTaskFeedback = () => {
+        const next = !taskFeedbackEnabled;
+        setTaskFeedbackEnabled(next);
+        localStorage.setItem("taskFeedbackEnabled", String(next));
     };
 
     // Desktop-only dismissible tip inside the Focus Mode performance panel.
@@ -577,23 +653,24 @@ const DashboardPage = () => {
         }, []);
     }, [subjects, searchQuery]);
 
-    // Global keyboard shortcuts: Ctrl/Cmd+K focuses search (the common
-    // command-palette convention), Escape backs out of whatever's open —
-    // mobile drawer, trash view, an inline form — one layer at a time, or
-    // clears the search as a last resort. Modals built on ModalOverlay
-    // (Settings/SmartCheck/recurring routines) handle their own Escape, so
-    // this skips its cascade while one of the two page-level ones is open
-    // to avoid a single keypress closing two things at once.
+    // Global keyboard shortcuts: Ctrl/Cmd+K opens the command palette (a
+    // superset of the inline search — see CommandPalette.tsx), Escape backs
+    // out of whatever's open — mobile drawer, trash view, an inline form —
+    // one layer at a time, or clears the search as a last resort. Modals
+    // built on ModalOverlay (Settings/SmartCheck/recurring routines/command
+    // palette) handle their own Escape, so this skips its cascade while one
+    // of the page-level ones is open, to avoid a single keypress closing
+    // two things at once.
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
                 e.preventDefault();
-                searchInputRef.current?.focus();
+                setPaletteOpen(true);
                 return;
             }
 
             if (e.key !== "Escape") return;
-            if (isSettingsOpen || isAiModalOpen) return;
+            if (isSettingsOpen || isAiModalOpen || paletteOpen) return;
 
             if (mobileSidebarOpen) {
                 setMobileSidebarOpen(false);
@@ -619,6 +696,7 @@ const DashboardPage = () => {
     }, [
         isSettingsOpen,
         isAiModalOpen,
+        paletteOpen,
         mobileSidebarOpen,
         showTrash,
         openFormNewSubject,
@@ -670,8 +748,14 @@ const DashboardPage = () => {
         const task = subject?.tasks.find(t => t.id === taskId);
         if (!task) return;
         try {
-            await toggleTask(subjectId, taskId, !task.completed);
-            setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: subject.tasks.map(task => task.id !== taskId ? task : { ...task, completed: !task.completed }) }));
+            const willBeCompleted = !task.completed;
+            await toggleTask(subjectId, taskId, willBeCompleted);
+            setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: subject.tasks.map(task => task.id !== taskId ? task : { ...task, completed: willBeCompleted }) }));
+            // Only celebrate marking something done, not un-completing it.
+            if (willBeCompleted && taskFeedbackEnabled) {
+                triggerHapticFeedback();
+                playTaskCompleteSound();
+            }
         } catch { console.error("Error updating the task"); }
     };
 
@@ -702,7 +786,84 @@ const DashboardPage = () => {
 
     const totalPending = subjects.reduce((acc, subject) => acc + subject.tasks.filter(t => !t.completed).length, 0);
     const totalPendingOverdue = subjects.reduce((acc, subject) => acc + subject.tasks.filter(t => !t.completed && t.overdue).length, 0);
-    
+
+    // Fires a confetti burst the moment totalPending drops to 0 — but only
+    // when that's an actual transition from >0 (i.e. the user just cleared
+    // their last task), never on a fresh load that's already empty. The ref
+    // starting at null (not 0) is what makes that distinction possible.
+    const prevTotalPendingRef = useRef<number | null>(null);
+    const [celebrationTrigger, setCelebrationTrigger] = useState(0);
+    useEffect(() => {
+        if (prevTotalPendingRef.current !== null && prevTotalPendingRef.current > 0 && totalPending === 0) {
+            setCelebrationTrigger(c => c + 1);
+        }
+        prevTotalPendingRef.current = totalPending;
+    }, [totalPending]);
+
+    // Command palette actions — contextual (label/icon depend on current
+    // state, e.g. Trash open/closed, Focus Mode on/off).
+    // Plain array, not memoized: two of its entries close over
+    // handleGenerateAiPlan/handleOpenAiModal, which are recreated every
+    // render anyway, so a useMemo here would recompute every render
+    // regardless — not worth the false promise of caching.
+    const paletteActions: CommandAction[] = [
+        {
+            id: "toggle-theme",
+            label: theme === "light" ? t.actionToggleThemeDark : t.actionToggleThemeLight,
+            icon: theme === "light" ? Moon : Sun,
+            onSelect: toggleTheme,
+        },
+        {
+            id: "toggle-language",
+            label: t.actionToggleLanguage,
+            icon: Languages,
+            onSelect: toggleLanguage,
+        },
+        {
+            id: "open-settings",
+            label: t.actionOpenSettings,
+            icon: Settings,
+            onSelect: () => setIsSettingsOpen(true),
+        },
+        {
+            id: "toggle-trash",
+            label: showTrash ? t.actionCloseTrash : t.actionOpenTrash,
+            icon: Trash2,
+            onSelect: () => {
+                if (showTrash) {
+                    setShowTrash(false);
+                    refreshData();
+                } else {
+                    setShowTrash(true);
+                }
+            },
+        },
+        ...(!isAiLoading ? [{
+            id: "generate-plan",
+            label: t.actionGeneratePlan,
+            icon: Sparkles,
+            onSelect: handleGenerateAiPlan,
+        }] : []),
+        ...(aiPlanData ? [{
+            id: "view-plan",
+            label: t.actionViewPlan,
+            icon: Eye,
+            onSelect: handleOpenAiModal,
+        }] : []),
+        {
+            id: "add-subject",
+            label: t.actionAddSubject,
+            icon: Plus,
+            onSelect: () => setOpenFormNewSubject(true),
+        },
+        {
+            id: "toggle-focus-mode",
+            label: showCalendar ? t.actionFocusMode : t.actionShowAgenda,
+            icon: showCalendar ? Focus : LayoutGrid,
+            onSelect: () => setShowCalendar(!showCalendar),
+        },
+    ];
+
     if (loading) {
         return <DashboardSkeleton />;
     }
@@ -711,6 +872,7 @@ const DashboardPage = () => {
 
     return (
         <PageTransition>
+            <Confetti trigger={celebrationTrigger} />
             <div className="flex flex-col sm:flex-row h-dvh bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500 p-2 sm:p-4 overflow-hidden">
 
                 <Sidebar
@@ -872,9 +1034,13 @@ const DashboardPage = () => {
                                             <X size={14} />
                                         </button>
                                     ) : (
-                                        <kbd className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 items-center gap-0.5 px-1.5 py-0.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-[10px] font-semibold text-gray-400 dark:text-gray-500 pointer-events-none">
+                                        <button
+                                            onClick={() => setPaletteOpen(true)}
+                                            className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 items-center gap-0.5 px-1.5 py-0.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-[10px] font-semibold text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+                                            title={t.palettePlaceholder}
+                                        >
                                             {isMac ? "⌘" : "Ctrl"}K
-                                        </kbd>
+                                        </button>
                                     )}
                                 </div>
 
@@ -931,9 +1097,7 @@ const DashboardPage = () => {
                                     so it never fights with the "no search results" message above. */}
                                 {!searchQuery && subjects.length === 0 && (
                                     <div className="flex flex-col items-center text-center gap-3 py-8 px-6">
-                                        <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0">
-                                            <Sparkles size={28} />
-                                        </div>
+                                        <WelcomeIllustration className="w-28 h-28 shrink-0" />
                                         <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t.welcomeTitle}</h2>
                                         <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">{t.welcomeDesc}</p>
                                     </div>
@@ -1135,6 +1299,8 @@ const DashboardPage = () => {
                         userEmail={userEmail}
                         remindersEnabled={remindersEnabled}
                         onToggleReminders={handleToggleReminders}
+                        taskFeedbackEnabled={taskFeedbackEnabled}
+                        onToggleTaskFeedback={handleToggleTaskFeedback}
                     />
                 </Suspense>
 
@@ -1144,6 +1310,20 @@ const DashboardPage = () => {
                         onClose={() => setIsAiModalOpen(false)}
                         aiData={aiPlanData}
                         subjects={subjects}
+                    />
+                </Suspense>
+
+                <Suspense fallback={null}>
+                    <CommandPalette
+                        isOpen={paletteOpen}
+                        onClose={() => setPaletteOpen(false)}
+                        actions={paletteActions}
+                        subjects={subjects}
+                        onSelectTask={handleOpenTaskEditor}
+                        placeholder={t.palettePlaceholder}
+                        tasksGroupLabel={t.paletteTasksGroup}
+                        actionsGroupLabel={t.paletteActionsGroup}
+                        emptyLabel={t.paletteEmpty}
                     />
                 </Suspense>
             </div>

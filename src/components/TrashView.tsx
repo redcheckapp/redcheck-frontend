@@ -1,4 +1,5 @@
-import { Trash2, ArrowLeft, RotateCcw, X, Inbox } from "lucide-react";
+import { Trash2, ArrowLeft, RotateCcw, X } from "lucide-react";
+import { EmptyTrayIllustration } from "./illustrations/EmptyTrayIllustration";
 import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { getTrashSubjects, restoreSubject, hardDeleteSubject, getSubjects } from "../api/subjectApi";
@@ -187,9 +188,7 @@ export const TrashView = ({ onClose }: { onClose: () => void }) => {
             ) : subjects.length === 0 && tasks.length === 0 ? (
                 // More visual, adapted empty state
                 <div className="flex-1 flex flex-col items-center justify-center gap-3 transition-colors duration-300">
-                    <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-full text-gray-400 dark:text-gray-600 mb-2 border border-gray-100 dark:border-gray-800 transition-colors duration-300">
-                        <Inbox size={48} strokeWidth={1} />
-                    </div>
+                    <EmptyTrayIllustration className="w-28 h-28 mb-2" />
                     <p className="text-lg font-bold text-gray-800 dark:text-gray-200 transition-colors duration-300">{t.emptyStateTitle}</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">{t.emptyStateDesc}</p>
                 </div>
