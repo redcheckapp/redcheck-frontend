@@ -1,6 +1,6 @@
 import { LogOut, Settings, Bell, Check, Sparkles, Trash2, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useRef, type TouchEvent } from "react";
 import type { SubjectStat, SubjectWithTasks } from "../types";
 import { SmartCheckButton } from "./SmartCheckButton";
 import { SubjectBalance } from "./SubjectBalance";
@@ -24,6 +24,11 @@ interface SidebarProps {
     mobileOpen: boolean;
     onCloseMobile: () => void;
 }
+
+// Feature flags for sections hidden per product decision — not deleted so
+// they can be quickly re-enabled later. See CLAUDE.md.
+const SHOW_ANALYSIS_ENGINE_LABEL = false;
+const SHOW_RISK_ANALYSIS_BUTTON = false;
 
 // --- Translation dictionary for the Sidebar ---
 const translations = {
@@ -103,6 +108,46 @@ export const Sidebar = ({
     // no point collapsing it to icon-only inside an overlay panel.
     const expanded = sidebarOpen || mobileOpen;
 
+    // --- Mobile swipe-to-close gesture --------------------------------
+    // Lets the user drag the open drawer toward the left edge to dismiss
+    // it, the way a native slide-out panel behaves. Only engages while
+    // the mobile drawer is actually open, so it never interferes with
+    // the static desktop sidebar.
+    const DRAWER_WIDTH = 280;
+    const [dragX, setDragX] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
+    const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+    const handleDrawerTouchStart = (e: TouchEvent<HTMLDivElement>) => {
+        if (!mobileOpen) return;
+        const touch = e.touches[0];
+        touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+    };
+
+    const handleDrawerTouchMove = (e: TouchEvent<HTMLDivElement>) => {
+        if (!mobileOpen || !touchStartRef.current) return;
+        const touch = e.touches[0];
+        const deltaX = touch.clientX - touchStartRef.current.x;
+        const deltaY = touch.clientY - touchStartRef.current.y;
+
+        if (!isDragging) {
+            // Wait for clear horizontal intent (toward the left edge) so
+            // vertical scrolling inside the drawer keeps working.
+            if (deltaX >= 0 || Math.abs(deltaX) < Math.abs(deltaY) || Math.abs(deltaX) < 10) return;
+            setIsDragging(true);
+        }
+        setDragX(Math.max(-DRAWER_WIDTH, deltaX));
+    };
+
+    const handleDrawerTouchEnd = () => {
+        if (isDragging && dragX < -DRAWER_WIDTH * 0.3) {
+            onCloseMobile();
+        }
+        setIsDragging(false);
+        setDragX(0);
+        touchStartRef.current = null;
+    };
+
     return (
         <>
             {/* Mobile-only backdrop behind the sliding drawer */}
@@ -113,7 +158,13 @@ export const Sidebar = ({
                 />
             )}
 
-            <div className={`fixed inset-y-0 left-0 z-40 w-[280px] p-5 flex flex-col
+            <div
+                onTouchStart={handleDrawerTouchStart}
+                onTouchMove={handleDrawerTouchMove}
+                onTouchEnd={handleDrawerTouchEnd}
+                onTouchCancel={handleDrawerTouchEnd}
+                style={isDragging ? { transform: `translateX(${dragX}px)`, transitionDuration: "0ms" } : undefined}
+                className={`fixed inset-y-0 left-0 z-40 w-[280px] p-5 flex flex-col
                 transform transition-transform duration-300 ease-in-out ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
                 rounded-r-2xl shadow-xl
                 sm:static sm:z-20 sm:translate-x-0 sm:transition-[width] sm:duration-300 sm:ease-in-out sm:rounded-2xl sm:shadow-md
@@ -218,25 +269,24 @@ export const Sidebar = ({
                     stats={subjectStats}
                 />
 
+                {/* AI hint — collapsed-sidebar-only affordance (desktop). A
+                    quick visual cue that SmartCheck AI lives here; fades out
+                    smoothly once the sidebar expands, and never renders on
+                    mobile (the drawer has no collapsed state to hint at).
+                    The full "SmartCheck AI / Analysis Engine" label below is
+                    hidden per product decision — see CLAUDE.md — but kept
+                    in the code (via `false &&`) for a fast re-enable. */}
                 <div
                     onClick={() => setSidebarOpen(true)}
-                    className="flex flex-col items-center text-center opacity-80 hover:opacity-100 transition-all duration-300 ease-in-out cursor-pointer group mt-4 mb-2 w-full select-none"
+                    className={`hidden sm:flex items-center justify-center w-11 h-11 mx-auto mt-4 mb-2 rounded-2xl cursor-pointer text-gray-400 dark:text-gray-500 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 hover:shadow-sm transition-all duration-300 ease-in-out ${
+                        sidebarOpen ? "opacity-0 pointer-events-none" : "opacity-100"
+                    }`}
                     title="SmartCheck AI"
                 >
-                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-300 shrink-0 ${
-                        expanded
-                            ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 shadow-sm"
-                            : "bg-transparent text-gray-400 dark:text-gray-500 group-hover:bg-red-50 dark:group-hover:bg-red-900/30 group-hover:text-red-600 dark:group-hover:text-red-400 group-hover:shadow-sm"
-                    }`}>
-                        <Sparkles
-                            size={22}
-                            strokeWidth={1.5}
-                            className={`transition-transform duration-300 ${
-                                expanded ? "scale-110" : "group-hover:scale-110"
-                            }`}
-                        />
-                    </div>
+                    <Sparkles size={22} strokeWidth={1.5} />
+                </div>
 
+                {SHOW_ANALYSIS_ENGINE_LABEL && (
                     <div className={`flex flex-col items-center overflow-hidden transition-all duration-300 ease-in-out w-full ${expanded ? "max-h-[60px] opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"}`}>
                         <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 tracking-wide">
                             SmartCheck AI
@@ -245,7 +295,7 @@ export const Sidebar = ({
                             {t.analysisEngine}
                         </p>
                     </div>
-                </div>
+                )}
 
                 <div className={`
                         flex flex-col space-y-3 px-4 overflow-hidden w-full shrink-0
@@ -281,13 +331,18 @@ export const Sidebar = ({
                         </button>
                     )}
 
-                    <SmartCheckButton
-                        icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
-                        title={t.riskAnalysisTitle}
-                        subtitle={t.riskAnalysisSub}
-                        onClick={() => console.log("Risk analysis clicked")}
-                        comingSoon={true}
-                    />
+                    {/* Hidden per product decision — not ready for release
+                        yet. Kept in code (not deleted) for a fast
+                        re-enable; see CLAUDE.md. */}
+                    {SHOW_RISK_ANALYSIS_BUTTON && (
+                        <SmartCheckButton
+                            icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
+                            title={t.riskAnalysisTitle}
+                            subtitle={t.riskAnalysisSub}
+                            onClick={() => console.log("Risk analysis clicked")}
+                            comingSoon={true}
+                        />
+                    )}
                 </div>
             </div>
 
