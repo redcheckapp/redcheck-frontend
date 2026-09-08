@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 
 interface ModalOverlayProps {
     isOpen: boolean;
+    onClose?: () => void;
     backdropClassName?: string;
     children: (isVisible: boolean) => ReactNode;
 }
@@ -14,9 +15,20 @@ const TRANSITION_MS = 200;
 // popping in at once, and reverse the same way on close. `children` is a
 // render prop so each modal keeps its own dialog markup/sizing and only
 // receives `isVisible` to drive its own transition classes.
-export const ModalOverlay = ({ isOpen, backdropClassName = "bg-black/40", children }: ModalOverlayProps) => {
+export const ModalOverlay = ({ isOpen, onClose, backdropClassName = "bg-black/40", children }: ModalOverlayProps) => {
     const [shouldRender, setShouldRender] = useState(isOpen);
     const [isVisible, setIsVisible] = useState(false);
+
+    // Escape-to-close, shared by every modal that uses this wrapper instead
+    // of each one wiring its own listener.
+    useEffect(() => {
+        if (!isOpen || !onClose) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isOpen, onClose]);
 
     // Render-phase updates: mount / start closing immediately, no need to
     // wait for the effect below for either of these.

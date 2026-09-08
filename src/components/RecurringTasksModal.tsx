@@ -154,7 +154,7 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
     };
 
     return (
-        <ModalOverlay isOpen={isOpen}>
+        <ModalOverlay isOpen={isOpen} onClose={onClose}>
             {(isVisible) => (
             <div className={`bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh] border border-transparent dark:border-gray-800 transition-all duration-200 ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}>
 
@@ -172,7 +172,11 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
                 {/* Routines list */}
                 <div className="p-5 overflow-y-auto flex-1">
                     {loading ? (
-                        <p className="text-center text-gray-400 dark:text-gray-500 py-4 text-sm transition-colors duration-300">{t.loading}</p>
+                        <div className="flex flex-col gap-3 animate-pulse">
+                            {Array.from({ length: 3 }).map((_, i) => (
+                                <div key={i} className="h-14 rounded-xl bg-gray-100 dark:bg-gray-800" />
+                            ))}
+                        </div>
                     ) : recurringTasks.length === 0 ? (
                         <p className="text-center text-gray-400 dark:text-gray-500 py-8 text-sm bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 transition-colors duration-300">
                             {t.empty}

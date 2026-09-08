@@ -1,8 +1,8 @@
 import { Sidebar } from "../components/Sidebar";
 import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
-import { useState, useEffect, useMemo, Suspense, lazy } from "react";
-import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X } from "lucide-react";
+import { useState, useEffect, useMemo, useRef, Suspense, lazy } from "react";
+import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search } from "lucide-react";
 import { ProgressHeatmap } from "../components/ProgressHeatmap";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
 import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
@@ -13,6 +13,7 @@ import { addRecurringTask } from "../api/recurringTaskApi";
 import { dailyAnalysis, pollForAnalysis } from "../api/smartCheckApi";
 import { PageTransition } from "../components/PageTransition";
 import { AgendaView } from "../components/AgendaView";
+import { DashboardSkeleton } from "../components/DashboardSkeleton";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import { toast } from "react-hot-toast";
 
@@ -64,7 +65,10 @@ const translations = {
         tabAgenda: "Agenda",
         tabTasks: "Tareas",
         tabPerformance: "Progreso",
-        viewLastPlan: "Ver plan de hoy"
+        viewLastPlan: "Ver plan de hoy",
+        searchPlaceholder: "Buscar tareas o asignaturas...",
+        searchNoResults: "No hay tareas ni asignaturas que coincidan con",
+        searchClear: "Borrar búsqueda"
     },
     en: {
         alertAiAnalyzing: "🧠 SmartCheck is analyzing your tasks...",
@@ -106,11 +110,18 @@ const translations = {
         tabAgenda: "Agenda",
         tabTasks: "Tasks",
         tabPerformance: "Progress",
-        viewLastPlan: "View today's plan"
+        viewLastPlan: "View today's plan",
+        searchPlaceholder: "Search tasks or subjects...",
+        searchNoResults: "No tasks or subjects match",
+        searchClear: "Clear search"
     }
 };
 
 type MobileView = "tasks" | "agenda" | "performance";
+
+// Only used to label the Ctrl/Cmd+K search hint — doesn't need to be
+// reactive, so it's read once at module scope instead of in a component.
+const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform ?? navigator.userAgent);
 
 const DashboardPage = () => {
     const navigate = useNavigate();
@@ -132,6 +143,8 @@ const DashboardPage = () => {
     
     const [showCalendar, setShowCalendar] = useState(true);
     const [showTrash, setShowTrash] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const searchInputRef = useRef<HTMLInputElement>(null);
 
     // Desktop-only dismissible tip inside the Focus Mode performance panel.
     // Persisted in sessionStorage (not plain state) so it stays dismissed
@@ -374,6 +387,78 @@ const DashboardPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Client-side search across subject names and task titles — cheap
+    // enough not to need debouncing at this data scale. A subject whose
+    // own name matches keeps all its tasks; otherwise only its matching
+    // tasks are kept, and the subject is dropped entirely if none match.
+    // Both the main task list and OverdueSection read from this, so
+    // filtering stays in one place instead of being duplicated per view.
+    const filteredSubjects = useMemo(() => {
+        const query = searchQuery.trim().toLowerCase();
+        if (!query) return subjects;
+
+        return subjects.reduce<SubjectWithTasks[]>((acc, subject) => {
+            if (subject.name.toLowerCase().includes(query)) {
+                acc.push(subject);
+                return acc;
+            }
+            const matchingTasks = subject.tasks.filter(task => task.title.toLowerCase().includes(query));
+            if (matchingTasks.length > 0) {
+                acc.push({ ...subject, tasks: matchingTasks });
+            }
+            return acc;
+        }, []);
+    }, [subjects, searchQuery]);
+
+    // Global keyboard shortcuts: Ctrl/Cmd+K focuses search (the common
+    // command-palette convention), Escape backs out of whatever's open —
+    // mobile drawer, trash view, an inline form — one layer at a time, or
+    // clears the search as a last resort. Modals built on ModalOverlay
+    // (Settings/SmartCheck/recurring routines) handle their own Escape, so
+    // this skips its cascade while one of the two page-level ones is open
+    // to avoid a single keypress closing two things at once.
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+                e.preventDefault();
+                searchInputRef.current?.focus();
+                return;
+            }
+
+            if (e.key !== "Escape") return;
+            if (isSettingsOpen || isAiModalOpen) return;
+
+            if (mobileSidebarOpen) {
+                setMobileSidebarOpen(false);
+            } else if (showTrash) {
+                setShowTrash(false);
+            } else if (openFormNewSubject) {
+                setOpenFormNewSubject(false);
+            } else if (openFormSubjectId !== null) {
+                setOpenFormSubjectId(null);
+            } else if (openFormUpdateSubject !== null) {
+                setOpenFormUpdateSubject(null);
+            } else if (openFormSubjectIdTaskId !== null) {
+                setOpenFormSubjectIdTaskId(null);
+            } else if (searchQuery) {
+                setSearchQuery("");
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [
+        isSettingsOpen,
+        isAiModalOpen,
+        mobileSidebarOpen,
+        showTrash,
+        openFormNewSubject,
+        openFormSubjectId,
+        openFormUpdateSubject,
+        openFormSubjectIdTaskId,
+        searchQuery
+    ]);
+
     const subjectStats = useMemo(() => {
         const totalPendingTasks = subjects.reduce((acc, curr) => {
             const pendingInSubject = curr.tasks?.filter(t => !t.completed).length || 0;
@@ -449,18 +534,7 @@ const DashboardPage = () => {
     const totalPendingOverdue = subjects.reduce((acc, subject) => acc + subject.tasks.filter(t => !t.completed && t.overdue).length, 0);
     
     if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500">
-                <div className="flex flex-col items-center gap-5 animate-pulse">
-                    <div className="bg-[#cc2229] w-16 h-16 rounded-[18px] flex items-center justify-center shadow-lg flex-shrink-0">
-                        <Check size={40} strokeWidth={4} className="text-white" />
-                    </div>
-                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mt-1">
-                        {t.loadingSpace}
-                    </span>
-                </div>
-            </div>
-        );
+        return <DashboardSkeleton />;
     }
 
     if (error) return <div className="flex min-h-screen items-center justify-center bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500"><p className="text-red-500 font-semibold">{error}</p></div>;
@@ -605,8 +679,43 @@ const DashboardPage = () => {
                                     </div>
                                 </div>
 
+                                {/* Client-side search over subject names and task titles —
+                                    filters the list below and OverdueSection together via
+                                    filteredSubjects, computed once above. */}
+                                <div className="relative mb-6">
+                                    <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                                    <input
+                                        ref={searchInputRef}
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        placeholder={t.searchPlaceholder}
+                                        className="w-full pl-10 pr-9 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
+                                    />
+                                    {searchQuery ? (
+                                        <button
+                                            onClick={() => setSearchQuery("")}
+                                            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                            title={t.searchClear}
+                                            aria-label={t.searchClear}
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    ) : (
+                                        <kbd className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 items-center gap-0.5 px-1.5 py-0.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-[10px] font-semibold text-gray-400 dark:text-gray-500 pointer-events-none">
+                                            {isMac ? "⌘" : "Ctrl"}K
+                                        </kbd>
+                                    )}
+                                </div>
+
+                                {searchQuery && filteredSubjects.filter(subject => !subject.archived).length === 0 && (
+                                    <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">
+                                        {t.searchNoResults} "{searchQuery}"
+                                    </p>
+                                )}
+
                                 <div className="flex flex-col gap-8">
-                                    {subjects.filter(subject => !subject.archived).map(subject => {
+                                    {filteredSubjects.filter(subject => !subject.archived).map(subject => {
                                         const isDeleting = deletingSubjects.includes(subject.id);
                                         const isAdding = addingSubjects.includes(subject.id);
                                         return (
@@ -721,7 +830,7 @@ const DashboardPage = () => {
                                 </div>
 
                                 <OverdueSection
-                                    subjects={subjects}
+                                    subjects={filteredSubjects}
                                     totalPendingOverdue={totalPendingOverdue}
                                     handleToggleTask={handleToggleTask}
                                     handleDeleteTask={handleDeleteTask}

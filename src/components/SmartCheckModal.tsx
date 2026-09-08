@@ -60,7 +60,7 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
   const risk = getRiskConfig(aiData.nivelRiesgo, t);
 
   return (
-    <ModalOverlay isOpen={isOpen} backdropClassName="bg-black/60">
+    <ModalOverlay isOpen={isOpen} onClose={onClose} backdropClassName="bg-black/60">
       {(isVisible) => (
       <div
         className={`bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-xl flex flex-col overflow-hidden transition-all duration-200 ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}

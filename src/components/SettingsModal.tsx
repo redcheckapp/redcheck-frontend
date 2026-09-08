@@ -63,7 +63,7 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
 
     // ModalOverlay renders into document.body so it covers the entire window (including the Sidebar)
     return (
-        <ModalOverlay isOpen={isOpen}>
+        <ModalOverlay isOpen={isOpen} onClose={onClose}>
             {(isVisible) => (
             <div className={`bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md flex flex-col overflow-hidden transition-all duration-200 border border-transparent dark:border-gray-800 ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}>
 

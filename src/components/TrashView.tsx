@@ -175,7 +175,15 @@ export const TrashView = ({ onClose }: { onClose: () => void }) => {
             </div>
 
             {loading ? (
-                <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500 transition-colors duration-300">{t.loading}</div>
+                <div className="flex-1 space-y-8 animate-pulse">
+                    {Array.from({ length: 2 }).map((_, i) => (
+                        <div key={i} className="flex flex-col gap-2">
+                            <div className="h-5 w-40 rounded-md bg-gray-200 dark:bg-gray-800 mb-1" />
+                            <div className="h-14 rounded-xl bg-gray-100 dark:bg-gray-800" />
+                            <div className="h-14 rounded-xl bg-gray-100 dark:bg-gray-800" />
+                        </div>
+                    ))}
+                </div>
             ) : subjects.length === 0 && tasks.length === 0 ? (
                 // More visual, adapted empty state
                 <div className="flex-1 flex flex-col items-center justify-center gap-3 transition-colors duration-300">
