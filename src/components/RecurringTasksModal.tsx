@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { X, Trash2, Power, PowerOff, Pencil } from "lucide-react";
+import { toast } from "react-hot-toast";
 import { getRecurringTasks, toggleRecurringTaskActive, deleteRecurringTask, updateRecurringTask } from "../api/recurringTaskApi";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import type { RecurringTaskResponse } from "../types";
@@ -138,7 +139,7 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
             setEditingTaskId(null); // We close the form
         } catch (error) {
             console.error("Error updating the routine:", error);
-            alert(t.errUpdate);
+            toast.error(t.errUpdate);
         }
     };
 

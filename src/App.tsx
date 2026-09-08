@@ -1,8 +1,10 @@
 import { Suspense, lazy, useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import { Check } from "lucide-react";
-import { ThemeProvider } from './context/ThemeContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Route-level code splitting: each page becomes its own chunk, loaded on
 // demand instead of being bundled into the initial download.
@@ -48,6 +50,7 @@ const PARTICLE_ROUTES = ["/", "/login", "/register", "/terms", "/privacy"];
 
 const AppShell = () => {
     const location = useLocation();
+    const { theme } = useTheme();
     // One-way flag: once a public page has been visited, keep the particles
     // mounted for the rest of the session — including while on /dashboard,
     // where they're simply hidden behind its opaque background — so the
@@ -79,19 +82,30 @@ const AppShell = () => {
                     <Route path="/privacy" element={<PrivacyPage />} />
                 </Routes>
             </Suspense>
+            <Toaster
+                position="top-center"
+                toastOptions={{
+                    duration: 4000,
+                    style: theme === "dark"
+                        ? { background: "#27272a", color: "#f4f4f5", border: "1px solid #3f3f46" }
+                        : { background: "#ffffff", color: "#18181b", border: "1px solid #f4f4f5" },
+                }}
+            />
         </>
     );
 };
 
 const App = () => {
     return (
-        <LanguageProvider>
-            <ThemeProvider>
-                <BrowserRouter>
-                    <AppShell />
-                </BrowserRouter>
-            </ThemeProvider>
-        </LanguageProvider>
+        <ErrorBoundary>
+            <LanguageProvider>
+                <ThemeProvider>
+                    <BrowserRouter>
+                        <AppShell />
+                    </BrowserRouter>
+                </ThemeProvider>
+            </LanguageProvider>
+        </ErrorBoundary>
     );
 };
 

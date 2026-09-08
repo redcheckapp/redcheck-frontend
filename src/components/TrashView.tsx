@@ -140,7 +140,7 @@ export const TrashView = ({ onClose }: { onClose: () => void }) => {
             toast.success(t.toastTrashEmptied);
         } catch (error) {
             console.error("Error emptying the trash:", error);
-            alert(t.errEmptyTrash);
+            toast.error(t.errEmptyTrash);
         } finally {
             setLoading(false);
         }

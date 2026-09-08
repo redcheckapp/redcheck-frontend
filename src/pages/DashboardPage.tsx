@@ -14,6 +14,7 @@ import { dailyAnalysis, pollForAnalysis } from "../api/smartCheckApi";
 import { PageTransition } from "../components/PageTransition";
 import { AgendaView } from "../components/AgendaView";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
+import { toast } from "react-hot-toast";
 
 // These are only needed after a deliberate user action (open settings, run
 // SmartCheck, open the trash), so they're split out of the main dashboard chunk.
@@ -24,7 +25,8 @@ const TrashView = lazy(() => import("../components/TrashView").then(m => ({ defa
 // --- Translation dictionary for the Dashboard ---
 const translations = {
     es: {
-        alertAiAnalyzing: "🧠 SmartCheck está analizando tus tareas. Te avisaremos cuando esté listo (Suele tardar unos 15-20 segundos).",
+        alertAiAnalyzing: "🧠 SmartCheck está analizando tus tareas...",
+        alertAiReady: "¡Tu plan de hoy ya está listo!",
         alertAiTimeout: "SmartCheck tardó demasiado en responder. Inténtalo de nuevo.",
         alertAiError: "Error al obtener el análisis.",
         alertRecurringCreated: "Tarea recurrente creada. Aparecerá según su periodicidad a partir de mañana.",
@@ -65,7 +67,8 @@ const translations = {
         viewLastPlan: "Ver plan de hoy"
     },
     en: {
-        alertAiAnalyzing: "🧠 SmartCheck is analyzing your tasks. We'll notify you when it's ready (Usually takes 15-20 seconds).",
+        alertAiAnalyzing: "🧠 SmartCheck is analyzing your tasks...",
+        alertAiReady: "Your plan for today is ready!",
         alertAiTimeout: "SmartCheck took too long to respond. Please try again.",
         alertAiError: "Error fetching analysis.",
         alertRecurringCreated: "Recurring task created. It will appear according to its periodicity starting tomorrow.",
@@ -165,7 +168,7 @@ const DashboardPage = () => {
     
     const handleGenerateAiPlan = async () => {
         setIsAiLoading(true);
-        alert(t.alertAiAnalyzing);
+        const toastId = toast.loading(t.alertAiAnalyzing);
         try {
             await dailyAnalysis(language);
         } catch (error) {
@@ -175,14 +178,15 @@ const DashboardPage = () => {
         pollForAnalysis()
             .then((analysis) => {
                 setAiPlanData(analysis);
-                setAiNotificationReady(true); 
+                setAiNotificationReady(true);
+                toast.success(t.alertAiReady, { id: toastId });
             })
             .catch((err) => {
                 if (err?.message === "TIMEOUT") {
-                    alert(t.alertAiTimeout);
+                    toast.error(t.alertAiTimeout, { id: toastId });
                 } else {
                     console.error("Error during polling:", err);
-                    alert(t.alertAiError);
+                    toast.error(t.alertAiError, { id: toastId });
                 }
             })
             .finally(() => {
@@ -226,7 +230,7 @@ const DashboardPage = () => {
                     description: newTask.description,
                     periodicidad: newTask.recurrence
                 });
-                alert(t.alertRecurringCreated);
+                toast.success(t.alertRecurringCreated);
                 
                 setOpenFormSubjectId(null);
                 setTimeout(() => {
@@ -308,7 +312,7 @@ const DashboardPage = () => {
             ));
         } catch (err) { 
             console.error("Error archiving/unarchiving:", err);
-            alert(t.errArchive);
+            toast.error(t.errArchive);
         }
     };
 
@@ -319,7 +323,7 @@ const DashboardPage = () => {
                 localStorage.removeItem("token");
                 navigate("/login");
             } catch {
-                alert(t.errDeleteAccount);
+                toast.error(t.errDeleteAccount);
             }
         }
     };
