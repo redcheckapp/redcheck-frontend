@@ -447,7 +447,7 @@ const DashboardPage = () => {
 
     return (
         <PageTransition>
-            <div className="flex flex-col sm:flex-row h-screen bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500 p-2 sm:p-4 overflow-hidden">
+            <div className="flex flex-col sm:flex-row h-dvh bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500 p-2 sm:p-4 overflow-hidden">
 
                 <Sidebar
                     sidebarOpen={sidebarOpen}
@@ -460,6 +460,7 @@ const DashboardPage = () => {
                     onAiPlanClick={handleGenerateAiPlan}
                     isAiLoading={isAiLoading}
                     aiNotificationReady={aiNotificationReady}
+                    hasAiPlan={aiPlanData !== null}
                     onOpenAiModal={handleOpenAiModal}
                     subjectStats={subjectStats}
                     showTrash={showTrash}

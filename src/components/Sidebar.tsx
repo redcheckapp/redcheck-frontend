@@ -1,4 +1,4 @@
-import { LogOut, Settings, Bell, Check, Sparkles, Trash2 } from "lucide-react";
+import { LogOut, Settings, Bell, Check, Sparkles, Trash2, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import type { SubjectStat, SubjectWithTasks } from "../types";
@@ -15,6 +15,7 @@ interface SidebarProps {
     onAiPlanClick: () => void;
     isAiLoading: boolean;
     aiNotificationReady: boolean;
+    hasAiPlan: boolean;
     onOpenAiModal: () => void;
     subjectStats: SubjectStat[];
     showTrash: boolean;
@@ -42,6 +43,7 @@ const translations = {
         aiConsulting: "Consultando a SmartCheck...",
         riskAnalysisTitle: "Analizar riesgos",
         riskAnalysisSub: "Identifica posibles bloqueos o retrasos.",
+        viewLastPlan: "Ver plan de hoy",
         trash: "Papelera",
         settings: "Ajustes",
         logout: "Cerrar sesión"
@@ -62,6 +64,7 @@ const translations = {
         aiConsulting: "Consulting SmartCheck...",
         riskAnalysisTitle: "Analyze Risks",
         riskAnalysisSub: "Identify potential blockers or delays.",
+        viewLastPlan: "View today's plan",
         trash: "Trash",
         settings: "Settings",
         logout: "Log out"
@@ -77,6 +80,7 @@ export const Sidebar = ({
     onAiPlanClick,
     isAiLoading,
     aiNotificationReady,
+    hasAiPlan,
     onOpenAiModal,
     subjectStats,
     showTrash,
@@ -256,12 +260,28 @@ export const Sidebar = ({
                         icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>}
                         title={t.dailyAnalysisTitle}
                         subtitle={isAiLoading ? t.aiConsulting : t.dailyAnalysisSub}
-                        onClick={() => { onAiPlanClick(); onCloseMobile(); }}
+                        onClick={onAiPlanClick}
                         comingSoon={false}
                         isLoading={isAiLoading}
                     />
 
-                    <SmartCheckButton 
+                    {/* Persistent access to the last generated plan — stays
+                        reachable even after the bell notification has been
+                        dismissed/read, since only one (today's) plan exists
+                        at a time. Placed right after the (functional) daily
+                        analysis button, ahead of the disabled "coming soon"
+                        one, so it stays visible without scrolling this list. */}
+                    {hasAiPlan && (
+                        <button
+                            onClick={() => { onOpenAiModal(); onCloseMobile(); }}
+                            className="flex items-center justify-center gap-2 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl py-2.5 transition-colors"
+                        >
+                            <Eye size={14} />
+                            {t.viewLastPlan}
+                        </button>
+                    )}
+
+                    <SmartCheckButton
                         icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
                         title={t.riskAnalysisTitle}
                         subtitle={t.riskAnalysisSub}
