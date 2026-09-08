@@ -2,7 +2,7 @@ import { Sidebar } from "../components/Sidebar";
 import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
 import { useState, useEffect, useMemo, Suspense, lazy } from "react";
-import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3 } from "lucide-react";
+import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye } from "lucide-react";
 import { ProgressHeatmap } from "../components/ProgressHeatmap";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
 import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
@@ -60,7 +60,8 @@ const translations = {
         openMenu: "Abrir menú",
         tabAgenda: "Agenda",
         tabTasks: "Tareas",
-        tabPerformance: "Progreso"
+        tabPerformance: "Progreso",
+        viewLastPlan: "Ver plan de hoy"
     },
     en: {
         alertAiAnalyzing: "🧠 SmartCheck is analyzing your tasks. We'll notify you when it's ready (Usually takes 15-20 seconds).",
@@ -99,7 +100,8 @@ const translations = {
         openMenu: "Open menu",
         tabAgenda: "Agenda",
         tabTasks: "Tasks",
-        tabPerformance: "Progress"
+        tabPerformance: "Progress",
+        viewLastPlan: "View today's plan"
     }
 };
 
@@ -487,7 +489,20 @@ const DashboardPage = () => {
                     <span className="text-lg font-black text-gray-900 dark:text-white tracking-tight">
                         REDCHECK
                     </span>
-                    <div className="w-10 h-10" />
+                    {aiPlanData ? (
+                        <button
+                            onClick={handleOpenAiModal}
+                            className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-white dark:bg-gray-900 shadow-md text-red-600 dark:text-red-400"
+                            title={t.viewLastPlan}
+                        >
+                            <Eye size={20} />
+                            {aiNotificationReady && (
+                                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-purple-500 rounded-full border border-white dark:border-gray-900 animate-pulse"></span>
+                            )}
+                        </button>
+                    ) : (
+                        <div className="w-10 h-10" />
+                    )}
                 </div>
 
                 <div key={showTrash ? 'view-trash' : 'view-dashboard'} className="flex-1 flex h-full min-h-0 animate-soft-fade">
@@ -535,22 +550,41 @@ const DashboardPage = () => {
                                         </p>
                                     </div>
 
-                                    {/* Focus mode is a desktop-only concept — mobile switches
-                                        between Agenda/Tasks/Progress via the bottom tab bar instead. */}
-                                    <button
-                                        onClick={() => setShowCalendar(!showCalendar)}
-                                        className={`hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-all border shrink-0 mt-1 ${
-                                            showCalendar
-                                                ? "bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700"
-                                                : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 shadow-sm"
-                                        }`}
-                                        title={showCalendar ? t.hideAgendaTitle : t.showAgendaTitle}
-                                    >
-                                        {showCalendar ? <Focus size={18} strokeWidth={2.5} /> : <LayoutGrid size={18} strokeWidth={2.5} />}
-                                        <span className="hidden xl:inline">
-                                            {showCalendar ? t.focusMode : t.viewCalendar}
-                                        </span>
-                                    </button>
+                                    <div className="hidden sm:flex items-center gap-2 shrink-0 mt-1">
+                                        {/* Always-visible access to the last SmartCheck plan — lives
+                                            here (not just inside the collapsible Sidebar section) so
+                                            it stays reachable even when the sidebar is collapsed. */}
+                                        {aiPlanData && (
+                                            <button
+                                                onClick={handleOpenAiModal}
+                                                className="relative flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-all border shrink-0 bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                title={t.viewLastPlan}
+                                            >
+                                                <Eye size={18} strokeWidth={2.5} />
+                                                <span className="hidden xl:inline">{t.viewLastPlan}</span>
+                                                {aiNotificationReady && (
+                                                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-purple-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse"></span>
+                                                )}
+                                            </button>
+                                        )}
+
+                                        {/* Focus mode is a desktop-only concept — mobile switches
+                                            between Agenda/Tasks/Progress via the bottom tab bar instead. */}
+                                        <button
+                                            onClick={() => setShowCalendar(!showCalendar)}
+                                            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-all border shrink-0 ${
+                                                showCalendar
+                                                    ? "bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700"
+                                                    : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 shadow-sm"
+                                            }`}
+                                            title={showCalendar ? t.hideAgendaTitle : t.showAgendaTitle}
+                                        >
+                                            {showCalendar ? <Focus size={18} strokeWidth={2.5} /> : <LayoutGrid size={18} strokeWidth={2.5} />}
+                                            <span className="hidden xl:inline">
+                                                {showCalendar ? t.focusMode : t.viewCalendar}
+                                            </span>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="flex flex-col gap-8">
