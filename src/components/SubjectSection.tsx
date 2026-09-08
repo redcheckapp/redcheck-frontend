@@ -1,9 +1,11 @@
 import { Pencil, Archive, X, Plus, Repeat } from "lucide-react";
 import { TaskItem } from "./TaskItem";
-import { RecurringTasksModal } from "./RecurringTasksModal";
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import type { SubjectWithTasks } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
+
+// Only needed once the user opens the recurring-routines modal for a subject.
+const RecurringTasksModal = lazy(() => import("./RecurringTasksModal").then(m => ({ default: m.RecurringTasksModal })));
 
 interface SubjectSectionProps {
     subject: SubjectWithTasks;
@@ -263,7 +265,9 @@ export const SubjectSection = ({
                 </div>
             </div>
 
-            <RecurringTasksModal isOpen={isRecurringModalOpen} onClose={() => setIsRecurringModalOpen(false)} subjectId={subject.id} subjectName={subject.name} />
+            <Suspense fallback={null}>
+                <RecurringTasksModal isOpen={isRecurringModalOpen} onClose={() => setIsRecurringModalOpen(false)} subjectId={subject.id} subjectName={subject.name} />
+            </Suspense>
         </div>
     );
 };

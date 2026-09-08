@@ -21,7 +21,7 @@ const BackgroundParticles = memo(({ init }: { init: boolean }) => {
                     color: { value: "#9ca3af" }, 
                     links: { color: "#9ca3af", distance: 150, enable: true, opacity: 0.2, width: 1 },
                     move: { direction: "none", enable: true, outModes: { default: "bounce" }, random: false, speed: 1.0, straight: false },
-                    number: { density: { enable: true, area: 800 }, value: 60 },
+                    number: { density: { enable: true, width: 800, height: 800 }, value: 60 },
                     opacity: { value: 0.3 },
                     shape: { type: "circle" },
                     size: { value: { min: 1, max: 2 } },

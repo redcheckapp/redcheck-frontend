@@ -76,7 +76,7 @@ export const ProgressHeatmap = () => {
     });
 
     // We group by weeks to paint the months
-    const weeks = [];
+    const weeks: Date[][] = [];
     for (let i = 0; i < dateArray.length; i += 7) {
         weeks.push(dateArray.slice(i, i + 7));
     }

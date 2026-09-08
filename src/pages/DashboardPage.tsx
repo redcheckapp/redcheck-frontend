@@ -1,23 +1,25 @@
 import { Sidebar } from "../components/Sidebar";
 import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
-import { SettingsModal } from "../components/SettingsModal";
-import { AnimatedVisibility } from "../components/AnimatedVisibility";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense, lazy } from "react";
 import { Check, Coffee, Plus, Focus, LayoutGrid } from "lucide-react";
 import { ProgressHeatmap } from "../components/ProgressHeatmap";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
 import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
-import type { SubjectWithTasks } from "../types";
+import type { SmartCheckAiData, SubjectWithTasks } from "../types";
 import { useNavigate } from "react-router-dom";
 import { deleteUser, getUsername } from "../api/userApi";
 import { addRecurringTask } from "../api/recurringTaskApi";
-import SmartCheckModal from "../components/SmartCheckModal";
 import { dailyAnalysis, pollForAnalysis } from "../api/smartCheckApi";
 import { PageTransition } from "../components/PageTransition";
 import { AgendaView } from "../components/AgendaView";
-import { TrashView } from "../components/TrashView";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
+
+// These are only needed after a deliberate user action (open settings, run
+// SmartCheck, open the trash), so they're split out of the main dashboard chunk.
+const SettingsModal = lazy(() => import("../components/SettingsModal").then(m => ({ default: m.SettingsModal })));
+const SmartCheckModal = lazy(() => import("../components/SmartCheckModal"));
+const TrashView = lazy(() => import("../components/TrashView").then(m => ({ default: m.TrashView })));
 
 // --- Translation dictionary for the Dashboard ---
 const translations = {
@@ -129,7 +131,7 @@ const DashboardPage = () => {
     const handleChangeSubject = (e: React.ChangeEvent<HTMLInputElement>) => { setNewSubject({ ...newSubject, [e.target.name]: e.target.value}); }
 
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
-    const [aiPlanData, setAiPlanData] = useState(null);
+    const [aiPlanData, setAiPlanData] = useState<SmartCheckAiData | null>(null);
     const [isAiLoading, setIsAiLoading] = useState(false);
     const [aiNotificationReady, setAiNotificationReady] = useState(false);
     
@@ -203,8 +205,8 @@ const DashboardPage = () => {
                     setNewTask({title: "", description: "", deadline: "", recurrence: "NONE"});
                 }, 500);
             }
-        } catch(err) { 
-            setError(t.errCreateTask); 
+        } catch {
+            setError(t.errCreateTask);
         }
     };
 
@@ -216,7 +218,7 @@ const DashboardPage = () => {
             setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: subject.tasks.map(task => task.id !== taskId ? task : response) }));
             setOpenFormSubjectIdTaskId(null);
             setUpdatedTask({title: "", description: "", deadline: ""});
-        } catch(err) { setError(t.errGeneric); }
+        } catch { setError(t.errGeneric); }
     };
 
     const handleDeleteTask = async (subjectId: number, taskId: number) => {
@@ -263,7 +265,7 @@ const DashboardPage = () => {
             setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, ...response, tasks: subject.tasks }));
             setOpenFormUpdateSubject(null);
             setUpdatedSubject({ name: "", description: "" });
-        } catch (err) { setError(t.errGeneric); }
+        } catch { setError(t.errGeneric); }
     };
 
     const handleArchiveSubject = async (subjectId: number) => {
@@ -288,7 +290,7 @@ const DashboardPage = () => {
                 await deleteUser(); 
                 localStorage.removeItem("token");
                 navigate("/login");
-            } catch (err) {
+            } catch {
                 alert(t.errDeleteAccount);
             }
         }
@@ -327,14 +329,17 @@ const DashboardPage = () => {
                 setUsername(profile.username);
                 setUserEmail(profile.email);
                 await refreshData(); 
-            } catch (err) {
+            } catch {
                 setError(t.errLoadData);
-            } finally { 
+            } finally {
                 setLoading(false); 
             }
         };
     
         fetchInitialData();
+        // Intentionally run once on mount only — including `t` would refetch
+        // the whole dashboard every time the user toggles the UI language.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const subjectStats = useMemo(() => {
@@ -380,7 +385,7 @@ const DashboardPage = () => {
         try {
             await toggleTask(subjectId, taskId, !task.completed);
             setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: subject.tasks.map(task => task.id !== taskId ? task : { ...task, completed: !task.completed }) }));
-        } catch (err) { console.error("Error updating the task"); }
+        } catch { console.error("Error updating the task"); }
     };
 
     const handleSubmitSubject = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -459,13 +464,14 @@ const DashboardPage = () => {
                     
                     {showTrash ? (
                         <div className="flex-1 ml-4">
-                            <TrashView 
-                                onClose={() => {
-                                    setShowTrash(false);
-                                    refreshData();
-                                }} 
-                                onRestore={() => {}} 
-                            />
+                            <Suspense fallback={null}>
+                                <TrashView
+                                    onClose={() => {
+                                        setShowTrash(false);
+                                        refreshData();
+                                    }}
+                                />
+                            </Suspense>
                         </div>
                     ) : (
                         <>
@@ -680,21 +686,25 @@ const DashboardPage = () => {
                     </>
                 )}
 
-                <SettingsModal 
-                    isOpen={isSettingsOpen}
-                    onClose={() => setIsSettingsOpen(false)}
-                    subjects={subjects}
-                    handleArchiveSubject={handleArchiveSubject}
-                    handleDeleteAccount={handleDeleteAccount}
-                    userEmail={userEmail}
-                />
+                <Suspense fallback={null}>
+                    <SettingsModal
+                        isOpen={isSettingsOpen}
+                        onClose={() => setIsSettingsOpen(false)}
+                        subjects={subjects}
+                        handleArchiveSubject={handleArchiveSubject}
+                        handleDeleteAccount={handleDeleteAccount}
+                        userEmail={userEmail}
+                    />
+                </Suspense>
 
-                <SmartCheckModal 
-                    isOpen={isAiModalOpen} 
-                    onClose={() => setIsAiModalOpen(false)} 
-                    aiData={aiPlanData} 
-                    subjects={subjects} 
-                />
+                <Suspense fallback={null}>
+                    <SmartCheckModal
+                        isOpen={isAiModalOpen}
+                        onClose={() => setIsAiModalOpen(false)}
+                        aiData={aiPlanData}
+                        subjects={subjects}
+                    />
+                </Suspense>
             </div>
         </div>
         </PageTransition>

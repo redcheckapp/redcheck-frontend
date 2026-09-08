@@ -45,6 +45,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook lives alongside its provider by design
 export const useLanguage = () => {
     const context = useContext(LanguageContext);
     if (!context) {

@@ -42,7 +42,7 @@ const translations = {
     }
 };
 
-export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onRestore: () => void }) => {
+export const TrashView = ({ onClose }: { onClose: () => void }) => {
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
 

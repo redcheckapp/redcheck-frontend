@@ -57,7 +57,7 @@ const translations = {
 };
 
 // We pass `t` (translations) and `locale` as parameters to the helper function
-const renderDeadline = (deadlineStr: string | null, isCompleted: boolean, t: any, locale: string) => {
+const renderDeadline = (deadlineStr: string | null, isCompleted: boolean, t: typeof translations['es'], locale: string) => {
     if (!deadlineStr) return t.noDeadline;
 
     const deadlineDate = new Date(deadlineStr);

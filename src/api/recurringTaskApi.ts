@@ -14,7 +14,7 @@ export const addRecurringTask = async (
     return response.data;
 };
 
-export const getRecurringTasks = async (subjectId: number): Promise<RecurringTaskResponse> => {
+export const getRecurringTasks = async (subjectId: number): Promise<RecurringTaskResponse[]> => {
     const response = await api.get(`/subjects/${subjectId}/recurring-tasks`);
     return response.data;
 };

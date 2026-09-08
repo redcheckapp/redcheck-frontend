@@ -1,5 +1,5 @@
 import { createPortal } from "react-dom";
-import { X, ArchiveRestore, Trash2, Moon, Sun, Globe } from "lucide-react";
+import { X, ArchiveRestore, Trash2, Moon, Sun } from "lucide-react";
 import type { SubjectWithTasks } from "../types";
 import { useTheme } from "../context/ThemeContext"; 
 import { useLanguage } from "../context/LanguageContext";

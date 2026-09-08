@@ -38,7 +38,7 @@ const BackgroundParticles = memo(({ init }: { init: boolean }) => {
                         straight: false,
                     },
                     number: {
-                        density: { enable: true, area: 800 },
+                        density: { enable: true, width: 800, height: 800 },
                         value: 60, 
                     },
                     opacity: { value: 0.3 },
@@ -124,7 +124,7 @@ const RegisterPage = () => {
         try {
             await register(form);
             navigate("/login");
-        } catch(err) {
+        } catch {
             setError(t.errorMsg);
         } finally {
             setLoading(false);

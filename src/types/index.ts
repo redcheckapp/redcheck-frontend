@@ -80,3 +80,15 @@ export interface SubjectStat {
     colorClass: string;       // Ex: "bg-red-500"
     hoverTextClass: string;   // Ex: "group-hover:text-red-600"
 }
+
+export interface SmartCheckPlanItem {
+    id: number;
+    ordenDefinido: number;
+    razonPrioridad: string;
+}
+
+export interface SmartCheckAiData {
+    nivelRiesgo: string;
+    mensajeApoyo: string;
+    planDeHoy: SmartCheckPlanItem[];
+}

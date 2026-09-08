@@ -319,7 +319,7 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                     </div>
                                 ) : (
                                     tasksForCurrentDay.map(task => {
-                                        const tDate = new Date(task.deadline);
+                                        const tDate = new Date(task.deadline!);
                                         const hasTime = tDate.getHours() !== 0 || tDate.getMinutes() !== 0;
                                         const timeString = hasTime 
                                             ? tDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 

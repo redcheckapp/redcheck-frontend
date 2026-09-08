@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, Trash2, Power, PowerOff, Pencil } from "lucide-react";
 import { getRecurringTasks, toggleRecurringTaskActive, deleteRecurringTask, updateRecurringTask } from "../api/recurringTaskApi";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
+import type { RecurringTaskResponse } from "../types";
 
 interface RecurringTasksModalProps {
     isOpen: boolean;
@@ -69,14 +70,14 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
 
-    const [recurringTasks, setRecurringTasks] = useState<any[]>([]);
+    const [recurringTasks, setRecurringTasks] = useState<RecurringTaskResponse[]>([]);
     const [loading, setLoading] = useState(true);
 
     // States for editing
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
     const [editForm, setEditForm] = useState({ title: "", description: "", frequency: "DAILY" });
 
-    const fetchTasks = async () => {
+    const fetchTasks = useCallback(async () => {
         setLoading(true);
         try {
             const data = await getRecurringTasks(subjectId);
@@ -86,14 +87,14 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
         } finally {
             setLoading(false);
         }
-    };
+    }, [subjectId]);
 
     useEffect(() => {
         if (isOpen) {
             fetchTasks();
             setEditingTaskId(null); // Resets the form when opening/closing
         }
-    }, [isOpen, subjectId]);
+    }, [isOpen, subjectId, fetchTasks]);
 
     const handleToggle = async (taskId: number, currentActive: boolean) => {
         try {
@@ -114,7 +115,7 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
         }
     };
 
-    const handleStartEdit = (task: any) => {
+    const handleStartEdit = (task: RecurringTaskResponse) => {
         setEditingTaskId(task.id);
         setEditForm({ 
             title: task.title, 

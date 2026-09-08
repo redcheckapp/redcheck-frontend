@@ -1,12 +1,12 @@
 import React from 'react';
 import { createPortal } from 'react-dom'; // <-- KEY IMPORT
-import type { SubjectWithTasks } from '../types';
+import type { SmartCheckAiData, SubjectWithTasks } from '../types';
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 
 interface SmartCheckModalProps {
   isOpen: boolean;
   onClose: () => void;
-  aiData: any;
+  aiData: SmartCheckAiData | null;
   subjects: SubjectWithTasks[];
 }
 
@@ -35,7 +35,7 @@ const translations = {
 };
 
 // We pass the translation dictionary (t) to translate the label
-const getRiskConfig = (nivel: string, t: any) => {
+const getRiskConfig = (nivel: string, t: typeof translations['es']) => {
   switch (nivel?.toUpperCase()) {
     case 'ALTO':
     case 'HIGH':
@@ -96,8 +96,8 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
 
           <div className="flex flex-col gap-3">
             {aiData.planDeHoy
-              ?.sort((a: any, b: any) => a.ordenDefinido - b.ordenDefinido)
-              .map((itemIA: any) => {
+              ?.sort((a, b) => a.ordenDefinido - b.ordenDefinido)
+              .map((itemIA) => {
                 let tareaReal = null;
                 let nombreAsignatura = '';
 

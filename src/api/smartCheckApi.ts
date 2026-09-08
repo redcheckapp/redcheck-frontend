@@ -1,4 +1,6 @@
+import axios from "axios";
 import api from "./axiosConfig";
+import type { SmartCheckAiData } from "../types";
 
 export const getTodaysAnalysis = async (): Promise<string> => {
     const response = await api.get("/ai/today/analysis");
@@ -11,14 +13,14 @@ export const dailyAnalysis = async (lang: string = 'es'): Promise<string> => {
     return response.data;
 }
 
-export const pollForAnalysis = async (intervalMs = 3000, maxAttempts = 60): Promise<any> => {
+export const pollForAnalysis = async (intervalMs = 3000, maxAttempts = 60): Promise<SmartCheckAiData> => {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         await new Promise(res => setTimeout(res, intervalMs));
         try {
             const rawData = await getTodaysAnalysis();
 
             // Converts text into JSON Object if necessary
-            const data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+            const data: SmartCheckAiData = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
 
             // Now can read planDeHoy (Gemini's prompt is written in spanish)
             if (data && data.planDeHoy && data.planDeHoy.length > 0) {
@@ -26,9 +28,9 @@ export const pollForAnalysis = async (intervalMs = 3000, maxAttempts = 60): Prom
                 return data;
             }
             console.log(`Attemp ${attempt}/${maxAttempts}: Backend still thinking...`);
-            
-        } catch (error: any) {
-            if (error?.response?.status === 404) {
+
+        } catch (error) {
+            if (axios.isAxiosError(error) && error.response?.status === 404) {
                 console.log(`Attemp ${attempt}/${maxAttempts}: Plan still does not exist (404).`);
                 continue;
             }
