@@ -2,7 +2,7 @@ import { Sidebar } from "../components/Sidebar";
 import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
 import { useState, useEffect, useMemo, Suspense, lazy } from "react";
-import { Check, Coffee, Plus, Focus, LayoutGrid } from "lucide-react";
+import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3 } from "lucide-react";
 import { ProgressHeatmap } from "../components/ProgressHeatmap";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
 import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
@@ -56,7 +56,11 @@ const translations = {
         perfSubtitle: "Historial de constancia",
         focusActiveTitle: "Modo Foco Activo",
         focusActiveDesc: "El calendario principal está oculto. Concéntrate en completar tus tareas de hoy para mantener tu racha de progreso en verde.",
-        loadingSpace: "Cargando tu espacio..."
+        loadingSpace: "Cargando tu espacio...",
+        openMenu: "Abrir menú",
+        tabAgenda: "Agenda",
+        tabTasks: "Tareas",
+        tabPerformance: "Progreso"
     },
     en: {
         alertAiAnalyzing: "🧠 SmartCheck is analyzing your tasks. We'll notify you when it's ready (Usually takes 15-20 seconds).",
@@ -91,9 +95,15 @@ const translations = {
         perfSubtitle: "Consistency history",
         focusActiveTitle: "Focus Mode Active",
         focusActiveDesc: "The main calendar is hidden. Focus on completing your tasks today to keep your progress streak green.",
-        loadingSpace: "Loading your space..."
+        loadingSpace: "Loading your space...",
+        openMenu: "Open menu",
+        tabAgenda: "Agenda",
+        tabTasks: "Tasks",
+        tabPerformance: "Progress"
     }
 };
+
+type MobileView = "tasks" | "agenda" | "performance";
 
 const DashboardPage = () => {
     const navigate = useNavigate();
@@ -105,6 +115,8 @@ const DashboardPage = () => {
     const [error, setError] = useState<string | null>(null);
 
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+    const [mobileView, setMobileView] = useState<MobileView>("tasks");
     const [openFormSubjectId, setOpenFormSubjectId] = useState<number | null>(null);
     const [openFormSubjectIdTaskId, setOpenFormSubjectIdTaskId] = useState<{subjectId: number; taskId: number} | null>(null);
     const [openFormUpdateSubject, setOpenFormUpdateSubject] = useState<number | null>(null);
@@ -435,18 +447,20 @@ const DashboardPage = () => {
 
     return (
         <PageTransition>
-            <div className="flex h-screen bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500 p-4 overflow-hidden">
-                
-                <Sidebar 
-                    sidebarOpen={sidebarOpen} 
-                    setSidebarOpen={setSidebarOpen} 
-                    totalPending={totalPending} 
-                    subjects={subjects} 
+            <div className="flex flex-col sm:flex-row h-screen bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500 p-2 sm:p-4 overflow-hidden">
+
+                <Sidebar
+                    sidebarOpen={sidebarOpen}
+                    setSidebarOpen={setSidebarOpen}
+                    mobileOpen={mobileSidebarOpen}
+                    onCloseMobile={() => setMobileSidebarOpen(false)}
+                    totalPending={totalPending}
+                    subjects={subjects}
                     onOpenSettings={() => setIsSettingsOpen(true)}
-                    onAiPlanClick={handleGenerateAiPlan} 
+                    onAiPlanClick={handleGenerateAiPlan}
                     isAiLoading={isAiLoading}
                     aiNotificationReady={aiNotificationReady}
-                    onOpenAiModal={handleOpenAiModal} 
+                    onOpenAiModal={handleOpenAiModal}
                     subjectStats={subjectStats}
                     showTrash={showTrash}
                     onOpenTrash={() => {
@@ -460,10 +474,25 @@ const DashboardPage = () => {
                     onGoHome={() => setShowTrash(false)}
                 />
 
-                <div key={showTrash ? 'view-trash' : 'view-dashboard'} className="flex-1 flex h-full animate-soft-fade">
-                    
+                {/* --- MOBILE TOP BAR (hamburger + logo) --- */}
+                <div className="sm:hidden flex items-center justify-between shrink-0 mb-2 px-1 py-1">
+                    <button
+                        onClick={() => setMobileSidebarOpen(true)}
+                        className="flex items-center justify-center w-10 h-10 rounded-xl bg-white dark:bg-gray-900 shadow-md text-gray-600 dark:text-gray-300"
+                        title={t.openMenu}
+                    >
+                        <Menu size={20} />
+                    </button>
+                    <span className="text-lg font-black text-gray-900 dark:text-white tracking-tight">
+                        REDCHECK
+                    </span>
+                    <div className="w-10 h-10" />
+                </div>
+
+                <div key={showTrash ? 'view-trash' : 'view-dashboard'} className="flex-1 flex h-full min-h-0 animate-soft-fade">
+
                     {showTrash ? (
-                        <div className="flex-1 ml-4">
+                        <div className="flex-1 sm:ml-4">
                             <Suspense fallback={null}>
                                 <TrashView
                                     onClose={() => {
@@ -476,22 +505,23 @@ const DashboardPage = () => {
                     ) : (
                         <>
                             {/* --- BLOCK 1: AGENDA (LEFT) --- */}
-                            <div className={`transition-all duration-500 ease-in-out flex flex-col overflow-hidden shrink-0 ${
-                                showCalendar ? "w-[55%] opacity-100 ml-4" : "w-0 opacity-0 ml-0"
+                            <div className={`${mobileView === "agenda" ? "flex" : "hidden"} sm:flex
+                                w-full h-full sm:h-auto sm:transition-all sm:duration-500 sm:ease-in-out flex-col overflow-hidden shrink-0 ${
+                                showCalendar ? "sm:w-[55%] sm:opacity-100 sm:ml-4" : "sm:w-0 sm:opacity-0 sm:ml-0"
                             }`}>
-                                <main className="w-full h-full relative flex flex-col min-w-[700px]">
+                                <main className="w-full h-full relative flex flex-col min-w-0 sm:min-w-[700px]">
                                     <AgendaView subjects={subjects} />
                                 </main>
                             </div>
 
                             {/* --- BLOCK 2: TASKS (CENTER) --- */}
-                        <div className="flex-1 rounded-2xl bg-white dark:bg-gray-900 shadow-md flex flex-col overflow-y-auto transition-colors duration-500 ease-in-out ml-4">
-                            <div className="p-6 mx-auto w-full max-w-4xl transition-all duration-500 ease-in-out">
-                                
+                        <div className={`${mobileView === "tasks" ? "flex" : "hidden"} sm:flex flex-1 rounded-2xl bg-white dark:bg-gray-900 shadow-md flex-col overflow-y-auto transition-colors duration-500 ease-in-out sm:ml-4`}>
+                            <div className="p-4 sm:p-6 mx-auto w-full max-w-4xl transition-all duration-500 ease-in-out">
+
                                 {/* TASKS HEADER + FOCUS MODE BUTTON */}
                                 <div className="mb-6 flex justify-between items-start">
                                     <div>
-                                        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">{ getGreeting(username) }</h1>
+                                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100">{ getGreeting(username) }</h1>
                                         <p className="text-gray-400 dark:text-gray-500 mt-1 capitalize">{today}</p>
                                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
                                             {totalPending === 0 ? (
@@ -504,11 +534,13 @@ const DashboardPage = () => {
                                         </p>
                                     </div>
 
+                                    {/* Focus mode is a desktop-only concept — mobile switches
+                                        between Agenda/Tasks/Progress via the bottom tab bar instead. */}
                                     <button
                                         onClick={() => setShowCalendar(!showCalendar)}
-                                        className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-all border shrink-0 mt-1 ${
-                                            showCalendar 
-                                                ? "bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700" 
+                                        className={`hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-all border shrink-0 mt-1 ${
+                                            showCalendar
+                                                ? "bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700"
                                                 : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 shadow-sm"
                                         }`}
                                         title={showCalendar ? t.hideAgendaTitle : t.showAgendaTitle}
@@ -652,10 +684,11 @@ const DashboardPage = () => {
                         </div>
 
                         {/* --- BLOCK 3: PERFORMANCE PANEL WITH HEATMAP (ONLY IN FOCUS MODE) --- */}
-                        <div className={`transition-all duration-500 ease-in-out flex flex-col overflow-hidden shrink-0 ${
-                                showCalendar ? "w-0 opacity-0 ml-0" : "w-[350px] opacity-100 ml-4" 
+                        <div className={`${mobileView === "performance" ? "flex" : "hidden"} sm:flex
+                            w-full h-full sm:h-auto sm:transition-all sm:duration-500 sm:ease-in-out flex-col overflow-hidden shrink-0 ${
+                                showCalendar ? "sm:w-0 sm:opacity-0 sm:ml-0" : "sm:w-[350px] sm:opacity-100 sm:ml-4"
                             }`}>
-                            <div className="w-[350px] h-full bg-white dark:bg-gray-900 rounded-2xl shadow-md p-6 flex flex-col shrink-0 overflow-y-auto overflow-x-hidden transition-colors duration-500">
+                            <div className="w-full sm:w-[350px] h-full bg-white dark:bg-gray-900 rounded-2xl shadow-md p-4 sm:p-6 flex flex-col shrink-0 overflow-y-auto overflow-x-hidden transition-colors duration-500">
                                 
                                 <div className="flex items-center gap-2 mb-6 border-b border-gray-50 dark:border-gray-800 pb-4 transition-colors">
                                     <div className="bg-blue-50 dark:bg-blue-900/30 p-2 rounded-lg text-blue-600 dark:text-blue-400">
@@ -706,6 +739,30 @@ const DashboardPage = () => {
                     />
                 </Suspense>
             </div>
+
+            {/* --- MOBILE BOTTOM TAB BAR --- */}
+            {!showTrash && (
+                <div className="sm:hidden shrink-0 mt-2 grid grid-cols-3 gap-1 p-1.5 rounded-2xl bg-white dark:bg-gray-900 shadow-md">
+                    {([
+                        { id: "tasks", label: t.tabTasks, icon: ListChecks },
+                        { id: "agenda", label: t.tabAgenda, icon: Calendar },
+                        { id: "performance", label: t.tabPerformance, icon: BarChart3 },
+                    ] as const).map(({ id, label, icon: Icon }) => (
+                        <button
+                            key={id}
+                            onClick={() => setMobileView(id)}
+                            className={`flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl text-xs font-bold transition-colors ${
+                                mobileView === id
+                                    ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+                                    : "text-gray-400 dark:text-gray-500"
+                            }`}
+                        >
+                            <Icon size={20} strokeWidth={2.5} />
+                            {label}
+                        </button>
+                    ))}
+                </div>
+            )}
         </div>
         </PageTransition>
     );

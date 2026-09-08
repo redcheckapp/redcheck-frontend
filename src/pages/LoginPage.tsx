@@ -95,19 +95,48 @@ const LoginPage = () => {
 
     return (
         <PageTransition>
-            <div className="relative min-h-screen flex items-center justify-center overflow-hidden p-4">
+            <div className="relative min-h-screen flex flex-col items-center justify-center overflow-y-auto p-4 py-8">
 
-            {/* FLOATING BACK-TO-HOME BUTTON */}
+            {/* Mobile-only controls row: back + language + theme, in normal
+                document flow so they never overlap the card the way the
+                fixed versions below would on a narrow/short viewport. */}
+            <div className="flex sm:hidden items-center justify-between w-full max-w-md mb-4">
+                <a
+                    href="https://redcheckapp.com"
+                    className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center"
+                    aria-label="Back to redcheckapp.com"
+                >
+                    <ChevronLeft size={20} />
+                </a>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={toggleLanguage}
+                        className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center text-lg"
+                        title={language === 'es' ? 'Switch to English' : 'Cambiar a Español'}
+                    >
+                        {language === 'es' ? '🇬🇧' : '🇪🇸'}
+                    </button>
+                    <button
+                        onClick={toggleTheme}
+                        className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center"
+                        title={language === 'es' ? 'Cambiar tema' : 'Toggle theme'}
+                    >
+                        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+                    </button>
+                </div>
+            </div>
+
+            {/* FLOATING BACK-TO-HOME BUTTON (sm and up only) */}
             <a
                 href="https://redcheckapp.com"
-                className="fixed top-4 left-4 z-50 p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 flex items-center justify-center"
+                className="hidden sm:flex fixed top-4 left-4 z-50 p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 items-center justify-center"
                 aria-label="Back to redcheckapp.com"
             >
                 <ChevronLeft size={20} />
             </a>
 
-            {/* FLOATING CONTROLS (LANGUAGE AND THEME) */}
-            <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-3">
+            {/* FLOATING CONTROLS (LANGUAGE AND THEME) (sm and up only) */}
+            <div className="hidden sm:flex fixed bottom-4 left-4 z-50 flex-col gap-3">
                 <button
                     onClick={toggleLanguage}
                     className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 flex items-center justify-center text-lg"
@@ -115,7 +144,7 @@ const LoginPage = () => {
                 >
                     {language === 'es' ? '🇬🇧' : '🇪🇸'}
                 </button>
-                
+
                 <button
                     onClick={toggleTheme}
                     className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 flex items-center justify-center"
@@ -125,7 +154,7 @@ const LoginPage = () => {
                 </button>
             </div>
 
-            <div className="relative z-10 bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-2xl w-full max-w-md transition-colors duration-500">
+            <div className="relative z-10 bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md transition-colors duration-500">
 
                 <div className="flex flex-col items-center mb-8">
                     <div className="flex items-center justify-center gap-4">

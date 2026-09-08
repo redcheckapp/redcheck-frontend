@@ -161,20 +161,20 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
     const hours = Array.from({ length: 13 }, (_, i) => i + 8);
 
     return (
-        <div className="flex-1 flex flex-col h-full bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500 p-8 overflow-hidden">
-            
+        <div className="flex-1 flex flex-col h-full bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500 p-3 sm:p-8 overflow-hidden">
+
             {/* --- HEADER --- */}
-            <div className="flex items-center justify-between mb-8 shrink-0">
-                <div className="flex items-center gap-4">
-                    <h1 className="text-3xl font-black text-gray-900 dark:text-gray-100 tracking-tight capitalize min-w-[280px] transition-colors duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4 sm:mb-8 shrink-0">
+                <div className="flex items-center gap-2 sm:gap-4">
+                    <h1 className="text-xl sm:text-3xl font-black text-gray-900 dark:text-gray-100 tracking-tight capitalize sm:min-w-[280px] transition-colors duration-300">
                         {headerTitle}
                     </h1>
-                    
+
                     <div className="flex items-center gap-1 bg-white dark:bg-gray-900 p-1 rounded-lg shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300">
                         <button onClick={handlePrev} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md text-gray-500 dark:text-gray-400 transition-colors">
                             <ChevronLeft size={20} />
                         </button>
-                        <button onClick={() => setCurrentDate(new Date())} className="px-3 py-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors">
+                        <button onClick={() => setCurrentDate(new Date())} className="px-2 sm:px-3 py-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors">
                             {t.btnToday}
                         </button>
                         <button onClick={handleNext} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md text-gray-500 dark:text-gray-400 transition-colors">
@@ -183,10 +183,10 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                     </div>
                 </div>
 
-                <div className="flex bg-white dark:bg-gray-900 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300">
-                    <button onClick={() => setView("day")} className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${view === "day" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>{t.btnDay}</button>
-                    <button onClick={() => setView("week")} className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${view === "week" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>{t.btnWeek}</button>
-                    <button onClick={() => setView("month")} className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${view === "month" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>{t.btnMonth}</button>
+                <div className="flex w-full sm:w-auto bg-white dark:bg-gray-900 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300">
+                    <button onClick={() => setView("day")} className={`flex-1 sm:flex-initial px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg transition-all ${view === "day" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>{t.btnDay}</button>
+                    <button onClick={() => setView("week")} className={`flex-1 sm:flex-initial px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg transition-all ${view === "week" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>{t.btnWeek}</button>
+                    <button onClick={() => setView("month")} className={`flex-1 sm:flex-initial px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg transition-all ${view === "month" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>{t.btnMonth}</button>
                 </div>
             </div>
 
@@ -225,16 +225,16 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                 const record = records[cellDateString];
 
                                 return (
-                                    <div key={i} onClick={() => { setCurrentDate(cellDateObj); setView("day"); }} className={`${bgColorClass} p-2 flex flex-col transition-colors hover:brightness-95 dark:hover:brightness-110 cursor-pointer relative group ${isToday ? "z-10" : ""}`}>
+                                    <div key={i} onClick={() => { setCurrentDate(cellDateObj); setView("day"); }} className={`${bgColorClass} p-1 sm:p-2 flex flex-col transition-colors hover:brightness-95 dark:hover:brightness-110 cursor-pointer relative group ${isToday ? "z-10" : ""}`}>
                                         <div className="flex justify-between items-start mb-1">
-                                            <span className={`text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full transition-colors duration-300 ${isToday ? "bg-red-600 text-white shadow-sm" : bgColorClass.includes("bg-[#4ade80]") || bgColorClass.includes("bg-[#16a34a]") ? "text-white drop-shadow-md" : "text-gray-500 dark:text-gray-400"}`}>
+                                            <span className={`text-xs sm:text-sm font-bold w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full transition-colors duration-300 ${isToday ? "bg-red-600 text-white shadow-sm" : bgColorClass.includes("bg-[#4ade80]") || bgColorClass.includes("bg-[#16a34a]") ? "text-white drop-shadow-md" : "text-gray-500 dark:text-gray-400"}`}>
                                                 {dayNum}
                                             </span>
                                         </div>
                                         {record && record.totalTasks > 0 && (
                                             <div className="flex-1 flex flex-col gap-1 overflow-y-auto no-scrollbar">
-                                                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-black/5 dark:border-white/10 text-gray-700 dark:text-gray-300 text-[10px] font-bold px-1.5 py-1 rounded truncate shadow-sm flex items-center justify-between transition-colors duration-300">
-                                                    <span>{t.lblTasks}</span>
+                                                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-black/5 dark:border-white/10 text-gray-700 dark:text-gray-300 text-[9px] sm:text-[10px] font-bold px-1 sm:px-1.5 py-0.5 sm:py-1 rounded truncate shadow-sm flex items-center justify-center sm:justify-between transition-colors duration-300">
+                                                    <span className="hidden sm:inline">{t.lblTasks}</span>
                                                     <span className={record.completionRate === 1 ? "text-green-600 dark:text-green-400" : ""}>{record.completedTasks}/{record.totalTasks}</span>
                                                 </div>
                                             </div>
@@ -253,11 +253,11 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                             {currentWeekDays.map((date, i) => {
                                 const isToday = date.toDateString() === todayObj.toDateString();
                                 return (
-                                    <div key={i} className={`py-4 flex flex-col items-center justify-center gap-1 border-r border-gray-100 dark:border-gray-800 last:border-0 transition-colors duration-300 ${isToday ? "bg-red-50/50 dark:bg-red-900/20" : ""}`}>
-                                        <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${isToday ? "text-red-500 dark:text-red-400" : "text-gray-400 dark:text-gray-500"}`}>
+                                    <div key={i} className={`py-2 sm:py-4 flex flex-col items-center justify-center gap-1 border-r border-gray-100 dark:border-gray-800 last:border-0 transition-colors duration-300 ${isToday ? "bg-red-50/50 dark:bg-red-900/20" : ""}`}>
+                                        <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${isToday ? "text-red-500 dark:text-red-400" : "text-gray-400 dark:text-gray-500"}`}>
                                             {t.weekDays[i].substring(0,3)}
                                         </span>
-                                        <span className={`w-8 h-8 flex items-center justify-center rounded-full text-xl font-black transition-colors duration-300 ${isToday ? "bg-red-600 text-white shadow-sm mt-0.5" : "text-gray-800 dark:text-gray-200"}`}>
+                                        <span className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full text-base sm:text-xl font-black transition-colors duration-300 ${isToday ? "bg-red-600 text-white shadow-sm mt-0.5" : "text-gray-800 dark:text-gray-200"}`}>
                                             {date.getDate()}
                                         </span>
                                     </div>
@@ -275,9 +275,9 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                 }
                                 
                                 return (
-                                    <div key={i} className={`${bgColorClass} p-3 transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/50`}>
+                                    <div key={i} className={`${bgColorClass} p-1 sm:p-3 transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/50`}>
                                         <div className="w-full h-full border-2 border-dashed border-gray-200/50 dark:border-gray-700/50 rounded-xl flex items-center justify-center transition-colors duration-300">
-                                            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium opacity-0 hover:opacity-100 transition-opacity">{t.lblViewTasks}</span>
+                                            <span className="hidden sm:inline text-xs text-gray-400 dark:text-gray-500 font-medium opacity-0 hover:opacity-100 transition-opacity">{t.lblViewTasks}</span>
                                         </div>
                                     </div>
                                 );
@@ -290,19 +290,19 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                 {view === "day" && (
                     <div className="flex-1 flex overflow-hidden">
                         
-                        <div className="w-20 border-r border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 py-6 flex flex-col overflow-y-auto no-scrollbar shrink-0 transition-colors duration-300">
+                        <div className="w-12 sm:w-20 border-r border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 py-6 flex flex-col overflow-y-auto no-scrollbar shrink-0 transition-colors duration-300">
                             {hours.map(hour => (
-                                <div key={hour} className="h-20 flex justify-end pr-4 text-xs font-bold text-gray-400 dark:text-gray-500 relative transition-colors duration-300">
+                                <div key={hour} className="h-20 flex justify-end pr-1.5 sm:pr-4 text-[10px] sm:text-xs font-bold text-gray-400 dark:text-gray-500 relative transition-colors duration-300">
                                     <span className="-mt-2">{hour.toString().padStart(2, '0')}:00</span>
                                 </div>
                             ))}
                         </div>
-                        
+
                         {/* Notebook-style ruled lines, adapted to #1f2937 (gray-800) in dark mode */}
-                        <div className="flex-1 relative overflow-y-auto bg-[linear-gradient(to_bottom,#f9fafb_1px,transparent_1px)] dark:bg-[linear-gradient(to_bottom,#1f2937_1px,transparent_1px)] bg-[size:100%_5rem] p-6 transition-colors duration-300">
-                            
+                        <div className="flex-1 relative overflow-y-auto bg-[linear-gradient(to_bottom,#f9fafb_1px,transparent_1px)] dark:bg-[linear-gradient(to_bottom,#1f2937_1px,transparent_1px)] bg-[size:100%_5rem] p-3 sm:p-6 transition-colors duration-300">
+
                             {currentDate.toDateString() === todayObj.toDateString() && (
-                                <div 
+                                <div
                                     className="absolute left-0 right-0 border-t-2 border-red-500 z-10 flex items-center pointer-events-none"
                                     style={{ top: `${((todayObj.getHours() - 8) * 5) + (todayObj.getMinutes() / 12)}rem` }}
                                 >
@@ -310,7 +310,7 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                 </div>
                             )}
 
-                            <div className="relative z-20 flex flex-col gap-3 max-w-xl ml-4">
+                            <div className="relative z-20 flex flex-col gap-3 sm:max-w-xl sm:ml-4">
                                 {tasksForCurrentDay.length === 0 ? (
                                     <div className="mt-10 p-6 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center text-center bg-white/50 dark:bg-gray-800/50 transition-colors duration-300">
                                         <CheckCircle2 size={32} className="text-gray-300 dark:text-gray-600 mb-2 transition-colors duration-300" />
@@ -326,9 +326,9 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                             : t.lblAllDay;
 
                                         return (
-                                            <div 
-                                                key={task.id} 
-                                                className={`bg-white dark:bg-gray-800 border p-4 rounded-xl shadow-sm flex items-start gap-4 transition-all hover:shadow-md ${task.completed ? 'opacity-60 bg-gray-50 dark:bg-gray-900/50 dark:border-gray-800' : 'border-blue-100 dark:border-blue-900/30'}`}
+                                            <div
+                                                key={task.id}
+                                                className={`bg-white dark:bg-gray-800 border p-3 sm:p-4 rounded-xl shadow-sm flex items-start gap-3 sm:gap-4 transition-all hover:shadow-md ${task.completed ? 'opacity-60 bg-gray-50 dark:bg-gray-900/50 dark:border-gray-800' : 'border-blue-100 dark:border-blue-900/30'}`}
                                             >
                                                 <div className={`mt-1 w-3 h-3 rounded-full border-2 shrink-0 transition-colors duration-300 ${task.completed ? 'border-green-500 bg-green-100 dark:bg-green-900/30' : 'border-blue-500 bg-blue-100 dark:bg-blue-900/30'}`} />
                                                 

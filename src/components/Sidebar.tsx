@@ -20,6 +20,8 @@ interface SidebarProps {
     showTrash: boolean;
     onOpenTrash: () => void;
     onGoHome: () => void;
+    mobileOpen: boolean;
+    onCloseMobile: () => void;
 }
 
 // --- Translation dictionary for the Sidebar ---
@@ -66,20 +68,22 @@ const translations = {
     }
 };
 
-export const Sidebar = ({ 
-    sidebarOpen, 
-    setSidebarOpen, 
-    totalPending, 
-    subjects, 
-    onOpenSettings, 
-    onAiPlanClick, 
-    isAiLoading, 
-    aiNotificationReady, 
-    onOpenAiModal, 
+export const Sidebar = ({
+    sidebarOpen,
+    setSidebarOpen,
+    totalPending,
+    subjects,
+    onOpenSettings,
+    onAiPlanClick,
+    isAiLoading,
+    aiNotificationReady,
+    onOpenAiModal,
     subjectStats,
     showTrash,
     onOpenTrash,
-    onGoHome 
+    onGoHome,
+    mobileOpen,
+    onCloseMobile
 }: SidebarProps) => {
     const navigate = useNavigate();
     const [showNotifications, setShowNotifications] = useState(false);
@@ -87,19 +91,40 @@ export const Sidebar = ({
     const t = translations[language as keyof typeof translations];
 
     const totalTasks = subjects.reduce((acc, subject) => acc + subject.tasks.length, 0);
-    const completedTasks = totalTasks - totalPending; 
+    const completedTasks = totalTasks - totalPending;
     const progress = totalTasks === 0 ? 0 : completedTasks / totalTasks;
     const strokeDashoffset = 226 - (226 * progress);
 
+    // On mobile the drawer always shows the full content when open — there's
+    // no point collapsing it to icon-only inside an overlay panel.
+    const expanded = sidebarOpen || mobileOpen;
+
     return (
-        <div className={`relative z-20 transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[280px] overflow-visible" : "w-20 overflow-hidden"}
-            rounded-2xl bg-gray-50 dark:bg-gray-900 shadow-md p-5 flex flex-col`}>
+        <>
+            {/* Mobile-only backdrop behind the sliding drawer */}
+            {mobileOpen && (
+                <div
+                    onClick={onCloseMobile}
+                    className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm transition-opacity duration-300 sm:hidden"
+                />
+            )}
+
+            <div className={`fixed inset-y-0 left-0 z-40 w-[280px] p-5 flex flex-col
+                transform transition-transform duration-300 ease-in-out ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
+                rounded-r-2xl shadow-xl
+                sm:static sm:z-20 sm:translate-x-0 sm:transition-[width] sm:duration-300 sm:ease-in-out sm:rounded-2xl sm:shadow-md
+                ${sidebarOpen ? "sm:w-[280px] sm:overflow-visible" : "sm:w-20 sm:overflow-hidden"}
+                bg-gray-50 dark:bg-gray-900`}>
 
             {/* --- HEADER --- */}
-            <div className="flex items-center mb-8 w-[240px] shrink-0">
+            <div className="flex items-center mb-8 w-full sm:w-[240px] shrink-0">
                 <button
                     onClick={() => {
-                        setSidebarOpen(!sidebarOpen);
+                        if (mobileOpen) {
+                            onCloseMobile();
+                        } else {
+                            setSidebarOpen(!sidebarOpen);
+                        }
                         setShowNotifications(false);
                     }}
                     className="flex items-center justify-center shrink-0 w-10 h-10 text-red-700 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors"
@@ -109,10 +134,10 @@ export const Sidebar = ({
                         <Check size={22} strokeWidth={4} className="text-white" />
                     </div>
                 </button>
-                
-                <div 
-                    onClick={onGoHome}
-                    className={`flex items-center overflow-hidden cursor-pointer hover:opacity-80 transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[150px] opacity-100 ml-2" : "w-0 opacity-0 ml-0"}`}
+
+                <div
+                    onClick={() => { onGoHome(); onCloseMobile(); }}
+                    className={`flex items-center overflow-hidden cursor-pointer hover:opacity-80 transition-all duration-300 ease-in-out ${expanded ? "w-[150px] opacity-100 ml-2" : "w-0 opacity-0 ml-0"}`}
                     title={t.goHome}
                 >
                     <span className="text-[22px] font-black text-gray-900 dark:text-white tracking-tight leading-none mt-1">
@@ -120,7 +145,7 @@ export const Sidebar = ({
                     </span>
                 </div>
 
-                <div className={`relative flex items-center justify-end transition-all duration-300 ease-in-out ${sidebarOpen ? "w-10 opacity-100" : "w-0 opacity-0 pointer-events-none"}`}>
+                <div className={`relative flex items-center justify-end transition-all duration-300 ease-in-out ${expanded ? "w-10 opacity-100" : "w-0 opacity-0 pointer-events-none"}`}>
                     <button 
                         onClick={() => setShowNotifications(!showNotifications)}
                         className="relative p-2 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 active:scale-90 shrink-0" 
@@ -133,7 +158,7 @@ export const Sidebar = ({
                     </button>
 
                     {showNotifications && (
-                        <div className="absolute left-0 top-12 w-80 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 origin-top-left animate-in fade-in zoom-in-95 duration-200 z-[60]">
+                        <div className="absolute left-0 top-12 w-72 sm:w-80 max-w-[calc(100vw-3rem)] bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 origin-top-left z-[60]">
                             <div className="p-4 border-b border-gray-50 dark:border-gray-800 flex justify-between items-center">
                                 <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">{t.notifications}</h3>
                                 <span className="text-xs text-gray-400 dark:text-gray-500 cursor-pointer hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t.markRead}</span>
@@ -170,45 +195,45 @@ export const Sidebar = ({
             {/* --- CENTRAL ZONE --- */}
             <div className="flex-1 flex flex-col items-center w-full overflow-y-auto overflow-x-hidden pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
 
-                <div className={`relative transition-all duration-300 ease-in-out shrink-0 mb-5 ${sidebarOpen ? "w-24 h-24" : "w-10 h-10"}`}>
+                <div className={`relative transition-all duration-300 ease-in-out shrink-0 mb-5 ${expanded ? "w-24 h-24" : "w-10 h-10"}`}>
                     <svg viewBox="0 0 96 96" className="w-full h-full transform -rotate-90">
                         <circle cx="48" cy="48" r="36" stroke="currentColor" strokeWidth="8" fill="currentColor" className="text-[#c3e0ce] dark:text-gray-800 fill-[#eaf6ed] dark:fill-gray-900/50 transition-colors duration-500" />
                         <circle cx="48" cy="48" r="36" stroke="currentColor" strokeWidth="8" fill="none"
                             strokeDasharray="226" strokeDashoffset={strokeDashoffset} strokeLinecap="round"
-                            className="text-[#16a34a] dark:text-green-400 transition-all duration-500 ease-out" 
+                            className="text-[#16a34a] dark:text-green-400 transition-all duration-500 ease-out"
                         />
                     </svg>
-                    <div className={`absolute inset-0 flex items-center justify-center font-bold text-green-700 dark:text-white transition-all duration-300 ease-in-out ${sidebarOpen ? "text-xl tracking-tight" : "text-xs"}`}>
+                    <div className={`absolute inset-0 flex items-center justify-center font-bold text-green-700 dark:text-white transition-all duration-300 ease-in-out ${expanded ? "text-xl tracking-tight" : "text-xs"}`}>
                         {completedTasks}/{totalTasks}
                     </div>
                 </div>
-    
-                <SubjectBalance 
-                    sidebarOpen={sidebarOpen} 
+
+                <SubjectBalance
+                    sidebarOpen={expanded}
                     setSidebarOpen={setSidebarOpen}
-                    stats={subjectStats} 
+                    stats={subjectStats}
                 />
 
-                <div 
-                    onClick={() => setSidebarOpen(true)} 
-                    className="flex flex-col items-center text-center opacity-80 hover:opacity-100 transition-all duration-300 ease-in-out cursor-pointer group mt-4 mb-2 w-full select-none" 
+                <div
+                    onClick={() => setSidebarOpen(true)}
+                    className="flex flex-col items-center text-center opacity-80 hover:opacity-100 transition-all duration-300 ease-in-out cursor-pointer group mt-4 mb-2 w-full select-none"
                     title="SmartCheck AI"
                 >
                     <div className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-300 shrink-0 ${
-                        sidebarOpen 
-                            ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 shadow-sm" 
+                        expanded
+                            ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 shadow-sm"
                             : "bg-transparent text-gray-400 dark:text-gray-500 group-hover:bg-red-50 dark:group-hover:bg-red-900/30 group-hover:text-red-600 dark:group-hover:text-red-400 group-hover:shadow-sm"
                     }`}>
-                        <Sparkles 
-                            size={22} 
-                            strokeWidth={1.5} 
+                        <Sparkles
+                            size={22}
+                            strokeWidth={1.5}
                             className={`transition-transform duration-300 ${
-                                sidebarOpen ? "scale-110" : "group-hover:scale-110"
-                            }`} 
+                                expanded ? "scale-110" : "group-hover:scale-110"
+                            }`}
                         />
                     </div>
-                    
-                    <div className={`flex flex-col items-center overflow-hidden transition-all duration-300 ease-in-out w-full ${sidebarOpen ? "max-h-[60px] opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"}`}>
+
+                    <div className={`flex flex-col items-center overflow-hidden transition-all duration-300 ease-in-out w-full ${expanded ? "max-h-[60px] opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"}`}>
                         <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 tracking-wide">
                             SmartCheck AI
                         </h3>
@@ -221,17 +246,17 @@ export const Sidebar = ({
                 <div className={`
                         flex flex-col space-y-3 px-4 overflow-hidden w-full shrink-0
                         transition-all duration-500 ease-out
-                        ${sidebarOpen 
-                            ? 'max-h-[800px] opacity-100 translate-y-0 mt-6 pb-4' 
+                        ${expanded
+                            ? 'max-h-[800px] opacity-100 translate-y-0 mt-6 pb-4'
                             : 'max-h-0 opacity-0 translate-y-4 mt-0 pointer-events-none'
                         }
                     `}>
-  
+
                     <SmartCheckButton
                         icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>}
                         title={t.dailyAnalysisTitle}
                         subtitle={isAiLoading ? t.aiConsulting : t.dailyAnalysisSub}
-                        onClick={onAiPlanClick}
+                        onClick={() => { onAiPlanClick(); onCloseMobile(); }}
                         comingSoon={false}
                         isLoading={isAiLoading}
                     />
@@ -247,28 +272,28 @@ export const Sidebar = ({
             </div>
 
             {/* --- FOOTER --- */}
-            <div className={`mt-auto flex flex-col gap-1 w-full pt-4 transition-all duration-300 ease-in-out ${sidebarOpen ? "border-t border-gray-200 dark:border-gray-800" : "border-transparent"}`}>
-                
-                <button 
-                    onClick={onOpenTrash} 
-                    className={`flex items-center p-2 rounded-xl transition-colors w-full ${showTrash ? "bg-gray-800 dark:bg-gray-800 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800"}`} 
+            <div className={`mt-auto flex flex-col gap-1 w-full pt-4 transition-all duration-300 ease-in-out ${expanded ? "border-t border-gray-200 dark:border-gray-800" : "border-transparent"}`}>
+
+                <button
+                    onClick={() => { onOpenTrash(); onCloseMobile(); }}
+                    className={`flex items-center p-2 rounded-xl transition-colors w-full ${showTrash ? "bg-gray-800 dark:bg-gray-800 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800"}`}
                     title={t.trash}
                 >
                     <div className="flex items-center justify-center shrink-0 w-6 h-6">
                         <Trash2 size={20} />
                     </div>
-                    <div className={`flex items-center overflow-hidden transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[120px] opacity-100" : "w-0 opacity-0"}`}>
+                    <div className={`flex items-center overflow-hidden transition-all duration-300 ease-in-out ${expanded ? "w-[120px] opacity-100" : "w-0 opacity-0"}`}>
                         <span className="text-sm font-medium whitespace-nowrap ml-3">
                             {t.trash}
                         </span>
                     </div>
                 </button>
 
-                <button onClick={onOpenSettings} className="flex items-center p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors w-full" title={t.settings}>
+                <button onClick={() => { onOpenSettings(); onCloseMobile(); }} className="flex items-center p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors w-full" title={t.settings}>
                     <div className="flex items-center justify-center shrink-0 w-6 h-6">
                         <Settings size={20} />
                     </div>
-                    <div className={`flex items-center overflow-hidden transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[120px] opacity-100" : "w-0 opacity-0"}`}>
+                    <div className={`flex items-center overflow-hidden transition-all duration-300 ease-in-out ${expanded ? "w-[120px] opacity-100" : "w-0 opacity-0"}`}>
                         <span className="text-sm font-medium whitespace-nowrap ml-3">
                             {t.settings}
                         </span>
@@ -279,14 +304,15 @@ export const Sidebar = ({
                     <div className="flex items-center justify-center shrink-0 w-6 h-6">
                         <LogOut size={20} />
                     </div>
-                    <div className={`flex items-center overflow-hidden transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[120px] opacity-100" : "w-0 opacity-0"}`}>
+                    <div className={`flex items-center overflow-hidden transition-all duration-300 ease-in-out ${expanded ? "w-[120px] opacity-100" : "w-0 opacity-0"}`}>
                         <span className="text-sm font-medium whitespace-nowrap ml-3">
                             {t.logout}
                         </span>
                     </div>
                 </button>
             </div>
-            
-        </div>
+
+            </div>
+        </>
     );
 };
