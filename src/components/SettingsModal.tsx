@@ -1,4 +1,4 @@
-import { X, ArchiveRestore, Trash2, Moon, Sun } from "lucide-react";
+import { X, ArchiveRestore, Trash2, Moon, Sun, Bell, BellOff } from "lucide-react";
 import type { SubjectWithTasks } from "../types";
 import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -9,8 +9,10 @@ interface SettingsModalProps {
     onClose: () => void;
     subjects: SubjectWithTasks[];
     handleArchiveSubject: (id: number) => void;
-    handleDeleteAccount: () => void; 
+    handleDeleteAccount: () => void;
     userEmail: string;
+    remindersEnabled: boolean;
+    onToggleReminders: () => void;
 }
 
 // --- Translation dictionary for SettingsModal ---
@@ -24,6 +26,9 @@ const translations = {
         language: "Idioma",
         langDesc: "Cambiar el idioma de la aplicación",
         ttLanguage: "Cambiar idioma",
+        reminders: "Recordatorios de tareas",
+        remindersDesc: "Avisa cuando una tarea esté por vencer (solo con la app abierta)",
+        ttReminders: "Activar/desactivar recordatorios",
         archived: "Asignaturas Archivadas",
         noArchived: "No tienes asignaturas archivadas.",
         btnRestore: "Restaurar",
@@ -42,6 +47,9 @@ const translations = {
         language: "Language",
         langDesc: "Change application language",
         ttLanguage: "Change language",
+        reminders: "Task reminders",
+        remindersDesc: "Get notified when a task is about to be due (app must be open)",
+        ttReminders: "Turn reminders on/off",
         archived: "Archived Subjects",
         noArchived: "You have no archived subjects.",
         btnRestore: "Restore",
@@ -53,7 +61,7 @@ const translations = {
     }
 };
 
-export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject, handleDeleteAccount, userEmail }: SettingsModalProps) => {
+export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject, handleDeleteAccount, userEmail, remindersEnabled, onToggleReminders }: SettingsModalProps) => {
     const { theme, toggleTheme } = useTheme();
     const { language, toggleLanguage } = useLanguage(); // We extract the language and the toggle function
     const t = translations[language as keyof typeof translations];
@@ -118,6 +126,30 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
                                 title={t.ttTheme}
                             >
                                 {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+                            </button>
+                        </div>
+
+                        {/* Task reminders toggle — client-side only, no
+                            backend push involved (see CLAUDE.md). */}
+                        <div className="flex justify-between items-center p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 transition-colors">
+                            <div>
+                                <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                                    {t.reminders}
+                                </p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                    {t.remindersDesc}
+                                </p>
+                            </div>
+                            <button
+                                onClick={onToggleReminders}
+                                className={`p-2 w-[38px] h-[38px] flex items-center justify-center rounded-lg transition-all duration-200 border shadow-sm ${
+                                    remindersEnabled
+                                        ? "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400"
+                                        : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
+                                }`}
+                                title={t.ttReminders}
+                            >
+                                {remindersEnabled ? <Bell size={18} /> : <BellOff size={18} />}
                             </button>
                         </div>
                     </div>

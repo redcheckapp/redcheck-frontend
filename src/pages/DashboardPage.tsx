@@ -68,7 +68,12 @@ const translations = {
         viewLastPlan: "Ver plan de hoy",
         searchPlaceholder: "Buscar tareas o asignaturas...",
         searchNoResults: "No hay tareas ni asignaturas que coincidan con",
-        searchClear: "Borrar búsqueda"
+        searchClear: "Borrar búsqueda",
+        remindersUnsupported: "Tu navegador no admite notificaciones.",
+        remindersDenied: "Debes permitir las notificaciones en el navegador para activar los recordatorios.",
+        remindersEnabledToast: "Recordatorios activados. Te avisaremos cuando una tarea esté por vencer.",
+        reminderDueIn: "vence en",
+        reminderMinutes: "min"
     },
     en: {
         alertAiAnalyzing: "🧠 SmartCheck is analyzing your tasks...",
@@ -113,7 +118,12 @@ const translations = {
         viewLastPlan: "View today's plan",
         searchPlaceholder: "Search tasks or subjects...",
         searchNoResults: "No tasks or subjects match",
-        searchClear: "Clear search"
+        searchClear: "Clear search",
+        remindersUnsupported: "Your browser doesn't support notifications.",
+        remindersDenied: "You need to allow notifications in your browser to turn on reminders.",
+        remindersEnabledToast: "Reminders on. We'll let you know when a task is about to be due.",
+        reminderDueIn: "due in",
+        reminderMinutes: "min"
     }
 };
 
@@ -145,6 +155,34 @@ const DashboardPage = () => {
     const [showTrash, setShowTrash] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const searchInputRef = useRef<HTMLInputElement>(null);
+
+    // Client-side task reminders — no backend/service worker involved, so
+    // this only fires while RedCheck is open (tab or installed PWA), not
+    // when the browser/app is closed. See CLAUDE.md for the tradeoff.
+    const [remindersEnabled, setRemindersEnabled] = useState(
+        () => localStorage.getItem("remindersEnabled") === "true"
+    );
+    const remindedTaskIdsRef = useRef<Set<number>>(new Set());
+
+    const handleToggleReminders = async () => {
+        if (remindersEnabled) {
+            setRemindersEnabled(false);
+            localStorage.setItem("remindersEnabled", "false");
+            return;
+        }
+        if (typeof Notification === "undefined") {
+            toast.error(t.remindersUnsupported);
+            return;
+        }
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+            setRemindersEnabled(true);
+            localStorage.setItem("remindersEnabled", "true");
+            toast.success(t.remindersEnabledToast);
+        } else {
+            toast.error(t.remindersDenied);
+        }
+    };
 
     // Desktop-only dismissible tip inside the Focus Mode performance panel.
     // Persisted in sessionStorage (not plain state) so it stays dismissed
@@ -386,6 +424,55 @@ const DashboardPage = () => {
         // the whole dashboard every time the user toggles the UI language.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Polls pending tasks for ones about to become due and fires an in-app
+    // toast + browser Notification for each (once per task, tracked in
+    // remindedTaskIdsRef so it doesn't repeat every tick). Runs against the
+    // full `subjects`, not the search-filtered list, since reminders
+    // shouldn't depend on what's currently being searched for.
+    useEffect(() => {
+        if (!remindersEnabled) return;
+
+        const REMINDER_WINDOW_MS = 30 * 60 * 1000;
+
+        const checkDeadlines = () => {
+            const now = Date.now();
+            subjects.forEach(subject => {
+                subject.tasks.forEach(task => {
+                    if (task.completed || task.overdue || !task.deadline) return;
+                    const msUntilDue = new Date(task.deadline).getTime() - now;
+                    if (msUntilDue <= 0 || msUntilDue > REMINDER_WINDOW_MS) return;
+                    if (remindedTaskIdsRef.current.has(task.id)) return;
+
+                    remindedTaskIdsRef.current.add(task.id);
+                    const minutesLeft = Math.max(1, Math.round(msUntilDue / 60000));
+                    const message = `${task.title} — ${t.reminderDueIn} ${minutesLeft} ${t.reminderMinutes}`;
+
+                    toast(message, { icon: "⏰" });
+                    // `remindersEnabled` only ever becomes true right after
+                    // requestPermission() resolved "granted" (see
+                    // handleToggleReminders), so that's trusted here rather
+                    // than re-reading the static Notification.permission —
+                    // that getter can lag behind the resolved permission
+                    // (observed in headless/CDP-driven browsers, and not
+                    // worth the fragility even elsewhere). The try/catch is
+                    // the real safety net, e.g. if permission was revoked
+                    // at the OS level after the fact.
+                    if (typeof Notification !== "undefined") {
+                        try {
+                            new Notification("RedCheck", { body: message, icon: "/icons/icon-192.png" });
+                        } catch (err) {
+                            console.warn("Could not show a browser notification:", err);
+                        }
+                    }
+                });
+            });
+        };
+
+        checkDeadlines();
+        const interval = setInterval(checkDeadlines, 60 * 1000);
+        return () => clearInterval(interval);
+    }, [remindersEnabled, subjects, t]);
 
     // Client-side search across subject names and task titles — cheap
     // enough not to need debouncing at this data scale. A subject whose
@@ -905,6 +992,8 @@ const DashboardPage = () => {
                         handleArchiveSubject={handleArchiveSubject}
                         handleDeleteAccount={handleDeleteAccount}
                         userEmail={userEmail}
+                        remindersEnabled={remindersEnabled}
+                        onToggleReminders={handleToggleReminders}
                     />
                 </Suspense>
 
