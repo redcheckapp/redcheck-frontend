@@ -1,6 +1,6 @@
 import { useState, useEffect, memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronLeft, Sun, Moon } from "lucide-react";
+import { ArrowLeft, Sun, Moon } from "lucide-react";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
 import { PageTransition } from "../components/PageTransition";
@@ -71,15 +71,6 @@ const PrivacyPage = () => {
             <div className="relative min-h-screen flex flex-col bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500 overflow-y-auto">
                 
                 <BackgroundParticles init={init} />
-
-                {/* FLOATING BACK-TO-HOME BUTTON */}
-                <a
-                    href="https://redcheckapp.com"
-                    className="fixed top-4 left-4 z-50 p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 flex items-center justify-center"
-                    aria-label="Back to redcheckapp.com"
-                >
-                    <ChevronLeft size={20} />
-                </a>
 
                 {/* FLOATING CONTROLS (LANGUAGE AND THEME) */}
                 <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-3">
