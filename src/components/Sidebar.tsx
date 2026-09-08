@@ -158,7 +158,7 @@ export const Sidebar = ({
                     </button>
 
                     {showNotifications && (
-                        <div className="absolute left-0 top-12 w-72 sm:w-80 max-w-[calc(100vw-3rem)] bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 origin-top-left z-[60]">
+                        <div className="absolute right-0 left-auto sm:left-0 sm:right-auto top-12 w-64 sm:w-80 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 origin-top-right sm:origin-top-left z-[60]">
                             <div className="p-4 border-b border-gray-50 dark:border-gray-800 flex justify-between items-center">
                                 <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">{t.notifications}</h3>
                                 <span className="text-xs text-gray-400 dark:text-gray-500 cursor-pointer hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t.markRead}</span>
