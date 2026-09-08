@@ -110,10 +110,11 @@ const RegisterPage = () => {
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
+                        <label htmlFor="register-username" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
                             {t.username}
                         </label>
                         <input
+                            id="register-username"
                             type="text"
                             name="username"
                             value={form.username}
@@ -124,10 +125,11 @@ const RegisterPage = () => {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
+                        <label htmlFor="register-email" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
                             {t.email}
                         </label>
                         <input
+                            id="register-email"
                             type="email"
                             name="email"
                             value={form.email}
@@ -138,10 +140,11 @@ const RegisterPage = () => {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
+                        <label htmlFor="register-password" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
                             {t.password}
                         </label>
                         <input
+                            id="register-password"
                             type="password"
                             name="password"
                             value={form.password}

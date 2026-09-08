@@ -126,10 +126,11 @@ const LoginPage = () => {
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-6">
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
+                        <label htmlFor="login-email" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
                             {t.email}
                         </label>
                         <input
+                            id="login-email"
                             type="email"
                             name="email"
                             value={form.email}
@@ -140,10 +141,11 @@ const LoginPage = () => {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
+                        <label htmlFor="login-password" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
                             {t.password}
                         </label>
                         <input
+                            id="login-password"
                             type="password"
                             name="password"
                             value={form.password}
