@@ -42,3 +42,5 @@ npm run preview   # preview the production build locally
 **Styling:** Tailwind CSS v4 (via `@tailwindcss/vite` plugin, not a PostCSS config file). Dark mode is class-based (`dark` class toggled on `documentElement` by `ThemeContext`), palette centers on `zinc`/`gray` for WCAG contrast. Animations use `framer-motion`; `tsparticles` is used for the auth-page interactive background.
 
 **i18n:** handled by `LanguageContext` (not an external i18n library) — same cookie+localStorage persistence pattern as theme.
+
+**PWA:** `public/manifest.json` + the meta tags in `index.html` make RedCheck installable ("Add to Home Screen"); when launched from the home screen icon it opens in standalone mode with no browser URL bar. This is the only way to hide the address bar — a normal browser tab can't do that via script. `public/icons/` (`icon-192.png`, `icon-512.png`, `apple-touch-icon.png`) were generated from `public/redcheck.svg` via Inkscape; regenerate them the same way if the logo changes. No service worker/offline support is set up — this is install-for-chrome-hiding only.
