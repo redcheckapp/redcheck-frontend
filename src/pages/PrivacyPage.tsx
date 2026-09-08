@@ -1,6 +1,6 @@
 import { useState, useEffect, memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Sun, Moon } from "lucide-react";
+import { ChevronLeft, Sun, Moon } from "lucide-react";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
 import { PageTransition } from "../components/PageTransition";
@@ -72,6 +72,15 @@ const PrivacyPage = () => {
                 
                 <BackgroundParticles init={init} />
 
+                {/* FLOATING BACK BUTTON */}
+                <button
+                    onClick={handleBack}
+                    className="fixed top-4 left-4 z-50 p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 flex items-center justify-center"
+                    aria-label={language === 'es' ? 'Volver' : 'Back'}
+                >
+                    <ChevronLeft size={20} />
+                </button>
+
                 {/* FLOATING CONTROLS (LANGUAGE AND THEME) */}
                 <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-3">
                     <button
@@ -97,13 +106,6 @@ const PrivacyPage = () => {
                         
                         {/* --- HEADER --- */}
                         <div className="px-6 py-8 sm:px-10 border-b border-gray-100/50 dark:border-gray-800/50 bg-gray-50/30 dark:bg-gray-800/30 transition-colors duration-300">
-                            <button 
-                                onClick={handleBack}
-                                className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors mb-6 w-fit p-1.5 -ml-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-                            >
-                                <ArrowLeft size={16} />
-                                {language === 'es' ? 'Volver' : 'Back'}
-                            </button>
                             <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight transition-colors duration-300">
                                 {language === 'es' ? 'Política de Privacidad' : 'Privacy Policy'}
                             </h1>
