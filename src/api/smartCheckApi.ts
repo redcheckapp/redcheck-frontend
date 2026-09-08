@@ -20,9 +20,9 @@ export const pollForAnalysis = async (intervalMs = 3000, maxAttempts = 60): Prom
             // Converts text into JSON Object if necessary
             const data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
 
-            // Now can read planDeHoy (Llama's prompt is written in spanish)
+            // Now can read planDeHoy (Gemini's prompt is written in spanish)
             if (data && data.planDeHoy && data.planDeHoy.length > 0) {
-                console.log(`Success! Llama3.2 has finished in ${attempt} attemps`);
+                console.log(`Success! Gemini has finished in ${attempt} attemps`);
                 return data;
             }
             console.log(`Attemp ${attempt}/${maxAttempts}: Backend still thinking...`);
