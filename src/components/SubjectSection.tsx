@@ -3,7 +3,7 @@ import { TaskItem } from "./TaskItem";
 import { RecurringTasksModal } from "./RecurringTasksModal";
 import { useState } from "react";
 import type { SubjectWithTasks } from "../types";
-import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
+import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 
 interface SubjectSectionProps {
     subject: SubjectWithTasks;
@@ -34,7 +34,7 @@ interface SubjectSectionProps {
     setUpdatedSubject: (subject: { name: string; description: string }) => void;
 }
 
-// --- Diccionario de traducciones para SubjectSection ---
+// --- Translation dictionary for SubjectSection ---
 const translations = {
     es: {
         ttRoutines: "Gestionar rutinas recurrentes",
@@ -145,7 +145,7 @@ export const SubjectSection = ({
                 </div>
             </div>
 
-            {/* FORMULARIO EDITAR ASIGNATURA */}
+            {/* EDIT SUBJECT FORM */}
             <div 
                 className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
                     openFormUpdateSubject === subject.id 
@@ -218,7 +218,7 @@ export const SubjectSection = ({
                     </div>
                 </div>
 
-                {/* FORMULARIO AÑADIR TAREA */}
+                {/* ADD TASK FORM */}
                 <div 
                     className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
                         openFormSubjectId === subject.id 

@@ -32,7 +32,7 @@ const BackgroundParticles = memo(({ init }: { init: boolean }) => {
     );
 });
 
-// Añadimos el copyright al diccionario
+// We add the copyright to the dictionary
 const translations = {
     es: {
         copyright: "© 2026 RedCheck. Desarrollado por Francisco Javier Molina Cuenca. Todos los derechos reservados."
@@ -72,7 +72,7 @@ const PrivacyPage = () => {
                 
                 <BackgroundParticles init={init} />
 
-                {/* CONTROLES FLOTANTES (IDIOMA Y TEMA) */}
+                {/* FLOATING CONTROLS (LANGUAGE AND THEME) */}
                 <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-3">
                     <button
                         onClick={toggleLanguage}
@@ -92,7 +92,7 @@ const PrivacyPage = () => {
                 </div>
 
                 <div className="flex-1 py-12 px-4 sm:px-6 lg:px-8">
-                    {/* CONTENEDOR EFECTO CRISTAL */}
+                    {/* GLASS-EFFECT CONTAINER */}
                     <div className="relative z-10 max-w-3xl mx-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-3xl shadow-xl overflow-hidden transition-colors duration-500 mb-8">
                         
                         {/* --- HEADER --- */}
@@ -112,7 +112,7 @@ const PrivacyPage = () => {
                             </p>
                         </div>
 
-                        {/* --- CONTENIDO LEGAL --- */}
+                        {/* --- LEGAL CONTENT --- */}
                         <div className="p-6 sm:p-10 text-gray-700 dark:text-gray-300 text-sm leading-relaxed transition-colors duration-300">
                             
                             <div className="space-y-8">

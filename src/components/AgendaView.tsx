@@ -2,15 +2,15 @@ import { useState, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Clock, CheckCircle2 } from "lucide-react";
 import { getProgressHeatmap } from "../api/progressRecordApi";
 import type { ProgressRecord, SubjectWithTasks } from "../types";
-import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
+import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 
 type ViewMode = "day" | "week" | "month";
 
 interface AgendaViewProps {
-    subjects?: SubjectWithTasks[]; 
+    subjects?: SubjectWithTasks[];
 }
 
-// --- Diccionario de traducciones para AgendaView ---
+// --- Translation dictionary for AgendaView ---
 const translations = {
     es: {
         btnToday: "Hoy",
@@ -298,7 +298,7 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                             ))}
                         </div>
                         
-                        {/* El rayado de cuaderno adaptado para que en oscuro sea #1f2937 (gray-800) */}
+                        {/* Notebook-style ruled lines, adapted to #1f2937 (gray-800) in dark mode */}
                         <div className="flex-1 relative overflow-y-auto bg-[linear-gradient(to_bottom,#f9fafb_1px,transparent_1px)] dark:bg-[linear-gradient(to_bottom,#1f2937_1px,transparent_1px)] bg-[size:100%_5rem] p-6 transition-colors duration-300">
                             
                             {currentDate.toDateString() === todayObj.toDateString() && (

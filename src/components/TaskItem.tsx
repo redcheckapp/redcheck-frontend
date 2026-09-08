@@ -1,6 +1,6 @@
 import { Check, Pencil, X } from "lucide-react";
 import type { SubjectWithTasks } from "../types";
-import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
+import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 
 type Task = SubjectWithTasks["tasks"][0]; 
 
@@ -24,7 +24,7 @@ interface TaskItemProps {
     isDeleting?: boolean;
 }
 
-// --- Diccionario de traducciones para TaskItem ---
+// --- Translation dictionary for TaskItem ---
 const translations = {
     es: {
         noDeadline: "Sin fecha límite",
@@ -56,7 +56,7 @@ const translations = {
     }
 };
 
-// Pasamos `t` (traducciones) y `locale` como parámetros a la función auxiliar
+// We pass `t` (translations) and `locale` as parameters to the helper function
 const renderDeadline = (deadlineStr: string | null, isCompleted: boolean, t: any, locale: string) => {
     if (!deadlineStr) return t.noDeadline;
 
@@ -74,7 +74,7 @@ const renderDeadline = (deadlineStr: string | null, isCompleted: boolean, t: any
     const dayAfter = new Date(today);
     dayAfter.setDate(dayAfter.getDate() + 2);
 
-    // Usa el locale dinámico para formatear la hora (ej: 10:00 vs 10:00 AM)
+    // Use the dynamic locale to format the time (e.g. 10:00 vs 10:00 AM)
     const timeStr = deadlineDate.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 
     if (!isCompleted) {
@@ -170,7 +170,7 @@ export const TaskItem = ({
                     </p>
                 </div>
 
-                {/* BOTONES DE ACCIÓN */}
+                {/* ACTION BUTTONS */}
                 <div className="flex items-center gap-1 opacity-100 [@media(any-hover:hover)]:opacity-0 [@media(any-hover:hover)]:group-hover:opacity-100 transition-opacity duration-200">
                     <button type="button" 
                         className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 dark:hover:text-yellow-400 dark:hover:bg-yellow-900/30 rounded-lg transition"
@@ -205,7 +205,7 @@ export const TaskItem = ({
                 </div>
             </div>
 
-            {/* FORMULARIO EDITAR TAREA */}
+            {/* EDIT TASK FORM */}
             <div className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
                 openFormSubjectIdTaskId?.subjectId === subjectId && openFormSubjectIdTaskId?.taskId === task.id
                     ? "opacity-100 scale-100 max-h-[500px] mt-2 mb-4"

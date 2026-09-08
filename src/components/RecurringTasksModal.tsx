@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, Trash2, Power, PowerOff, Pencil } from "lucide-react";
 import { getRecurringTasks, toggleRecurringTaskActive, deleteRecurringTask, updateRecurringTask } from "../api/recurringTaskApi";
-import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
+import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 
 interface RecurringTasksModalProps {
     isOpen: boolean;
@@ -11,7 +11,7 @@ interface RecurringTasksModalProps {
     subjectName: string;
 }
 
-// --- Diccionario de traducciones para RecurringTasksModal ---
+// --- Translation dictionary for RecurringTasksModal ---
 const translations = {
     es: {
         title: "Rutinas recurrentes",
@@ -82,7 +82,7 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
             const data = await getRecurringTasks(subjectId);
             setRecurringTasks(data);
         } catch (error) {
-            console.error("Error cargando rutinas:", error);
+            console.error("Error loading routines:", error);
         } finally {
             setLoading(false);
         }
@@ -100,7 +100,7 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
             await toggleRecurringTaskActive(subjectId, taskId, !currentActive);
             setRecurringTasks(prev => prev.map(t => t.id === taskId ? { ...t, active: !currentActive } : t));
         } catch (error) {
-            console.error("Error al cambiar estado:", error);
+            console.error("Error changing status:", error);
         }
     };
 
@@ -110,7 +110,7 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
             await deleteRecurringTask(subjectId, taskId);
             setRecurringTasks(prev => prev.filter(t => t.id !== taskId));
         } catch (error) {
-            console.error("Error al borrar:", error);
+            console.error("Error deleting:", error);
         }
     };
 
@@ -136,7 +136,7 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
             setRecurringTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updatedTask } : t));
             setEditingTaskId(null); // We close the form
         } catch (error) {
-            console.error("Error al actualizar la rutina:", error);
+            console.error("Error updating the routine:", error);
             alert(t.errUpdate);
         }
     };

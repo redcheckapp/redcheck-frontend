@@ -1,6 +1,6 @@
 import { PieChart } from "lucide-react";
 import type { SubjectStat } from "../types";
-import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
+import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 
 interface SubjectBalanceProps {
     sidebarOpen: boolean;
@@ -8,7 +8,7 @@ interface SubjectBalanceProps {
     stats: SubjectStat[];
 }
 
-// --- Diccionario de traducciones para SubjectBalance ---
+// --- Translation dictionary for SubjectBalance ---
 const translations = {
     es: {
         tooltip: "Balance de asignaturas",

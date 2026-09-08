@@ -4,9 +4,9 @@ import { toast } from "react-hot-toast";
 import { getTrashSubjects, restoreSubject, hardDeleteSubject, getSubjects } from "../api/subjectApi";
 import { getTrashTasks, restoreTask, hardDeleteTask } from "../api/taskApi";
 import type { SubjectResponse, TaskResponse } from "../types";
-import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
+import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 
-// --- Diccionario de traducciones para TrashView ---
+// --- Translation dictionary for TrashView ---
 const translations = {
     es: {
         title: "Papelera",
@@ -55,24 +55,24 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
     const loadTrash = async () => {
         setLoading(true);
         try {
-            // 1. Obtenemos las asignaturas eliminadas
+            // 1. Fetch the deleted subjects
             const deletedSubjects = await getTrashSubjects();
-        
-            // 2. Obtenemos el listado completo de asignaturas activas 
-            // (para poder consultar sus tareas borradas)
-            const allSubjects = await getSubjects(); 
 
-            // 3. Recopilamos todas las tareas borradas de todas las asignaturas
+            // 2. Fetch the full list of active subjects
+            // (so we can query their deleted tasks)
+            const allSubjects = await getSubjects();
+
+            // 3. Collect all deleted tasks from every subject
             const tasksPromises = allSubjects.map(s => getTrashTasks(s.id));
             const results = await Promise.all(tasksPromises);
-        
-            // 4. Aplanamos el array de resultados
+
+            // 4. Flatten the results array
             const allDeletedTasks = results.flat();
 
             setSubjects(deletedSubjects);
             setTasks(allDeletedTasks);
         } catch (error) {
-            console.error("Error al cargar la papelera:", error);
+            console.error("Error loading the trash:", error);
         } finally {
             setLoading(false);
         }
@@ -127,19 +127,19 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
         
         setLoading(true);
         try {
-            // Preparamos todas las peticiones de borrado definitivo
+            // Prepare all the permanent-deletion requests
             const taskPromises = tasks.map(t => hardDeleteTask(t.subjectId, t.id));
             const subjectPromises = subjects.map(s => hardDeleteSubject(s.id));
-            
-            // Las ejecutamos todas a la vez
+
+            // Run them all at once
             await Promise.all([...taskPromises, ...subjectPromises]);
-            
-            // Vaciamos el estado local de la interfaz
+
+            // Clear the local UI state
             setSubjects([]);
             setTasks([]);
             toast.success(t.toastTrashEmptied);
         } catch (error) {
-            console.error("Error al vaciar la papelera:", error);
+            console.error("Error emptying the trash:", error);
             alert(t.errEmptyTrash);
         } finally {
             setLoading(false);
@@ -149,7 +149,7 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
     return (
         <div className="w-full h-full bg-white dark:bg-gray-900 rounded-2xl shadow-md p-8 flex flex-col overflow-y-auto transition-colors duration-500">
             
-            {/* Cabecera con el botón de Vaciar Papelera */}
+            {/* Header with the Empty Trash button */}
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
                     <button onClick={onClose} className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-300">
@@ -161,7 +161,7 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
                     </div>
                 </div>
 
-                {/* Botón de Vaciar Papelera (Solo aparece si no está vacía) */}
+                {/* Empty Trash button (only shown when the trash is not empty) */}
                 {(subjects.length > 0 || tasks.length > 0) && (
                     <button 
                         onClick={handleEmptyTrash}
@@ -177,7 +177,7 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
             {loading ? (
                 <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500 transition-colors duration-300">{t.loading}</div>
             ) : subjects.length === 0 && tasks.length === 0 ? (
-                // Estado vacío más visual adaptado
+                // More visual, adapted empty state
                 <div className="flex-1 flex flex-col items-center justify-center gap-3 transition-colors duration-300">
                     <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-full text-gray-400 dark:text-gray-600 mb-2 border border-gray-100 dark:border-gray-800 transition-colors duration-300">
                         <Inbox size={48} strokeWidth={1} />
@@ -187,7 +187,7 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
                 </div>
             ) : (
                 <div className="space-y-8 flex-1">
-                        {/* Sección Asignaturas */}
+                        {/* Subjects section */}
                         {subjects.length > 0 && (
                             <div>
                                 <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-6 transition-colors duration-300">{t.subjectsTitle}</h2>
@@ -213,7 +213,7 @@ export const TrashView = ({ onClose, onRestore }: { onClose: () => void, onResto
                             </div>
                         )}
 
-                        {/* Sección Tareas */}
+                        {/* Tasks section */}
                         {tasks.length > 0 && (
                             <div>
                                 <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-6 transition-colors duration-300">{t.tasksTitle}</h2>

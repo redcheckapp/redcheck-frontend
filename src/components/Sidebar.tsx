@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { SubjectStat, SubjectWithTasks } from "../types";
 import { SmartCheckButton } from "./SmartCheckButton";
 import { SubjectBalance } from "./SubjectBalance";
-import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
+import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 
 interface SidebarProps {
     sidebarOpen: boolean;
@@ -22,7 +22,7 @@ interface SidebarProps {
     onGoHome: () => void;
 }
 
-// --- Diccionario de traducciones para el Sidebar ---
+// --- Translation dictionary for the Sidebar ---
 const translations = {
     es: {
         closeMenu: "Cerrar menú",
@@ -240,7 +240,7 @@ export const Sidebar = ({
                         icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
                         title={t.riskAnalysisTitle}
                         subtitle={t.riskAnalysisSub}
-                        onClick={() => console.log("Clic en el análisis de riesgos")}
+                        onClick={() => console.log("Risk analysis clicked")}
                         comingSoon={true}
                     />
                 </div>

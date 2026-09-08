@@ -2,15 +2,15 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { getProgressHeatmap } from "../api/progressRecordApi";
 import type { ProgressRecord } from "../types";
-import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
+import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 
-// --- Diccionario de traducciones para el Heatmap ---
+// --- Translation dictionary for the Heatmap ---
 const translations = {
     es: {
         dailyActivity: "Actividad Diaria",
-        day1: "L", // Lunes
-        day3: "X", // Miércoles
-        day5: "V", // Viernes
+        day1: "L", // Monday
+        day3: "X", // Wednesday
+        day5: "V", // Friday
         noTasks: "Sin tareas el",
         tasksCompleted: "tareas completadas el"
     },
@@ -27,7 +27,7 @@ const translations = {
 export const ProgressHeatmap = () => {
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
-    const locale = language === 'es' ? 'es-ES' : 'en-US'; // Idioma para el formateador de fechas
+    const locale = language === 'es' ? 'es-ES' : 'en-US'; // Locale used by the date formatter
 
     const [records, setRecords] = useState<Record<string, ProgressRecord>>({});
     const [loading, setLoading] = useState(true);
@@ -50,7 +50,7 @@ export const ProgressHeatmap = () => {
                 });
                 setRecords(recordMap);
             } catch (error) {
-                console.error("Error al cargar el heatmap:", error);
+                console.error("Error loading the heatmap:", error);
             } finally {
                 setLoading(false);
             }
@@ -94,7 +94,7 @@ export const ProgressHeatmap = () => {
 
     const getTooltipText = (date: Date, dateString: string) => {
         const record = records[dateString];
-        // Formateamos la fecha usando el locale dinámico (es-ES o en-US)
+        // Format the date using the dynamic locale (es-ES or en-US)
         const dateFormatted = date.toLocaleDateString(locale, { month: "short", day: "numeric" });
         
         if (!record || record.totalTasks === 0) return `${t.noTasks} ${dateFormatted}`;
@@ -111,7 +111,7 @@ export const ProgressHeatmap = () => {
             
             <div className="flex gap-2 w-full justify-center overflow-x-visible">
                 
-                {/* Días de la semana (L X V / M W F) */}
+                {/* Days of the week (L X V / M W F) */}
                 <div className="pt-[18px]">
                     <div className="grid grid-rows-7 gap-1 text-[9px] text-gray-400 dark:text-gray-500 font-medium pr-1 transition-colors duration-300">
                         <div className="h-3 flex items-center leading-none">{t.day1}</div>
@@ -142,7 +142,7 @@ export const ProgressHeatmap = () => {
 
                             let monthName = "";
                             if (showMonth) {
-                                // Aplicamos el locale para obtener el mes en inglés o en español
+                                // Apply the locale to get the month name in English or Spanish
                                 const rawMonth = week[0].toLocaleDateString(locale, { month: "short" }).replace('.', '');
                                 monthName = rawMonth.charAt(0).toUpperCase() + rawMonth.slice(1);
                             }
@@ -188,7 +188,7 @@ export const ProgressHeatmap = () => {
                 </div>
             </div>
 
-            {/* FLOATING TOOLTIP ADAPTADO A MÚLTIPLES LÍNEAS */}
+            {/* FLOATING TOOLTIP ADAPTED FOR MULTIPLE LINES */}
             {tooltip.show && createPortal(
                 <div 
                     className="fixed z-[9999] px-3 py-2 text-xs font-medium text-white dark:text-gray-900 bg-gray-900 dark:bg-gray-100 rounded-lg shadow-xl pointer-events-none max-w-[180px] text-center leading-tight"

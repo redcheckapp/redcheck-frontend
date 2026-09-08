@@ -6,7 +6,7 @@ import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
 import { PageTransition } from "../components/PageTransition";
 import { useTheme } from "../context/ThemeContext";
-import { useLanguage } from "../context/LanguageContext"; // <-- Nuevo contexto
+import { useLanguage } from "../context/LanguageContext"; // <-- New context
 
 // --- We extract the particles to an immutable component ---
 const BackgroundParticles = memo(({ init }: { init: boolean }) => {
@@ -52,7 +52,7 @@ const BackgroundParticles = memo(({ init }: { init: boolean }) => {
     );
 });
 
-// --- Diccionario de traducciones ---
+// --- Translation dictionary ---
 const translations = {
     es: {
         loginTitle: "Iniciar sesión",
@@ -132,7 +132,7 @@ const LoginPage = () => {
         setError(null);
         setLoading(true);
 
-        // Seleccionamos el correo de la demo en función del idioma
+        // We select the demo email based on the current language
         const demoEmail = language === 'en' ? "demo-en@redcheck.com" : "demo-es@redcheck.com";
 
         setForm({ email: demoEmail, password: "demo1234" });
@@ -154,7 +154,7 @@ const LoginPage = () => {
             
             <BackgroundParticles init={init} />
 
-            {/* CONTROLES FLOTANTES (IDIOMA Y TEMA) */}
+            {/* FLOATING CONTROLS (LANGUAGE AND THEME) */}
             <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-3">
                 <button
                     onClick={toggleLanguage}
@@ -257,7 +257,7 @@ const LoginPage = () => {
                     </a>
                 </p>
 
-                {/* --- ENLACES LEGALES RGPD Y COPYRIGHT --- */}
+                {/* --- GDPR LEGAL LINKS AND COPYRIGHT --- */}
                 <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col items-center gap-3 transition-colors duration-300">
                     <div className="flex justify-center gap-4 text-[11px] text-gray-400 dark:text-gray-500">
                         <a href="/terms" target="_blank" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t.legal}</a>

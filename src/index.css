@@ -1,15 +1,15 @@
 @import "tailwindcss";
 
-/* --- CONFIGURACIÓN TAILWIND V4 --- */
-/* 1. Forzar modo oscuro por clase CSS en lugar de por sistema operativo */
+/* --- TAILWIND V4 CONFIGURATION --- */
+/* 1. Force dark mode via CSS class instead of OS preference */
 @custom-variant dark (&:is(.dark, .dark *));
 
-/* 2. Recuperar nuestras reglas inteligentes para pantallas táctiles vs ratón */
+/* 2. Smart rules for touch screens vs mouse */
 @custom-variant can-hover (@media (any-hover: hover));
 @custom-variant no-hover (@media (any-hover: none));
 
 
-/* --- TUS ANIMACIONES --- */
+/* --- ANIMATIONS --- */
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -52,6 +52,6 @@
 }
 
 .animate-soft-fade {
-  /* La curva cubic-bezier le da ese toque "premium" y fluido */
+  /* The cubic-bezier curve gives it that fluid, "premium" feel */
   animation: softFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

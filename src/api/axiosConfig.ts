@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-    // Vite reemplazará esto por tu IP/Dominio en tiempo de compilación
+    // Vite will replace this with your IP/Domain at build time
     baseURL: import.meta.env.VITE_API_URL
 });
 

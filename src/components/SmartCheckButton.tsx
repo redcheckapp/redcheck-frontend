@@ -1,6 +1,6 @@
 import React from "react";
-import { Loader2 } from "lucide-react"; // Importamos el spinner de tu librería
-import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
+import { Loader2 } from "lucide-react"; // We import the spinner from the library
+import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 
 interface SmartCheckCardProps {
   icon: React.ReactNode;
@@ -8,10 +8,10 @@ interface SmartCheckCardProps {
   subtitle: string;
   onClick: () => void;
   comingSoon?: boolean;
-  isLoading?: boolean; // Añadimos la propiedad de carga
+  isLoading?: boolean; // We add the loading property
 }
 
-// --- Diccionario de traducciones para el SmartCheckButton ---
+// --- Translation dictionary for the SmartCheckButton ---
 const translations = {
     es: {
         analyzing: "Analizando tareas...",
@@ -39,7 +39,7 @@ export const SmartCheckButton = ({ icon, title, subtitle, onClick, comingSoon, i
         ${comingSoon ? 'opacity-70 cursor-not-allowed' : ''}
       `}
     >
-      {/* 1. Icono o Spinner */}
+      {/* 1. Icon or Spinner */}
       <div className={`flex items-center justify-center w-8 h-8 mb-2 transition-colors duration-300 ${isLoading ? 'text-red-500' : 'text-zinc-700 dark:text-gray-300'}`}>
         {isLoading ? (
             <Loader2 className="w-full h-full animate-spin" />
@@ -48,19 +48,19 @@ export const SmartCheckButton = ({ icon, title, subtitle, onClick, comingSoon, i
         )}
       </div>
 
-      {/* 2. Título (cambia limpiamente cuando carga) */}
+      {/* 2. Title (switches cleanly while loading) */}
       <h3 className="font-semibold text-zinc-900 dark:text-gray-100 text-sm m-0 mb-1 transition-colors duration-300">
         {isLoading ? t.analyzing : title}
       </h3>
 
-      {/* 3. Subtítulo (se oculta al cargar para dar un aspecto más minimalista) */}
+      {/* 3. Subtitle (hidden while loading for a more minimal look) */}
       {!isLoading && (
         <p className="text-zinc-500 dark:text-gray-400 text-xs leading-snug m-0 transition-colors duration-300 animate-in fade-in">
           {subtitle}
         </p>
       )}
 
-      {/* 4. Etiqueta Próximamente */}
+      {/* 4. "Coming soon" badge */}
       {comingSoon && (
         <span className="mt-2 px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 text-[10px] leading-none font-bold rounded-md transition-colors duration-300">
           {t.comingSoon}

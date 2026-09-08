@@ -5,7 +5,7 @@ export const getTodaysAnalysis = async (): Promise<string> => {
     return response.data;
 }
 
-// Añadimos el parámetro lang (con 'es' por defecto por seguridad)
+// We add the lang parameter (defaulting to 'es' as a safe fallback)
 export const dailyAnalysis = async (lang: string = 'es'): Promise<string> => {
     const response = await api.post(`/ai/analyze?lang=${lang}`);
     return response.data;

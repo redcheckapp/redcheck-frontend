@@ -1,7 +1,7 @@
 import { AlertCircle, Check, Pencil, X } from "lucide-react";
 import type { SubjectWithTasks } from "../types";
 import { AnimatedVisibility } from "./AnimatedVisibility";
-import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
+import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 
 interface OverdueSectionProps {
     subjects: SubjectWithTasks[];
@@ -17,7 +17,7 @@ interface OverdueSectionProps {
     deletingTasks: number[];
 }
 
-// --- Diccionario de traducciones para OverdueSection ---
+// --- Translation dictionary for OverdueSection ---
 const translations = {
     es: {
         title: "Fuera de plazo",
@@ -147,7 +147,7 @@ export const OverdueSection = ({
                                                         </p>
                                                     </div>
 
-                                                    {/* BOTONES DE ACCIÓN: Accesibles en táctil, hover en escritorio */}
+                                                    {/* ACTION BUTTONS: Accessible on touch, hover on desktop */}
                                                     <div className="flex items-center gap-1 opacity-100 [@media(any-hover:hover)]:opacity-0 [@media(any-hover:hover)]:group-hover:opacity-100 transition-opacity duration-200">
                                                         <button 
                                                             type="button" 

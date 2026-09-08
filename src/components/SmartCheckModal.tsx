@@ -1,7 +1,7 @@
 import React from 'react';
-import { createPortal } from 'react-dom'; // <-- IMPORTACIÓN CLAVE
+import { createPortal } from 'react-dom'; // <-- KEY IMPORT
 import type { SubjectWithTasks } from '../types';
-import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
+import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 
 interface SmartCheckModalProps {
   isOpen: boolean;
@@ -10,7 +10,7 @@ interface SmartCheckModalProps {
   subjects: SubjectWithTasks[];
 }
 
-// --- Diccionario de traducciones para el SmartCheckModal ---
+// --- Translation dictionary for the SmartCheckModal ---
 const translations = {
     es: {
         riskLevel: "Riesgo",
@@ -34,7 +34,7 @@ const translations = {
     }
 };
 
-// Le pasamos el diccionario de traducción (t) para traducir la etiqueta
+// We pass the translation dictionary (t) to translate the label
 const getRiskConfig = (nivel: string, t: any) => {
   switch (nivel?.toUpperCase()) {
     case 'ALTO':

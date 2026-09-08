@@ -5,7 +5,7 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 
-# Recibimos la variable desde el docker-compose y la exponemos a Vite
+# We receive the variable from docker-compose and expose it to Vite
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 

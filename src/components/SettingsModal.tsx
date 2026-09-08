@@ -13,7 +13,7 @@ interface SettingsModalProps {
     userEmail: string;
 }
 
-// --- Diccionario de traducciones para SettingsModal ---
+// --- Translation dictionary for SettingsModal ---
 const translations = {
     es: {
         title: "Ajustes",
@@ -55,7 +55,7 @@ const translations = {
 
 export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject, handleDeleteAccount, userEmail }: SettingsModalProps) => {
     const { theme, toggleTheme } = useTheme();
-    const { language, toggleLanguage } = useLanguage(); // Extraemos idioma y función para cambiar
+    const { language, toggleLanguage } = useLanguage(); // We extract the language and the toggle function
     const t = translations[language as keyof typeof translations];
 
     if (!isOpen) return null;
@@ -63,7 +63,7 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
     // We filter to keep ONLY the archived subjects
     const archivedSubjects = subjects.filter(subject => subject.archived);
 
-    // Usamos createPortal para sacarlo al body y que cubra absolutamentre toda la ventana (incluida la Sidebar)
+    // We use createPortal to render it into the body so it covers the entire window (including the Sidebar)
     return createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 transition-all animate-in fade-in duration-200">
             
@@ -85,7 +85,7 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
                     <div className="flex flex-col gap-3">
                         <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.appearance}</h3>
                         
-                        {/* Selector de Idioma (Nuevo) */}
+                        {/* Language selector (New) */}
                         <div className="flex justify-between items-center p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 transition-colors">
                             <div>
                                 <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
@@ -100,12 +100,12 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
                                 className="p-2 w-[38px] h-[38px] flex items-center justify-center rounded-lg transition-all duration-200 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-lg hover:bg-gray-50 dark:hover:bg-gray-600 shadow-sm"
                                 title={t.ttLanguage}
                             >
-                                {/* Mostramos la bandera del idioma actual */}
+                                {/* Show the flag for the current language */}
                                 {language === 'es' ? '🇪🇸' : '🇬🇧'}
                             </button>
                         </div>
 
-                        {/* Selector Modo Noche (Original) */}
+                        {/* Dark mode toggle (Original) */}
                         <div className="flex justify-between items-center p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 transition-colors">
                             <div>
                                 <p className="text-sm font-medium text-gray-700 dark:text-gray-200">

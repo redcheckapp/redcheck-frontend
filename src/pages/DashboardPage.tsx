@@ -17,9 +17,9 @@ import { dailyAnalysis, pollForAnalysis } from "../api/smartCheckApi";
 import { PageTransition } from "../components/PageTransition";
 import { AgendaView } from "../components/AgendaView";
 import { TrashView } from "../components/TrashView";
-import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto
+import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 
-// --- Diccionario de traducciones para el Dashboard ---
+// --- Translation dictionary for the Dashboard ---
 const translations = {
     es: {
         alertAiAnalyzing: "🧠 SmartCheck está analizando tus tareas. Te avisaremos cuando esté listo (Suele tardar unos 15-20 segundos).",
@@ -139,7 +139,7 @@ const DashboardPage = () => {
         try {
             await dailyAnalysis(language);
         } catch (error) {
-            console.warn("dailyAnalysis() lanzó error, pero continuamos el polling:", error);
+            console.warn("dailyAnalysis() threw an error, but we continue polling:", error);
         }
 
         pollForAnalysis()
@@ -151,7 +151,7 @@ const DashboardPage = () => {
                 if (err?.message === "TIMEOUT") {
                     alert(t.alertAiTimeout);
                 } else {
-                    console.error("Error en polling:", err);
+                    console.error("Error during polling:", err);
                     alert(t.alertAiError);
                 }
             })
@@ -233,7 +233,7 @@ const DashboardPage = () => {
                 setDeletingTasks(prev => prev.filter(id => id !== taskId));
             }, 400);
         } catch(err) { 
-            console.error("Error al eliminar la tarea:", err);
+            console.error("Error deleting the task:", err);
             setDeletingTasks(prev => prev.filter(id => id !== taskId));
         } 
     };
@@ -249,7 +249,7 @@ const DashboardPage = () => {
             }, 400);
             
         } catch(err) { 
-            console.error("Error al enviar a la papelera:", err);
+            console.error("Error sending to trash:", err);
             setError(t.errTrash); 
             setDeletingSubjects(prev => prev.filter(id => id !== subjectId));
         } 
@@ -277,7 +277,7 @@ const DashboardPage = () => {
                     : { ...subject, ...response, tasks: subject.tasks } 
             ));
         } catch (err) { 
-            console.error("Error al archivar/desarchivar:", err);
+            console.error("Error archiving/unarchiving:", err);
             alert(t.errArchive);
         }
     };
@@ -294,7 +294,7 @@ const DashboardPage = () => {
         }
     };
 
-    // Modificado para usar los saludos traducidos
+    // Updated to use the translated greetings
     const getGreeting = (username: string): string => {
         const hour = new Date().getHours();
         if (hour >= 6 && hour < 12) return `${t.greetingMorning} ${username}`;
@@ -302,7 +302,7 @@ const DashboardPage = () => {
         return `${t.greetingNight} ${username}`;
     };
 
-    // Modificado para adaptar la fecha al idioma
+    // Updated to adapt the date to the current language
     const today = new Date().toLocaleDateString(language === 'es' ? "es-ES" : "en-US", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
 
     const refreshData = async () => {
@@ -316,7 +316,7 @@ const DashboardPage = () => {
             );
             setSubjects(subjectsWithTasks); 
         } catch (err) {
-            console.error("Error refrescando el dashboard:", err);
+            console.error("Error refreshing the dashboard:", err);
         }
     };
 
@@ -380,7 +380,7 @@ const DashboardPage = () => {
         try {
             await toggleTask(subjectId, taskId, !task.completed);
             setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: subject.tasks.map(task => task.id !== taskId ? task : { ...task, completed: !task.completed }) }));
-        } catch (err) { console.error("Error al actualizar la tarea"); }
+        } catch (err) { console.error("Error updating the task"); }
     };
 
     const handleSubmitSubject = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -403,7 +403,7 @@ const DashboardPage = () => {
             }, 50);
             
         } catch(err) { 
-            console.error("Error al crear asignatura:", err);
+            console.error("Error creating subject:", err);
             setError(t.errCreateSubject); 
         } 
     };
@@ -568,7 +568,7 @@ const DashboardPage = () => {
                                         <span>{t.addNewSubject}</span>
                                     </button>
 
-                                    {/* Contenedor animado del formulario de Nueva Asignatura */}
+                                    {/* Animated container for the New Subject form */}
                                     <div 
                                         className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
                                             openFormNewSubject 

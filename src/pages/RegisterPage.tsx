@@ -6,7 +6,7 @@ import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
 import { PageTransition } from "../components/PageTransition";
 import { useTheme } from "../context/ThemeContext";
-import { useLanguage } from "../context/LanguageContext"; // <-- Importamos el contexto de idioma
+import { useLanguage } from "../context/LanguageContext"; // <-- We import the language context
 
 const BackgroundParticles = memo(({ init }: { init: boolean }) => {
     if (!init) return null;
@@ -51,7 +51,7 @@ const BackgroundParticles = memo(({ init }: { init: boolean }) => {
     );
 });
 
-// --- Diccionario de traducciones para el Register ---
+// --- Translation dictionary for the Register page ---
 const translations = {
     es: {
         title: "Crear cuenta",
@@ -96,7 +96,7 @@ const translations = {
 const RegisterPage = () => {
     const navigate = useNavigate();
     const { theme, toggleTheme } = useTheme();
-    const { language, toggleLanguage } = useLanguage(); // Hook de idioma
+    const { language, toggleLanguage } = useLanguage(); // Language hook
     const t = translations[language as keyof typeof translations];
 
     const [init, setInit] = useState(false);
@@ -137,7 +137,7 @@ const RegisterPage = () => {
             
             <BackgroundParticles init={init} />
 
-            {/* CONTROLES FLOTANTES (IDIOMA Y TEMA) */}
+            {/* FLOATING CONTROLS (LANGUAGE AND THEME) */}
             <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-3">
                 <button
                     onClick={toggleLanguage}
@@ -225,7 +225,7 @@ const RegisterPage = () => {
                         />
                     </div>
 
-                    {/* --- CASILLA DE ACEPTACIÓN LEGAL --- */}
+                    {/* --- LEGAL ACCEPTANCE CHECKBOX --- */}
                     <div className="flex items-start gap-2.5 mt-1">
                         <input 
                             type="checkbox" 
@@ -262,7 +262,7 @@ const RegisterPage = () => {
                     </a>
                 </p>
 
-                {/* --- ENLACES LEGALES RGPD Y COPYRIGHT --- */}
+                {/* --- GDPR LEGAL LINKS AND COPYRIGHT --- */}
                 <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col items-center gap-3 transition-colors duration-300">
                     <div className="flex justify-center gap-4 text-[11px] text-gray-400 dark:text-gray-500">
                         <a href="/terms" target="_blank" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t.legal}</a>
