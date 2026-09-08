@@ -1,8 +1,10 @@
 import { X, ArchiveRestore, Trash2, Moon, Sun, Bell, BellOff, Vibrate, VibrateOff } from "lucide-react";
+import { toast } from "react-hot-toast";
 import type { SubjectWithTasks } from "../types";
 import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
 import { ModalOverlay } from "./ModalOverlay";
+import { triggerHapticFeedback } from "../utils/feedback";
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -34,6 +36,9 @@ const translations = {
         taskFeedback: "Vibración",
         taskFeedbackDesc: "Una vibración sutil al completar una tarea (solo móvil)",
         ttTaskFeedback: "Activar/desactivar vibración",
+        testHaptic: "Probar vibración",
+        testHapticAccepted: "El navegador ha aceptado la vibración. Si no la has notado, puede que tu móvil no tenga motor de vibración activo para el navegador, o que la duración sea demasiado corta para notarla.",
+        testHapticRejected: "Tu navegador ha rechazado la vibración (no soportada en este dispositivo/navegador).",
         archived: "Asignaturas Archivadas",
         noArchived: "No tienes asignaturas archivadas.",
         btnRestore: "Restaurar",
@@ -58,6 +63,9 @@ const translations = {
         taskFeedback: "Haptic feedback",
         taskFeedbackDesc: "A gentle vibration when you complete a task (mobile only)",
         ttTaskFeedback: "Turn haptic feedback on/off",
+        testHaptic: "Test vibration",
+        testHapticAccepted: "The browser accepted the vibration request. If you didn't feel anything, your phone's vibration motor might not respond to browser requests, or the duration may be too short to notice.",
+        testHapticRejected: "Your browser rejected the vibration request (not supported on this device/browser).",
         archived: "Archived Subjects",
         noArchived: "You have no archived subjects.",
         btnRestore: "Restore",
@@ -76,6 +84,21 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
 
     // We filter to keep ONLY the archived subjects
     const archivedSubjects = subjects.filter(subject => subject.archived);
+
+    // Diagnostic for "it's not vibrating" reports: a long, deliberate,
+    // directly-clicked vibration plus the browser's own accepted/rejected
+    // verdict (navigator.vibrate's return value) — separates "the browser
+    // refused the request" from "it ran but the pulse was too short/the
+    // device's motor didn't respond," which look identical from the app's
+    // side but need different fixes (one is a bug here, the other isn't).
+    const handleTestVibration = () => {
+        const accepted = triggerHapticFeedback(200);
+        if (accepted) {
+            toast.success(t.testHapticAccepted, { duration: 6000 });
+        } else {
+            toast.error(t.testHapticRejected, { duration: 6000 });
+        }
+    };
 
     // ModalOverlay renders into document.body so it covers the entire window (including the Sidebar)
     return (
@@ -171,6 +194,13 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
                                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                                     {t.taskFeedbackDesc}
                                 </p>
+                                <button
+                                    type="button"
+                                    onClick={handleTestVibration}
+                                    className="text-xs font-semibold text-red-600 dark:text-red-400 hover:underline mt-1"
+                                >
+                                    {t.testHaptic}
+                                </button>
                             </div>
                             <button
                                 onClick={onToggleTaskFeedback}
