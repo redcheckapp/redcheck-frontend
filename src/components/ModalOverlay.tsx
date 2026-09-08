@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 interface ModalOverlayProps {
@@ -10,6 +10,8 @@ interface ModalOverlayProps {
 
 const TRANSITION_MS = 200;
 
+const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 // Shared enter/exit animation for every modal-with-backdrop in the app: the
 // dim+blur backdrop and the dialog itself fade/scale in together instead of
 // popping in at once, and reverse the same way on close. `children` is a
@@ -18,6 +20,8 @@ const TRANSITION_MS = 200;
 export const ModalOverlay = ({ isOpen, onClose, backdropClassName = "bg-black/40", children }: ModalOverlayProps) => {
     const [shouldRender, setShouldRender] = useState(isOpen);
     const [isVisible, setIsVisible] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const triggerElementRef = useRef<HTMLElement | null>(null);
 
     // Escape-to-close, shared by every modal that uses this wrapper instead
     // of each one wiring its own listener.
@@ -29,6 +33,49 @@ export const ModalOverlay = ({ isOpen, onClose, backdropClassName = "bg-black/40
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [isOpen, onClose]);
+
+    // Focus management, also shared by every modal via this wrapper: move
+    // focus into the dialog when it opens, trap Tab/Shift+Tab within it
+    // while open, and restore focus to whatever triggered it on close —
+    // without this, keyboard and screen-reader users lose their place.
+    useEffect(() => {
+        if (!isOpen) return;
+
+        triggerElementRef.current = document.activeElement as HTMLElement | null;
+
+        // Wait a frame so the dialog content — rendered by the parent via
+        // the `children` render prop — has actually mounted first.
+        const raf = requestAnimationFrame(() => {
+            const container = containerRef.current;
+            if (!container) return;
+            const focusable = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+            (focusable[0] ?? container).focus();
+        });
+
+        const handleTabKey = (e: KeyboardEvent) => {
+            if (e.key !== "Tab" || !containerRef.current) return;
+            const focusable = Array.from(containerRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+            if (focusable.length === 0) return;
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        };
+        window.addEventListener("keydown", handleTabKey);
+
+        return () => {
+            cancelAnimationFrame(raf);
+            window.removeEventListener("keydown", handleTabKey);
+            triggerElementRef.current?.focus?.();
+        };
+    }, [isOpen]);
 
     // Render-phase updates: mount / start closing immediately, no need to
     // wait for the effect below for either of these.
@@ -54,7 +101,9 @@ export const ModalOverlay = ({ isOpen, onClose, backdropClassName = "bg-black/40
 
     return createPortal(
         <div
-            className={`fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-200 ${backdropClassName} ${
+            ref={containerRef}
+            tabIndex={-1}
+            className={`fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-200 outline-none ${backdropClassName} ${
                 isVisible ? "opacity-100" : "opacity-0"
             }`}
         >
