@@ -1,23 +1,30 @@
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
 interface PageTransitionProps {
     children: React.ReactNode;
 }
 
+// Plain CSS mount transition — replaces a former framer-motion (~120KB)
+// implementation that only ever ran its `enter` animation in practice: the
+// `exit` prop it also set requires wrapping in <AnimatePresence> to do
+// anything, and nothing in the app does that, so route-change exit
+// animations never actually fired. Not worth the dependency for a
+// two-property fade + slide-in.
 export const PageTransition = ({ children }: PageTransitionProps) => {
+    const [isVisible, setIsVisible] = useState(false);
+
+    useEffect(() => {
+        const raf = requestAnimationFrame(() => setIsVisible(true));
+        return () => cancelAnimationFrame(raf);
+    }, []);
+
     return (
-        <motion.div
-            // Initial state (invisible and a bit lower)
-            initial={{ opacity: 0, y: 15 }}
-            // State when entering (visible and in place)
-            animate={{ opacity: 1, y: 0 }}
-            // State when exiting (fades upwards)
-            exit={{ opacity: 0, y: -15 }}
-            // Duration and smoothness of the curve
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="w-full h-full"
+        <div
+            className={`w-full h-full transition-all duration-[400ms] ease-out ${
+                isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-[15px]"
+            }`}
         >
             {children}
-        </motion.div>
+        </div>
     );
 };
