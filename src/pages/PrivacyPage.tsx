@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Sun, Moon } from "lucide-react";
 import { PageTransition } from "../components/PageTransition";
-import { useTheme } from "../context/ThemeContext";
+import { AuthFloatingNav } from "../components/AuthFloatingNav";
 import { useLanguage } from "../context/LanguageContext";
 
 // We add the copyright to the dictionary
@@ -16,8 +15,7 @@ const translations = {
 
 const PrivacyPage = () => {
     const navigate = useNavigate();
-    const { theme, toggleTheme } = useTheme();
-    const { language, toggleLanguage } = useLanguage();
+    const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
 
     const handleBack = () => {
@@ -33,62 +31,7 @@ const PrivacyPage = () => {
         <PageTransition>
             <div className="relative min-h-screen flex flex-col overflow-y-auto">
 
-                {/* Mobile-only controls row: back + language + theme, in normal
-                    document flow so they never overlap scrolling text the
-                    way the fixed versions below would on a narrow viewport. */}
-                <div className="flex sm:hidden items-center justify-between px-4 pt-4">
-                    <button
-                        onClick={handleBack}
-                        className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center"
-                        aria-label={language === 'es' ? 'Volver' : 'Back'}
-                    >
-                        <ChevronLeft size={20} />
-                    </button>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={toggleLanguage}
-                            className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center text-lg"
-                            title={language === 'es' ? 'Switch to English' : 'Cambiar a Español'}
-                        >
-                            {language === 'es' ? '🇬🇧' : '🇪🇸'}
-                        </button>
-                        <button
-                            onClick={toggleTheme}
-                            className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center"
-                            title={language === 'es' ? 'Cambiar tema' : 'Toggle theme'}
-                        >
-                            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-                        </button>
-                    </div>
-                </div>
-
-                {/* FLOATING BACK BUTTON (sm and up only) */}
-                <button
-                    onClick={handleBack}
-                    className="hidden sm:flex fixed top-4 left-4 z-50 p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 items-center justify-center"
-                    aria-label={language === 'es' ? 'Volver' : 'Back'}
-                >
-                    <ChevronLeft size={20} />
-                </button>
-
-                {/* FLOATING CONTROLS (LANGUAGE AND THEME) (sm and up only) */}
-                <div className="hidden sm:flex fixed bottom-4 left-4 z-50 flex-col gap-3">
-                    <button
-                        onClick={toggleLanguage}
-                        className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 flex items-center justify-center text-lg"
-                        title={language === 'es' ? 'Switch to English' : 'Cambiar a Español'}
-                    >
-                        {language === 'es' ? '🇬🇧' : '🇪🇸'}
-                    </button>
-
-                    <button
-                        onClick={toggleTheme}
-                        className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 flex items-center justify-center"
-                        title={language === 'es' ? 'Cambiar tema' : 'Toggle theme'}
-                    >
-                        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-                    </button>
-                </div>
+                <AuthFloatingNav onBack={handleBack} backAriaLabel={language === 'es' ? 'Volver' : 'Back'} mobileRowClassName="px-4 pt-4" />
 
                 <div className="flex-1 py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
                     {/* GLASS-EFFECT CONTAINER */}

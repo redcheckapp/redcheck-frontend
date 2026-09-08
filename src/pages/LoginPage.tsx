@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { login } from "../api/authApi";
-import { Check, ChevronLeft, Sun, Moon } from "lucide-react";
+import { Check } from "lucide-react";
 import { PageTransition } from "../components/PageTransition";
-import { useTheme } from "../context/ThemeContext";
+import { AuthFloatingNav } from "../components/AuthFloatingNav";
 import { useLanguage } from "../context/LanguageContext"; // <-- New context
 
 // --- Translation dictionary ---
@@ -44,8 +44,7 @@ const translations = {
 
 const LoginPage = () => {
     const navigate = useNavigate();
-    const { theme, toggleTheme } = useTheme();
-    const { language, toggleLanguage } = useLanguage();
+    const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
 
     const [form, setForm] = useState({ email: "", password: "" });
@@ -97,62 +96,7 @@ const LoginPage = () => {
         <PageTransition>
             <div className="relative min-h-screen flex flex-col items-center justify-center overflow-y-auto p-4 py-8">
 
-            {/* Mobile-only controls row: back + language + theme, in normal
-                document flow so they never overlap the card the way the
-                fixed versions below would on a narrow/short viewport. */}
-            <div className="flex sm:hidden items-center justify-between w-full max-w-md mb-4">
-                <a
-                    href="https://redcheckapp.com"
-                    className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center"
-                    aria-label="Back to redcheckapp.com"
-                >
-                    <ChevronLeft size={20} />
-                </a>
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={toggleLanguage}
-                        className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center text-lg"
-                        title={language === 'es' ? 'Switch to English' : 'Cambiar a Español'}
-                    >
-                        {language === 'es' ? '🇬🇧' : '🇪🇸'}
-                    </button>
-                    <button
-                        onClick={toggleTheme}
-                        className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center"
-                        title={language === 'es' ? 'Cambiar tema' : 'Toggle theme'}
-                    >
-                        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-                    </button>
-                </div>
-            </div>
-
-            {/* FLOATING BACK-TO-HOME BUTTON (sm and up only) */}
-            <a
-                href="https://redcheckapp.com"
-                className="hidden sm:flex fixed top-4 left-4 z-50 p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 items-center justify-center"
-                aria-label="Back to redcheckapp.com"
-            >
-                <ChevronLeft size={20} />
-            </a>
-
-            {/* FLOATING CONTROLS (LANGUAGE AND THEME) (sm and up only) */}
-            <div className="hidden sm:flex fixed bottom-4 left-4 z-50 flex-col gap-3">
-                <button
-                    onClick={toggleLanguage}
-                    className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 flex items-center justify-center text-lg"
-                    title={language === 'es' ? 'Switch to English' : 'Cambiar a Español'}
-                >
-                    {language === 'es' ? '🇬🇧' : '🇪🇸'}
-                </button>
-
-                <button
-                    onClick={toggleTheme}
-                    className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 flex items-center justify-center"
-                    title={language === 'es' ? 'Cambiar tema' : 'Toggle theme'}
-                >
-                    {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-                </button>
-            </div>
+            <AuthFloatingNav backHref="https://redcheckapp.com" backAriaLabel="Back to redcheckapp.com" />
 
             <div className="relative z-10 bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md transition-colors duration-500">
 
