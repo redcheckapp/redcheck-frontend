@@ -1,4 +1,4 @@
-import { X, ArchiveRestore, Trash2, Moon, Sun, Bell, BellOff, Volume2, VolumeX } from "lucide-react";
+import { X, ArchiveRestore, Trash2, Moon, Sun, Bell, BellOff, Vibrate, VibrateOff } from "lucide-react";
 import type { SubjectWithTasks } from "../types";
 import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -31,9 +31,9 @@ const translations = {
         reminders: "Recordatorios de tareas",
         remindersDesc: "Avisa cuando una tarea esté por vencer (solo con la app abierta)",
         ttReminders: "Activar/desactivar recordatorios",
-        taskFeedback: "Sonido y vibración",
-        taskFeedbackDesc: "Un sonido y una vibración sutil al completar una tarea",
-        ttTaskFeedback: "Activar/desactivar sonido y vibración",
+        taskFeedback: "Vibración",
+        taskFeedbackDesc: "Una vibración sutil al completar una tarea (solo móvil)",
+        ttTaskFeedback: "Activar/desactivar vibración",
         archived: "Asignaturas Archivadas",
         noArchived: "No tienes asignaturas archivadas.",
         btnRestore: "Restaurar",
@@ -55,9 +55,9 @@ const translations = {
         reminders: "Task reminders",
         remindersDesc: "Get notified when a task is about to be due (app must be open)",
         ttReminders: "Turn reminders on/off",
-        taskFeedback: "Sound & haptics",
-        taskFeedbackDesc: "A short sound and a gentle vibration when you complete a task",
-        ttTaskFeedback: "Turn sound & haptics on/off",
+        taskFeedback: "Haptic feedback",
+        taskFeedbackDesc: "A gentle vibration when you complete a task (mobile only)",
+        ttTaskFeedback: "Turn haptic feedback on/off",
         archived: "Archived Subjects",
         noArchived: "You have no archived subjects.",
         btnRestore: "Restore",
@@ -161,8 +161,8 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
                             </button>
                         </div>
 
-                        {/* Sound + haptic feedback on task completion —
-                            opt-out, defaults on. See src/utils/feedback.ts. */}
+                        {/* Haptic feedback on task completion — opt-out,
+                            defaults on. See src/utils/feedback.ts. */}
                         <div className="flex justify-between items-center p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 transition-colors">
                             <div>
                                 <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
@@ -181,7 +181,7 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
                                 }`}
                                 title={t.ttTaskFeedback}
                             >
-                                {taskFeedbackEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+                                {taskFeedbackEnabled ? <Vibrate size={18} /> : <VibrateOff size={18} />}
                             </button>
                         </div>
                     </div>

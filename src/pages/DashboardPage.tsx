@@ -17,7 +17,7 @@ import { AgendaView } from "../components/AgendaView";
 import { DashboardSkeleton } from "../components/DashboardSkeleton";
 import { Confetti } from "../components/Confetti";
 import { WelcomeIllustration } from "../components/illustrations/WelcomeIllustration";
-import { triggerHapticFeedback, playTaskCompleteSound } from "../utils/feedback";
+import { triggerHapticFeedback } from "../utils/feedback";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import { useTheme } from "../context/ThemeContext";
 import { toast } from "react-hot-toast";
@@ -265,6 +265,11 @@ const DashboardPage = () => {
     };
 
     const handleBulkComplete = async () => {
+        // Fired synchronously, before the awaited calls below — see
+        // handleToggleTask for why this can't happen after an await.
+        if (taskFeedbackEnabled) {
+            triggerHapticFeedback();
+        }
         const keys = Array.from(selectedTaskKeys);
         try {
             await Promise.all(keys.map(key => {
@@ -272,10 +277,6 @@ const DashboardPage = () => {
                 return toggleTask(Number(subjectIdStr), Number(taskIdStr), true);
             }));
             toast.success(t.bulkCompletedToast);
-            if (taskFeedbackEnabled) {
-                triggerHapticFeedback();
-                playTaskCompleteSound();
-            }
             exitSelectionMode();
             await refreshData();
         } catch (err) {
@@ -747,15 +748,16 @@ const DashboardPage = () => {
         const subject = subjects.find(s => s.id === subjectId);
         const task = subject?.tasks.find(t => t.id === taskId);
         if (!task) return;
+        const willBeCompleted = !task.completed;
+        // Fired synchronously, before the `await` below — the Vibration
+        // API needs an active user gesture, and that gesture context
+        // doesn't survive crossing an await on mobile (see feedback.ts).
+        if (willBeCompleted && taskFeedbackEnabled) {
+            triggerHapticFeedback();
+        }
         try {
-            const willBeCompleted = !task.completed;
             await toggleTask(subjectId, taskId, willBeCompleted);
             setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: subject.tasks.map(task => task.id !== taskId ? task : { ...task, completed: willBeCompleted }) }));
-            // Only celebrate marking something done, not un-completing it.
-            if (willBeCompleted && taskFeedbackEnabled) {
-                triggerHapticFeedback();
-                playTaskCompleteSound();
-            }
         } catch { console.error("Error updating the task"); }
     };
 
