@@ -1,7 +1,8 @@
 import { Suspense, lazy, useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { Check } from "lucide-react";
 import { ThemeProvider } from './context/ThemeContext';
-import { LanguageProvider } from './context/LanguageContext';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
 
 // Route-level code splitting: each page becomes its own chunk, loaded on
 // demand instead of being bundled into the initial download.
@@ -22,11 +23,25 @@ const BackgroundParticles = lazy(() =>
 // No opaque background here on purpose: it sits above BackgroundParticles,
 // and a solid fill would flash over the animation on every route change.
 // The body element (see index.html) already supplies the app's base color.
-const RouteFallback = () => (
-    <div className="min-h-screen flex items-center justify-center">
-        <div className="bg-[#cc2229] w-16 h-16 rounded-[18px] flex items-center justify-center shadow-lg animate-pulse" />
-    </div>
-);
+// Mirrors the logo + "loading" pattern already used inside DashboardPage's
+// own loading state, so this reads the same regardless of which page it
+// briefly shows in front of.
+const RouteFallback = () => {
+    const { language } = useLanguage();
+
+    return (
+        <div className="min-h-screen flex items-center justify-center">
+            <div className="flex flex-col items-center gap-5 animate-pulse">
+                <div className="bg-[#cc2229] w-16 h-16 rounded-[18px] flex items-center justify-center shadow-lg">
+                    <Check size={40} strokeWidth={4} className="text-white" />
+                </div>
+                <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                    {language === 'es' ? 'Cargando...' : 'Loading...'}
+                </span>
+            </div>
+        </div>
+    );
+};
 
 // Routes that show the particle background.
 const PARTICLE_ROUTES = ["/", "/login", "/register", "/terms", "/privacy"];
