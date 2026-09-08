@@ -22,6 +22,9 @@ interface TaskItemProps {
     error: string | null;
     isAdding?: boolean;
     isDeleting?: boolean;
+    selectionMode?: boolean;
+    isSelected?: boolean;
+    onToggleSelect?: (subjectId: number, taskId: number) => void;
 }
 
 // --- Translation dictionary for TaskItem ---
@@ -123,6 +126,7 @@ const renderDeadline = (deadlineStr: string | null, isCompleted: boolean, t: typ
 export const TaskItem = ({
     subjectId, task, handleToggleTask, handleDeleteTask, setOpenFormSubjectIdTaskId,
     openFormSubjectIdTaskId, handleUpdateTask, updatedTask, handleChangeUpdateTask, setUpdatedTask, loading, error, isAdding, isDeleting,
+    selectionMode, isSelected, onToggleSelect,
 }: TaskItemProps) => {
 
     const { language } = useLanguage();
@@ -136,17 +140,25 @@ export const TaskItem = ({
                     : "opacity-100 scale-100 max-h-[1000px]" 
         }`}>
             {/* Main task row */}
-            <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition group">
+            <div className={`flex items-center gap-3 p-3 rounded-xl transition group ${
+                selectionMode && isSelected
+                    ? "bg-blue-50 dark:bg-blue-900/20"
+                    : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
+            }`}>
 
-                {/* Checkbox */}
+                {/* Checkbox — doubles as the selection toggle in selection mode */}
                 <button
-                    onClick={() => handleToggleTask(subjectId, task.id)}
+                    onClick={() => selectionMode ? onToggleSelect?.(subjectId, task.id) : handleToggleTask(subjectId, task.id)}
                     className={`w-6 h-6 squared-full border-2 flex items-center justify-center transition-all duration-200 hover:scale-110
-                        ${task.completed
-                            ? "bg-red-500 border-red-500"
-                            : "border-gray-300 dark:border-gray-600 hover:border-red-400 dark:hover:border-red-500"
+                        ${selectionMode
+                            ? (isSelected
+                                ? "bg-blue-500 border-blue-500"
+                                : "border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500")
+                            : (task.completed
+                                ? "bg-red-500 border-red-500"
+                                : "border-gray-300 dark:border-gray-600 hover:border-red-400 dark:hover:border-red-500")
                         }`}>
-                    {task.completed && <Check size={12} color="white" />}
+                    {(selectionMode ? isSelected : task.completed) && <Check size={12} color="white" />}
                 </button>
 
                 {/* Title and deadline */}
@@ -170,39 +182,42 @@ export const TaskItem = ({
                     </p>
                 </div>
 
-                {/* ACTION BUTTONS */}
-                <div className="flex items-center gap-1 opacity-100 [@media(any-hover:hover)]:opacity-0 [@media(any-hover:hover)]:group-hover:opacity-100 transition-opacity duration-200">
-                    <button type="button" 
-                        className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 dark:hover:text-yellow-400 dark:hover:bg-yellow-900/30 rounded-lg transition"
-                        onClick={() => { 
-                            setOpenFormSubjectIdTaskId({subjectId: subjectId, taskId: task.id}); 
-                            
-                            let formattedDate = "";
-                            if (task.deadline) {
-                                const d = new Date(task.deadline);
-                                d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-                                formattedDate = d.toISOString().slice(0, 16);
-                            }
+                {/* ACTION BUTTONS — hidden during selection mode, which uses
+                    the row's own checkbox/highlight instead */}
+                {!selectionMode && (
+                    <div className="flex items-center gap-1 opacity-100 [@media(any-hover:hover)]:opacity-0 [@media(any-hover:hover)]:group-hover:opacity-100 transition-opacity duration-200">
+                        <button type="button"
+                            className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 dark:hover:text-yellow-400 dark:hover:bg-yellow-900/30 rounded-lg transition"
+                            onClick={() => {
+                                setOpenFormSubjectIdTaskId({subjectId: subjectId, taskId: task.id});
 
-                            setUpdatedTask({
-                                title: task.title,
-                                description: task.description || "",
-                                deadline: formattedDate
-                            });
-                        }}
-                        title={t.ttEdit}
-                    >
-                        <Pencil size={16} />
-                    </button>
+                                let formattedDate = "";
+                                if (task.deadline) {
+                                    const d = new Date(task.deadline);
+                                    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                                    formattedDate = d.toISOString().slice(0, 16);
+                                }
 
-                    <button type="button" 
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition"
-                        onClick={() => { handleDeleteTask(subjectId, task.id); }}  
-                        title={t.ttDelete}
-                    >
-                        <X size={16} />
-                    </button>
-                </div>
+                                setUpdatedTask({
+                                    title: task.title,
+                                    description: task.description || "",
+                                    deadline: formattedDate
+                                });
+                            }}
+                            title={t.ttEdit}
+                        >
+                            <Pencil size={16} />
+                        </button>
+
+                        <button type="button"
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition"
+                            onClick={() => { handleDeleteTask(subjectId, task.id); }}
+                            title={t.ttDelete}
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* EDIT TASK FORM */}

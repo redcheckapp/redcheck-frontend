@@ -2,7 +2,7 @@ import { Sidebar } from "../components/Sidebar";
 import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
 import { useState, useEffect, useMemo, useRef, Suspense, lazy } from "react";
-import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search } from "lucide-react";
+import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2 } from "lucide-react";
 import { ProgressHeatmap } from "../components/ProgressHeatmap";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
 import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
@@ -73,7 +73,18 @@ const translations = {
         remindersDenied: "Debes permitir las notificaciones en el navegador para activar los recordatorios.",
         remindersEnabledToast: "Recordatorios activados. Te avisaremos cuando una tarea esté por vencer.",
         reminderDueIn: "vence en",
-        reminderMinutes: "min"
+        reminderMinutes: "min",
+        welcomeTitle: "¡Bienvenido a RedCheck!",
+        welcomeDesc: "Organiza tus tareas por asignaturas. Crea la primera para empezar y deja que SmartCheck AI te ayude a priorizar tu día.",
+        selectTasks: "Seleccionar",
+        cancelSelection: "Cancelar",
+        tasksSelectedOne: "1 tarea seleccionada",
+        tasksSelectedMany: "tareas seleccionadas",
+        bulkComplete: "Completar",
+        bulkDelete: "Eliminar",
+        confirmBulkDelete: "¿Seguro que quieres eliminar las tareas seleccionadas?",
+        bulkCompletedToast: "Tareas completadas.",
+        bulkDeletedToast: "Tareas eliminadas."
     },
     en: {
         alertAiAnalyzing: "🧠 SmartCheck is analyzing your tasks...",
@@ -123,7 +134,18 @@ const translations = {
         remindersDenied: "You need to allow notifications in your browser to turn on reminders.",
         remindersEnabledToast: "Reminders on. We'll let you know when a task is about to be due.",
         reminderDueIn: "due in",
-        reminderMinutes: "min"
+        reminderMinutes: "min",
+        welcomeTitle: "Welcome to RedCheck!",
+        welcomeDesc: "Organize your tasks by subject. Create your first one to get started and let SmartCheck AI help prioritize your day.",
+        selectTasks: "Select",
+        cancelSelection: "Cancel",
+        tasksSelectedOne: "1 task selected",
+        tasksSelectedMany: "tasks selected",
+        bulkComplete: "Complete",
+        bulkDelete: "Delete",
+        confirmBulkDelete: "Are you sure you want to delete the selected tasks?",
+        bulkCompletedToast: "Tasks completed.",
+        bulkDeletedToast: "Tasks deleted."
     }
 };
 
@@ -155,6 +177,64 @@ const DashboardPage = () => {
     const [showTrash, setShowTrash] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const searchInputRef = useRef<HTMLInputElement>(null);
+
+    // Bulk task actions — selection is a set of "subjectId:taskId" keys
+    // rather than per-subject state, since a selection can span subjects.
+    const [selectionMode, setSelectionMode] = useState(false);
+    const [selectedTaskKeys, setSelectedTaskKeys] = useState<Set<string>>(new Set());
+
+    const taskKey = (subjectId: number, taskId: number) => `${subjectId}:${taskId}`;
+
+    const handleToggleSelectTask = (subjectId: number, taskId: number) => {
+        const key = taskKey(subjectId, taskId);
+        setSelectedTaskKeys(prev => {
+            const next = new Set(prev);
+            if (next.has(key)) {
+                next.delete(key);
+            } else {
+                next.add(key);
+            }
+            return next;
+        });
+    };
+
+    const exitSelectionMode = () => {
+        setSelectionMode(false);
+        setSelectedTaskKeys(new Set());
+    };
+
+    const handleBulkComplete = async () => {
+        const keys = Array.from(selectedTaskKeys);
+        try {
+            await Promise.all(keys.map(key => {
+                const [subjectIdStr, taskIdStr] = key.split(":");
+                return toggleTask(Number(subjectIdStr), Number(taskIdStr), true);
+            }));
+            toast.success(t.bulkCompletedToast);
+            exitSelectionMode();
+            await refreshData();
+        } catch (err) {
+            console.error("Error completing selected tasks:", err);
+            toast.error(t.errGeneric);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (!window.confirm(t.confirmBulkDelete)) return;
+        const keys = Array.from(selectedTaskKeys);
+        try {
+            await Promise.all(keys.map(key => {
+                const [subjectIdStr, taskIdStr] = key.split(":");
+                return deleteTask(Number(subjectIdStr), Number(taskIdStr));
+            }));
+            toast.success(t.bulkDeletedToast);
+            exitSelectionMode();
+            await refreshData();
+        } catch (err) {
+            console.error("Error deleting selected tasks:", err);
+            toast.error(t.errGeneric);
+        }
+    };
 
     // Client-side task reminders — no backend/service worker involved, so
     // this only fires while RedCheck is open (tab or installed PWA), not
@@ -527,6 +607,8 @@ const DashboardPage = () => {
                 setOpenFormUpdateSubject(null);
             } else if (openFormSubjectIdTaskId !== null) {
                 setOpenFormSubjectIdTaskId(null);
+            } else if (selectionMode) {
+                exitSelectionMode();
             } else if (searchQuery) {
                 setSearchQuery("");
             }
@@ -543,6 +625,7 @@ const DashboardPage = () => {
         openFormSubjectId,
         openFormUpdateSubject,
         openFormSubjectIdTaskId,
+        selectionMode,
         searchQuery
     ]);
 
@@ -795,10 +878,65 @@ const DashboardPage = () => {
                                     )}
                                 </div>
 
+                                {/* Bulk task actions toggle / active selection toolbar */}
+                                {subjects.length > 0 && (
+                                    <div className="flex items-center justify-between mb-4 min-h-[36px]">
+                                        {selectionMode ? (
+                                            <>
+                                                <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+                                                    {selectedTaskKeys.size === 1 ? t.tasksSelectedOne : `${selectedTaskKeys.size} ${t.tasksSelectedMany}`}
+                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={exitSelectionMode}
+                                                        className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                                    >
+                                                        {t.cancelSelection}
+                                                    </button>
+                                                    <button
+                                                        onClick={handleBulkComplete}
+                                                        disabled={selectedTaskKeys.size === 0}
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                                                    >
+                                                        <Check size={14} /> {t.bulkComplete}
+                                                    </button>
+                                                    <button
+                                                        onClick={handleBulkDelete}
+                                                        disabled={selectedTaskKeys.size === 0}
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                                                    >
+                                                        <Trash2 size={14} /> {t.bulkDelete}
+                                                    </button>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <button
+                                                onClick={() => setSelectionMode(true)}
+                                                className="ml-auto flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                                            >
+                                                <CheckSquare size={16} /> {t.selectTasks}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+
                                 {searchQuery && filteredSubjects.filter(subject => !subject.archived).length === 0 && (
                                     <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">
                                         {t.searchNoResults} "{searchQuery}"
                                     </p>
+                                )}
+
+                                {/* First-run welcome — only for a genuinely empty account (checked
+                                    against the unfiltered `subjects`, not the search-filtered list),
+                                    so it never fights with the "no search results" message above. */}
+                                {!searchQuery && subjects.length === 0 && (
+                                    <div className="flex flex-col items-center text-center gap-3 py-8 px-6">
+                                        <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0">
+                                            <Sparkles size={28} />
+                                        </div>
+                                        <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t.welcomeTitle}</h2>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">{t.welcomeDesc}</p>
+                                    </div>
                                 )}
 
                                 <div className="flex flex-col gap-8">
@@ -839,9 +977,12 @@ const DashboardPage = () => {
                                                     handleChangeTask={handleChangeTask}
                                                     error={error}
                                                     loading={loading}
-                                                    deletingTasks={deletingTasks} 
+                                                    deletingTasks={deletingTasks}
                                                     setUpdatedTask={setUpdatedTask}
                                                     setUpdatedSubject={setUpdatedSubject}
+                                                    selectionMode={selectionMode}
+                                                    selectedTaskKeys={selectedTaskKeys}
+                                                    onToggleSelectTask={handleToggleSelectTask}
                                                 />
                                             </div>
                                         );

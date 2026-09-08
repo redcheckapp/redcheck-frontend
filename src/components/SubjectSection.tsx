@@ -30,10 +30,13 @@ interface SubjectSectionProps {
     handleChangeTask: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void; 
     error: string | null;
     loading: boolean;
-    deletingTasks: number[]; 
+    deletingTasks: number[];
     addingTasks: number[];
     setUpdatedTask: (task: { title: string; description: string; deadline: string }) => void;
     setUpdatedSubject: (subject: { name: string; description: string }) => void;
+    selectionMode?: boolean;
+    selectedTaskKeys?: Set<string>;
+    onToggleSelectTask?: (subjectId: number, taskId: number) => void;
 }
 
 // --- Translation dictionary for SubjectSection ---
@@ -114,7 +117,10 @@ export const SubjectSection = ({
     setUpdatedSubject,
     loading,
     deletingTasks,
-    addingTasks
+    addingTasks,
+    selectionMode,
+    selectedTaskKeys,
+    onToggleSelectTask
 }: SubjectSectionProps) => {
 
     const { language } = useLanguage();
@@ -197,7 +203,10 @@ export const SubjectSection = ({
                             setUpdatedTask={setUpdatedTask}
                             loading={loading}
                             error={error}
-                            isDeleting={deletingTasks?.includes(task.id)} 
+                            isDeleting={deletingTasks?.includes(task.id)}
+                            selectionMode={selectionMode}
+                            isSelected={selectedTaskKeys?.has(`${subject.id}:${task.id}`)}
+                            onToggleSelect={onToggleSelectTask}
                         />
                     ))
                 )}
