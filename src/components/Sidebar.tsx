@@ -375,7 +375,7 @@ export const Sidebar = ({
                     </div>
                 </button>
 
-                <button onClick={() => { localStorage.removeItem("token"); navigate("/login"); }} className="flex items-center p-2 rounded-xl text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:bg-transparent dark:hover:bg-red-900/30 transition-colors w-full" title={t.logout}>
+                <button onClick={() => { localStorage.removeItem("token"); sessionStorage.removeItem("focusTipDismissed"); navigate("/login"); }} className="flex items-center p-2 rounded-xl text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:bg-transparent dark:hover:bg-red-900/30 transition-colors w-full" title={t.logout}>
                     <div className="flex items-center justify-center shrink-0 w-6 h-6">
                         <LogOut size={20} />
                     </div>

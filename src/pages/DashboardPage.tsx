@@ -2,7 +2,7 @@ import { Sidebar } from "../components/Sidebar";
 import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
 import { useState, useEffect, useMemo, Suspense, lazy } from "react";
-import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye } from "lucide-react";
+import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X } from "lucide-react";
 import { ProgressHeatmap } from "../components/ProgressHeatmap";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
 import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
@@ -56,6 +56,7 @@ const translations = {
         perfSubtitle: "Historial de constancia",
         focusActiveTitle: "Modo Foco Activo",
         focusActiveDesc: "El calendario principal está oculto. Concéntrate en completar tus tareas de hoy para mantener tu racha de progreso en verde.",
+        dismissFocusTip: "Cerrar aviso",
         loadingSpace: "Cargando tu espacio...",
         openMenu: "Abrir menú",
         tabAgenda: "Agenda",
@@ -96,6 +97,7 @@ const translations = {
         perfSubtitle: "Consistency history",
         focusActiveTitle: "Focus Mode Active",
         focusActiveDesc: "The main calendar is hidden. Focus on completing your tasks today to keep your progress streak green.",
+        dismissFocusTip: "Dismiss tip",
         loadingSpace: "Loading your space...",
         openMenu: "Open menu",
         tabAgenda: "Agenda",
@@ -126,7 +128,19 @@ const DashboardPage = () => {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     
     const [showCalendar, setShowCalendar] = useState(true);
-    const [showTrash, setShowTrash] = useState(false); 
+    const [showTrash, setShowTrash] = useState(false);
+
+    // Desktop-only dismissible tip inside the Focus Mode performance panel.
+    // Persisted in sessionStorage (not plain state) so it stays dismissed
+    // across refreshes/navigation within the same session, but reappears
+    // the next time the user logs in (Sidebar's logout clears the flag).
+    const [focusTipDismissed, setFocusTipDismissed] = useState(
+        () => sessionStorage.getItem("focusTipDismissed") === "true"
+    );
+    const handleDismissFocusTip = () => {
+        sessionStorage.setItem("focusTipDismissed", "true");
+        setFocusTipDismissed(true);
+    };
 
     const [deletingSubjects, setDeletingSubjects] = useState<number[]>([]);
     const [addingSubjects, setAddingSubjects] = useState<number[]>([]);
@@ -739,15 +753,31 @@ const DashboardPage = () => {
                                     <ProgressHeatmap />
                                 </div>
 
-                                {/* Motivational block */}
-                                <div className="mt-8 p-5 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-2xl border border-green-100/50 dark:border-green-900/50 shadow-sm shrink-0 transition-colors duration-500">
-                                    <h4 className="text-green-800 dark:text-green-400 font-bold text-sm mb-2 flex items-center gap-2">
-                                        <Check size={16} /> 
-                                        {t.focusActiveTitle}
-                                    </h4>
-                                    <p className="text-[13px] text-green-700/80 dark:text-green-500/80 font-medium leading-relaxed">
-                                        {t.focusActiveDesc}
-                                    </p>
+                                {/* Motivational block — desktop only (never shown on
+                                    mobile). Dismissible via the close button; stays
+                                    dismissed (sessionStorage) until the next login. */}
+                                <div className={`hidden sm:block overflow-hidden shrink-0 transition-all duration-500 ease-in-out ${
+                                    focusTipDismissed
+                                        ? "max-h-0 opacity-0 mt-0"
+                                        : "max-h-[240px] opacity-100 mt-8"
+                                }`}>
+                                    <div className="relative p-5 pr-10 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-2xl border border-green-100/50 dark:border-green-900/50 shadow-sm transition-colors duration-500">
+                                        <button
+                                            onClick={handleDismissFocusTip}
+                                            className="absolute top-3 right-3 p-1 rounded-lg text-green-700/60 dark:text-green-500/60 hover:text-green-900 dark:hover:text-green-300 hover:bg-green-100/60 dark:hover:bg-green-900/40 transition-colors"
+                                            title={t.dismissFocusTip}
+                                            aria-label={t.dismissFocusTip}
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                        <h4 className="text-green-800 dark:text-green-400 font-bold text-sm mb-2 flex items-center gap-2">
+                                            <Check size={16} />
+                                            {t.focusActiveTitle}
+                                        </h4>
+                                        <p className="text-[13px] text-green-700/80 dark:text-green-500/80 font-medium leading-relaxed">
+                                            {t.focusActiveDesc}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>

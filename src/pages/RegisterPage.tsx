@@ -79,33 +79,33 @@ const RegisterPage = () => {
 
     return (
         <PageTransition>
-            <div className="relative min-h-screen flex flex-col items-center justify-center overflow-y-auto p-4 py-8">
+            <div className="relative min-h-screen flex flex-col items-center justify-center overflow-y-auto p-4 py-2 sm:py-8">
 
             {/* Mobile-only controls row: back + language + theme, in normal
                 document flow so they never overlap the card the way the
                 fixed versions below would on a narrow/short viewport. */}
-            <div className="flex sm:hidden items-center justify-between w-full max-w-md mb-4">
+            <div className="flex sm:hidden items-center justify-between w-full max-w-md mb-1.5">
                 <button
                     onClick={() => navigate("/login")}
-                    className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center"
+                    className="p-2 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center"
                     aria-label={language === 'es' ? 'Volver' : 'Back'}
                 >
-                    <ChevronLeft size={20} />
+                    <ChevronLeft size={18} />
                 </button>
                 <div className="flex items-center gap-2">
                     <button
                         onClick={toggleLanguage}
-                        className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center text-lg"
+                        className="p-2 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center text-sm leading-none"
                         title={language === 'es' ? 'Switch to English' : 'Cambiar a Español'}
                     >
                         {language === 'es' ? '🇬🇧' : '🇪🇸'}
                     </button>
                     <button
                         onClick={toggleTheme}
-                        className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center"
+                        className="p-2 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 active:scale-95 flex items-center justify-center"
                         title={language === 'es' ? 'Cambiar tema' : 'Toggle theme'}
                     >
-                        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+                        {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
                     </button>
                 </div>
             </div>
@@ -123,7 +123,7 @@ const RegisterPage = () => {
             <div className="hidden sm:flex fixed bottom-4 left-4 z-50 flex-col gap-3">
                 <button
                     onClick={toggleLanguage}
-                    className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 flex items-center justify-center text-lg"
+                    className="p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95 flex items-center justify-center text-base leading-none"
                     title={language === 'es' ? 'Switch to English' : 'Cambiar a Español'}
                 >
                     {language === 'es' ? '🇬🇧' : '🇪🇸'}
@@ -138,18 +138,18 @@ const RegisterPage = () => {
                 </button>
             </div>
 
-            <div className="relative z-10 bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md transition-colors duration-500">
+            <div className="relative z-10 bg-white dark:bg-gray-900 p-3.5 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md transition-colors duration-500">
 
-                <div className="flex flex-col items-center mb-8">
-                    <div className="flex items-center justify-center gap-4">
-                        <div className="bg-[#cc2229] w-[52px] h-[52px] rounded-[14px] flex items-center justify-center shadow-sm flex-shrink-0">
-                            <Check size={36} strokeWidth={4} className="text-white" />
+                <div className="flex flex-col items-center mb-3 sm:mb-8">
+                    <div className="flex items-center justify-center gap-3 sm:gap-4">
+                        <div className="bg-[#cc2229] w-10 h-10 sm:w-[52px] sm:h-[52px] rounded-[14px] flex items-center justify-center shadow-sm flex-shrink-0">
+                            <Check size={36} strokeWidth={4} className="text-white w-6 h-6 sm:w-9 sm:h-9" />
                         </div>
                         <div className="flex flex-col justify-center w-max">
-                            <span className="text-[34px] font-black text-gray-900 dark:text-white leading-none tracking-tight transition-colors duration-300">
+                            <span className="text-2xl sm:text-[34px] font-black text-gray-900 dark:text-white leading-none tracking-tight transition-colors duration-300">
                                 REDCHECK
                             </span>
-                            <div className="flex justify-between w-full text-[11px] font-bold text-gray-800 dark:text-gray-300 mt-1.5 tracking-wide transition-colors duration-300">
+                            <div className="flex justify-between w-full text-[11px] font-bold text-gray-800 dark:text-gray-300 mt-1 sm:mt-1.5 tracking-wide transition-colors duration-300">
                                 <span>{t.tags[0]}</span>
                                 <span>{t.tags[1]}</span>
                                 <span>{t.tags[2]}</span>
@@ -157,15 +157,15 @@ const RegisterPage = () => {
                         </div>
                     </div>
 
-                    <div className="w-full h-px bg-gray-100 dark:bg-gray-800 my-6 transition-colors duration-300"></div>
+                    <div className="w-full h-px bg-gray-100 dark:bg-gray-800 my-2.5 sm:my-6 transition-colors duration-300"></div>
 
                     <h2 className="text-gray-500 dark:text-gray-400 font-medium transition-colors duration-300">
                         {t.title}
                     </h2>
                 </div>
 
-                <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-                    <div className="flex flex-col gap-1.5">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:gap-5">
+                    <div className="flex flex-col gap-1 sm:gap-1.5">
                         <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
                             {t.username}
                         </label>
@@ -174,12 +174,12 @@ const RegisterPage = () => {
                             name="username"
                             value={form.username}
                             onChange={handleChange}
-                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
+                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-2 sm:py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
                             required
                         />
                     </div>
 
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1 sm:gap-1.5">
                         <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
                             {t.email}
                         </label>
@@ -188,12 +188,12 @@ const RegisterPage = () => {
                             name="email"
                             value={form.email}
                             onChange={handleChange}
-                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
+                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-2 sm:py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
                             required
                         />
                     </div>
 
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1 sm:gap-1.5">
                         <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
                             {t.password}
                         </label>
@@ -202,21 +202,21 @@ const RegisterPage = () => {
                             name="password"
                             value={form.password}
                             onChange={handleChange}
-                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
+                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-2 sm:py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
                             required
                         />
                     </div>
 
                     {/* --- LEGAL ACCEPTANCE CHECKBOX --- */}
-                    <div className="flex items-start gap-2.5 mt-1">
-                        <input 
-                            type="checkbox" 
-                            id="terms" 
+                    <div className="flex items-start gap-2.5 mt-0.5 sm:mt-1">
+                        <input
+                            type="checkbox"
+                            id="terms"
                             name="terms"
-                            className="mt-0.5 rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-red-600 focus:ring-red-500 dark:focus:ring-red-500/50 transition-colors cursor-pointer" 
-                            required 
+                            className="mt-0.5 rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-red-600 focus:ring-red-500 dark:focus:ring-red-500/50 transition-colors cursor-pointer"
+                            required
                         />
-                        <label htmlFor="terms" className="text-xs text-gray-500 dark:text-gray-400 transition-colors duration-300 cursor-pointer leading-relaxed">
+                        <label htmlFor="terms" className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 transition-colors duration-300 cursor-pointer leading-snug sm:leading-relaxed">
                             {t.termsText}
                             <a href="/privacy" target="_blank" className="text-red-600 dark:text-red-400 hover:underline transition-colors font-medium">{t.privacyLink}</a>
                             {t.andText}
@@ -231,13 +231,13 @@ const RegisterPage = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 py-3 rounded-xl font-medium hover:bg-black dark:hover:bg-white transition-all duration-300 shadow-sm hover:shadow disabled:opacity-50 mt-2"
+                        className="w-full bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 py-2 sm:py-3 rounded-xl font-medium hover:bg-black dark:hover:bg-white transition-all duration-300 shadow-sm hover:shadow disabled:opacity-50 mt-1 sm:mt-2"
                     >
                         {loading ? t.loading : t.submitBtn}
                     </button>
                 </form>
 
-                <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-8 transition-colors duration-300">
+                <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-3 sm:mt-8 transition-colors duration-300">
                     {t.hasAccount}{" "}
                     <Link to="/login" className="text-red-600 dark:text-red-400 font-semibold hover:text-red-700 dark:hover:text-red-300 hover:underline transition-colors duration-300">
                         {t.loginLink}
@@ -245,7 +245,7 @@ const RegisterPage = () => {
                 </p>
 
                 {/* --- GDPR LEGAL LINKS AND COPYRIGHT --- */}
-                <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col items-center gap-3 transition-colors duration-300">
+                <div className="mt-2.5 pt-2.5 sm:mt-6 sm:pt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col items-center gap-1.5 sm:gap-3 transition-colors duration-300">
                     <div className="flex justify-center gap-4 text-[11px] text-gray-400 dark:text-gray-500">
                         <a href="/terms" target="_blank" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t.legal}</a>
                         <span>•</span>
