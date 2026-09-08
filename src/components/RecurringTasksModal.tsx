@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { X, Trash2, Power, PowerOff, Pencil } from "lucide-react";
 import { getRecurringTasks, toggleRecurringTaskActive, deleteRecurringTask, updateRecurringTask } from "../api/recurringTaskApi";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import type { RecurringTaskResponse } from "../types";
+import { ModalOverlay } from "./ModalOverlay";
 
 interface RecurringTasksModalProps {
     isOpen: boolean;
@@ -152,14 +152,11 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
         return dict[freq] || freq;
     };
 
-    // Rendering control: if closed, we return nothing
-    if (!isOpen) return null;
+    return (
+        <ModalOverlay isOpen={isOpen}>
+            {(isVisible) => (
+            <div className={`bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh] border border-transparent dark:border-gray-800 transition-all duration-200 ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}>
 
-    // We use createPortal and anchor it to document.body
-    return createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200 transition-colors">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh] border border-transparent dark:border-gray-800 transition-colors duration-300">
-                
                 {/* Modal header */}
                 <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 transition-colors duration-300">
                     <div>
@@ -246,7 +243,7 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
                     )}
                 </div>
             </div>
-        </div>,
-        document.body 
+            )}
+        </ModalOverlay>
     );
 };

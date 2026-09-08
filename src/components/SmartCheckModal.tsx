@@ -1,7 +1,7 @@
 import React from 'react';
-import { createPortal } from 'react-dom'; // <-- KEY IMPORT
 import type { SmartCheckAiData, SubjectWithTasks } from '../types';
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
+import { ModalOverlay } from "./ModalOverlay";
 
 interface SmartCheckModalProps {
   isOpen: boolean;
@@ -55,14 +55,15 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
   const { language } = useLanguage();
   const t = translations[language as keyof typeof translations];
 
-  if (!isOpen || !aiData) return null;
+  if (!aiData) return null;
 
   const risk = getRiskConfig(aiData.nivelRiesgo, t);
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300">
+  return (
+    <ModalOverlay isOpen={isOpen} backdropClassName="bg-black/60">
+      {(isVisible) => (
       <div
-        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-xl flex flex-col overflow-hidden transition-colors duration-500"
+        className={`bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-xl flex flex-col overflow-hidden transition-all duration-200 ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}
         style={{ maxHeight: '88vh' }}
       >
 
@@ -152,8 +153,8 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
         </div>
 
       </div>
-    </div>,
-    document.body
+      )}
+    </ModalOverlay>
   );
 };
 

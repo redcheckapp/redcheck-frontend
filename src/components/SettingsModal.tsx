@@ -1,8 +1,8 @@
-import { createPortal } from "react-dom";
 import { X, ArchiveRestore, Trash2, Moon, Sun } from "lucide-react";
 import type { SubjectWithTasks } from "../types";
-import { useTheme } from "../context/ThemeContext"; 
+import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
+import { ModalOverlay } from "./ModalOverlay";
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -58,18 +58,15 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
     const { language, toggleLanguage } = useLanguage(); // We extract the language and the toggle function
     const t = translations[language as keyof typeof translations];
 
-    if (!isOpen) return null;
-
     // We filter to keep ONLY the archived subjects
     const archivedSubjects = subjects.filter(subject => subject.archived);
 
-    // We use createPortal to render it into the body so it covers the entire window (including the Sidebar)
-    return createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 transition-all animate-in fade-in duration-200">
-            
-            {/* Modal container with entry animation and DARK MODE styles */}
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 transition-colors border border-transparent dark:border-gray-800">
-                
+    // ModalOverlay renders into document.body so it covers the entire window (including the Sidebar)
+    return (
+        <ModalOverlay isOpen={isOpen}>
+            {(isVisible) => (
+            <div className={`bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md flex flex-col overflow-hidden transition-all duration-200 border border-transparent dark:border-gray-800 ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}>
+
                 {/* Header */}
                 <div className="flex justify-between items-center p-5 border-b border-gray-100 dark:border-gray-800 transition-colors">
                     <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t.title}</h2>
@@ -186,7 +183,7 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
 
                 </div>
             </div>
-        </div>,
-        document.body
+            )}
+        </ModalOverlay>
     );
 };
