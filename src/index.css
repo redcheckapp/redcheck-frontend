@@ -40,18 +40,87 @@ body.cb-protanopia { filter: saturate(1.5) hue-rotate(-20deg) contrast(1.05); }
 body.cb-deuteranopia { filter: saturate(1.5) hue-rotate(20deg) contrast(1.05); }
 body.cb-tritanopia { filter: saturate(1.4) hue-rotate(90deg) contrast(1.05); }
 
-/* 3c. Font size accessibility setting — scales the same root font-size
-   rule #3 above already uses for its desktop compact-scale, so this stays
-   proportional to it instead of fighting it: ×0.875/×1.125 of whatever the
-   current breakpoint's base is (100% mobile / 80% desktop). No class
-   (`medium`) intentionally means no override at all, so the default really
-   is "whatever size already existed" per the user's request, not a new
-   baseline. */
+/* 3c. Font size accessibility setting — 5 steps, scaling the same root
+   font-size rule #3 above already uses for its desktop compact-scale, so
+   this stays proportional to it instead of fighting it: ×0.875/0.9375/
+   1/1.0625/1.125 of whatever the current breakpoint's base is (100% mobile
+   / 80% desktop) — small-medium and medium-large sit exactly halfway
+   between their neighbors. No class (`medium`) intentionally means no
+   override at all, so the default really is "whatever size already
+   existed" per the user's request, not a new baseline. The desktop values
+   happen to land on clean round numbers (70/75/80/85/90%), which is a nice
+   side effect of the halfway-point math, not a coincidence to preserve if
+   the base 80% desktop scale ever changes — recompute from the ratios
+   above instead of hand-editing these numbers. */
 html.text-scale-small { font-size: 87.5%; }
+html.text-scale-small-medium { font-size: 93.75%; }
+html.text-scale-medium-large { font-size: 106.25%; }
 html.text-scale-large { font-size: 112.5%; }
 @media (min-width: 640px) {
   html.text-scale-small { font-size: 70%; }
+  html.text-scale-small-medium { font-size: 75%; }
+  html.text-scale-medium-large { font-size: 85%; }
   html.text-scale-large { font-size: 90%; }
+}
+
+/* 3d. FontSizeSlider.tsx's drag control — a native <input type="range">
+   with its default track/thumb fully stripped (a hand-drawn track/fill/
+   ticks sits behind it, see that component) so only a themed circular
+   thumb remains. Split into vendor-prefixed rules on purpose: the
+   ::-webkit-slider-thumb/::-moz-range-thumb pseudo-elements can't share a
+   single selector (an unsupported pseudo-element in a shared selector list
+   invalidates the *entire* rule in some browsers), and Tailwind's arbitrary-
+   variant syntax for these gets unwieldy fast once dark-mode is layered on
+   top — plain CSS reads more clearly here than a wall of `[&::-webkit-...]`
+   utility classes would. */
+.rc-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+.rc-slider::-webkit-slider-runnable-track {
+  background: transparent;
+}
+.rc-slider::-moz-range-track {
+  background: transparent;
+  border: none;
+}
+.rc-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 2px solid #ef4444;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+.rc-slider::-moz-range-thumb {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 2px solid #ef4444;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+.dark .rc-slider::-webkit-slider-thumb,
+.dark .rc-slider::-moz-range-thumb {
+  background: #111827;
+}
+/* A ring around the thumb itself on keyboard focus, not the default
+   rectangular browser outline around the whole (mostly invisible) input —
+   reads as "this circle is focused" instead of a stray box around empty
+   track space. */
+.rc-slider:focus-visible {
+  outline: none;
+}
+.rc-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.35);
+}
+.rc-slider:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.35);
 }
 
 /* 4. Respect the OS-level "reduce motion" preference app-wide. The app has

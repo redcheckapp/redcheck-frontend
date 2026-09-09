@@ -451,6 +451,19 @@ const DashboardPage = () => {
         localStorage.setItem("taskFeedbackEnabled", String(next));
     };
 
+    // Whether task chips/cards render inside AgendaView's Day/Week/Month
+    // grids — opt-out (defaults on), same pattern as taskFeedbackEnabled
+    // above. Doesn't touch calendar navigation or heatmap coloring, only
+    // task content itself (see AgendaView's getMergedTasksForDate).
+    const [showTasksInCalendar, setShowTasksInCalendar] = useState(
+        () => localStorage.getItem("rc_show_tasks_in_calendar") !== "false"
+    );
+    const handleToggleShowTasksInCalendar = () => {
+        const next = !showTasksInCalendar;
+        setShowTasksInCalendar(next);
+        localStorage.setItem("rc_show_tasks_in_calendar", String(next));
+    };
+
     // Desktop-only dismissible tip inside the Focus Mode performance panel.
     // Persisted in sessionStorage (not plain state) so it stays dismissed
     // across refreshes/navigation within the same session, but reappears
@@ -1296,6 +1309,7 @@ const DashboardPage = () => {
                                         onUpdateTask={handleCalendarUpdateTask}
                                         onDeleteTask={handleCalendarDeleteTask}
                                         onToggleTask={handleToggleTask}
+                                        showTasks={showTasksInCalendar}
                                     />
                                 </main>
                             </div>
@@ -1701,6 +1715,8 @@ const DashboardPage = () => {
                         onToggleReminders={handleToggleReminders}
                         taskFeedbackEnabled={taskFeedbackEnabled}
                         onToggleTaskFeedback={handleToggleTaskFeedback}
+                        showTasksInCalendar={showTasksInCalendar}
+                        onToggleShowTasksInCalendar={handleToggleShowTasksInCalendar}
                         onOpenFeedback={handleOpenFeedback}
                     />
                 </Suspense>

@@ -23,6 +23,11 @@ interface AgendaViewProps {
     onUpdateTask: (subjectId: number, taskId: number, data: TaskRequest) => Promise<void>;
     onDeleteTask: (subjectId: number, taskId: number) => Promise<void>;
     onToggleTask: (subjectId: number, taskId: number) => Promise<void>;
+    // Settings-modal opt-out (defaults true) — hides task chips/cards from
+    // every view (Day/Week/Month) without touching navigation, creating
+    // tasks, or the separate heatmap-coloring toggle. See
+    // getMergedTasksForDate, the single choke point this gates.
+    showTasks?: boolean;
 }
 
 // Either creating a new task on a clicked date, or editing/rescheduling one
@@ -289,7 +294,7 @@ const DatePickerPopover = ({ selectedDate, onSelect, onClose, weekDays, months, 
     );
 };
 
-export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onDeleteTask, onToggleTask }: AgendaViewProps) => {
+export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onDeleteTask, onToggleTask, showTasks = true }: AgendaViewProps) => {
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
 
@@ -675,13 +680,19 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
 
     // Per-day task lookup used everywhere below: `subjects` (live-synced,
     // but pending/completed-today only) for today/future, the fetched
-    // calendar-history data for past days.
+    // calendar-history data for past days. `showTasks` is checked first,
+    // ahead of the past/future branch — a single choke point (same shape
+    // as `getSquareColor`'s `heatmapEnabled` check) that Day/Week/Month all
+    // read through, so disabling it hides task content everywhere at once
+    // without touching calendar navigation or the (separate) heatmap toggle.
     const getMergedTasksForDate = useCallback(
-        (date: Date): CalendarTask[] =>
-            isDateInPast(date, new Date())
+        (date: Date): CalendarTask[] => {
+            if (!showTasks) return [];
+            return isDateInPast(date, new Date())
                 ? getHistoricalTasksForDate(historicalTasks, subjectNameById, date)
-                : getTasksForDate(subjects, date),
-        [subjects, historicalTasks, subjectNameById]
+                : getTasksForDate(subjects, date);
+        },
+        [subjects, historicalTasks, subjectNameById, showTasks]
     );
 
     const tasksForCurrentDay = useMemo(

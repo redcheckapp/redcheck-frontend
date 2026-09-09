@@ -2,8 +2,9 @@ import { X, Trash2, Moon, Sun, MessageSquarePlus, ChevronRight } from "lucide-re
 import { toast } from "react-hot-toast";
 import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
-import { useAccessibility, type ColorblindMode, type FontSize } from "../context/AccessibilityContext";
+import { useAccessibility, type ColorblindMode } from "../context/AccessibilityContext";
 import { ModalOverlay } from "./ModalOverlay";
+import { FontSizeSlider } from "./FontSizeSlider";
 import { triggerHapticFeedback } from "../utils/feedback";
 
 interface SettingsModalProps {
@@ -15,6 +16,8 @@ interface SettingsModalProps {
     onToggleReminders: () => void;
     taskFeedbackEnabled: boolean;
     onToggleTaskFeedback: () => void;
+    showTasksInCalendar: boolean;
+    onToggleShowTasksInCalendar: () => void;
     onOpenFeedback: () => void;
 }
 
@@ -48,8 +51,13 @@ const translations = {
         cbTritanopia: "Tritanopia",
         fontSize: "Tamaño de letra",
         fontSmall: "Pequeña",
+        fontSmallMedium: "Pequeña-normal",
         fontMedium: "Normal",
+        fontMediumLarge: "Normal-grande",
         fontLarge: "Grande",
+        showTasksInCalendar: "Tareas en el calendario",
+        showTasksInCalendarDesc: "Muestra tus tareas dentro de la vista de calendario",
+        ttShowTasksInCalendar: "Activar/desactivar tareas en el calendario",
         support: "Soporte",
         sendFeedback: "¿Tienes feedback?",
         sendFeedbackDesc: "Cuéntanoslo — bugs, ideas, o lo que sea",
@@ -87,8 +95,13 @@ const translations = {
         cbTritanopia: "Tritanopia",
         fontSize: "Font size",
         fontSmall: "Small",
+        fontSmallMedium: "Small-medium",
         fontMedium: "Normal",
+        fontMediumLarge: "Medium-large",
         fontLarge: "Large",
+        showTasksInCalendar: "Tasks in calendar",
+        showTasksInCalendarDesc: "Show your tasks inside the calendar view",
+        ttShowTasksInCalendar: "Turn tasks in calendar on/off",
         support: "Support",
         sendFeedback: "Got feedback?",
         sendFeedbackDesc: "Tell us — bugs, ideas, anything",
@@ -126,12 +139,6 @@ const COLORBLIND_OPTIONS: { value: ColorblindMode; labelKey: "cbNone" | "cbProta
     { value: "tritanopia", labelKey: "cbTritanopia" },
 ];
 
-const FONT_SIZE_OPTIONS: { value: FontSize; labelKey: "fontSmall" | "fontMedium" | "fontLarge" }[] = [
-    { value: "small", labelKey: "fontSmall" },
-    { value: "medium", labelKey: "fontMedium" },
-    { value: "large", labelKey: "fontLarge" },
-];
-
 // Shared by both chip groups below — same "chip button" language
 // FeedbackModal's category picker already established, reused here rather
 // than introducing a different selection control.
@@ -142,7 +149,7 @@ const chipClass = (selected: boolean) =>
             : "bg-gray-50 dark:bg-gray-800/60 border-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
     }`;
 
-export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail, remindersEnabled, onToggleReminders, taskFeedbackEnabled, onToggleTaskFeedback, onOpenFeedback }: SettingsModalProps) => {
+export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail, remindersEnabled, onToggleReminders, taskFeedbackEnabled, onToggleTaskFeedback, showTasksInCalendar, onToggleShowTasksInCalendar, onOpenFeedback }: SettingsModalProps) => {
     const { theme, toggleTheme } = useTheme();
     const { language, toggleLanguage } = useLanguage(); // We extract the language and the toggle function
     const { colorblindMode, setColorblindMode, fontSize, setFontSize } = useAccessibility();
@@ -257,6 +264,25 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                             </div>
                             <ToggleSwitch enabled={taskFeedbackEnabled} onToggle={onToggleTaskFeedback} title={t.ttTaskFeedback} />
                         </div>
+
+                        {/* Show/hide task chips inside the calendar view —
+                            opt-out, defaults on. Doesn't touch the calendar's
+                            own navigation or the heatmap coloring toggle
+                            (getSquareColor, a separate feature), only
+                            whether task content itself renders — a day with
+                            hidden tasks still supports creating/rescheduling
+                            one via the calendar's own "+" affordances. */}
+                        <div className="flex justify-between items-center p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 transition-colors">
+                            <div>
+                                <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                                    {t.showTasksInCalendar}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
+                                    {t.showTasksInCalendarDesc}
+                                </p>
+                            </div>
+                            <ToggleSwitch enabled={showTasksInCalendar} onToggle={onToggleShowTasksInCalendar} title={t.ttShowTasksInCalendar} />
+                        </div>
                     </div>
 
                     {/* Section 2: Accessibility — colorblind filter defaults
@@ -289,19 +315,18 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
 
                         <div className="flex flex-col gap-2">
                             <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{t.fontSize}</p>
-                            <div className="grid grid-cols-3 gap-2">
-                                {FONT_SIZE_OPTIONS.map(({ value, labelKey }) => (
-                                    <button
-                                        key={value}
-                                        type="button"
-                                        onClick={() => setFontSize(value)}
-                                        aria-pressed={fontSize === value}
-                                        className={chipClass(fontSize === value)}
-                                    >
-                                        {t[labelKey]}
-                                    </button>
-                                ))}
-                            </div>
+                            <FontSizeSlider
+                                value={fontSize}
+                                onChange={setFontSize}
+                                ariaLabel={t.fontSize}
+                                valueLabels={{
+                                    small: t.fontSmall,
+                                    "small-medium": t.fontSmallMedium,
+                                    medium: t.fontMedium,
+                                    "medium-large": t.fontMediumLarge,
+                                    large: t.fontLarge,
+                                }}
+                            />
                         </div>
                     </div>
 

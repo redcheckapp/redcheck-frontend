@@ -169,10 +169,16 @@ export const CommandPalette = ({
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === "ArrowDown") {
             e.preventDefault();
-            setHighlightedIndex(i => Math.min(i + 1, flatItems.length - 1));
+            if (flatItems.length === 0) return;
+            // Wraps past the last item back to the first — modulo handles
+            // this correctly even if `i` is momentarily stale/out of range
+            // (e.g. right after typing narrows the results), same as the
+            // ArrowUp branch below.
+            setHighlightedIndex(i => (i + 1) % flatItems.length);
         } else if (e.key === "ArrowUp") {
             e.preventDefault();
-            setHighlightedIndex(i => Math.max(i - 1, 0));
+            if (flatItems.length === 0) return;
+            setHighlightedIndex(i => (i - 1 + flatItems.length) % flatItems.length);
         } else if (e.key === "Enter") {
             e.preventDefault();
             runItem(clampedIndex);

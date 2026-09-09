@@ -2,7 +2,9 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { getSharedCookie, setSharedCookie } from '../utils/cookies';
 
 export type ColorblindMode = 'none' | 'protanopia' | 'deuteranopia' | 'tritanopia';
-export type FontSize = 'small' | 'medium' | 'large';
+// 5 steps (not 3) so there's a step between small/medium and between
+// medium/large — see FontSizeSlider.tsx, the drag control built for this.
+export type FontSize = 'small' | 'small-medium' | 'medium' | 'medium-large' | 'large';
 
 interface AccessibilityContextType {
     colorblindMode: ColorblindMode;
@@ -17,7 +19,7 @@ const isColorblindMode = (v: string | null): v is ColorblindMode =>
     v === 'none' || v === 'protanopia' || v === 'deuteranopia' || v === 'tritanopia';
 
 const isFontSize = (v: string | null): v is FontSize =>
-    v === 'small' || v === 'medium' || v === 'large';
+    v === 'small' || v === 'small-medium' || v === 'medium' || v === 'medium-large' || v === 'large';
 
 // Same priority chain and dual-persistence (shared cookie + localStorage)
 // as ThemeContext/LanguageContext — these are the same tier of setting
@@ -67,7 +69,7 @@ export const AccessibilityProvider = ({ children }: { children: React.ReactNode 
     useEffect(() => {
         const root = window.document.documentElement;
 
-        root.classList.remove('text-scale-small', 'text-scale-large');
+        root.classList.remove('text-scale-small', 'text-scale-small-medium', 'text-scale-medium-large', 'text-scale-large');
         if (fontSize !== 'medium') {
             root.classList.add(`text-scale-${fontSize}`);
         }
