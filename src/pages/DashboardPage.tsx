@@ -2,12 +2,12 @@ import { Sidebar } from "../components/Sidebar";
 import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
 import { useState, useEffect, useMemo, useRef, useCallback, Suspense, lazy } from "react";
-import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2, Settings, Moon, Sun, Languages, Archive } from "lucide-react";
+import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2, Settings, Moon, Sun, Languages, Archive, HelpCircle } from "lucide-react";
 import { ArchivedSubjectsPopover } from "../components/ArchivedSubjectsPopover";
 import type { CommandAction } from "../components/CommandPalette";
 import { ProgressHeatmap } from "../components/ProgressHeatmap";
-import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
-import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
+import { archiveSubject, deleteSubject, getSubjects, postSubject, restoreSubject, updateSubject } from "../api/subjectApi";
+import { addNewTask, deleteTask, getTodayTasks, restoreTask, toggleTask, updateTask } from "../api/taskApi";
 import type { SmartCheckAiData, SubjectWithTasks, TaskRequest } from "../types";
 import { useNavigate } from "react-router-dom";
 import { deleteUser, getUsername } from "../api/userApi";
@@ -31,6 +31,7 @@ const SettingsModal = lazy(() => import("../components/SettingsModal").then(m =>
 const SmartCheckModal = lazy(() => import("../components/SmartCheckModal"));
 const TrashView = lazy(() => import("../components/TrashView").then(m => ({ default: m.TrashView })));
 const CommandPalette = lazy(() => import("../components/CommandPalette").then(m => ({ default: m.CommandPalette })));
+const OnboardingTour = lazy(() => import("../components/OnboardingTour").then(m => ({ default: m.OnboardingTour })));
 
 // --- Translation dictionary for the Dashboard ---
 const translations = {
@@ -98,6 +99,9 @@ const translations = {
         confirmBulkDelete: "¿Seguro que quieres eliminar las tareas seleccionadas?",
         bulkCompletedToast: "Tareas completadas.",
         bulkDeletedToast: "Tareas eliminadas.",
+        taskDeletedToast: "Tarea eliminada.",
+        subjectDeletedToast: "Asignatura eliminada.",
+        undoBtn: "Deshacer",
         palettePlaceholder: "Buscar tareas o escribe un comando...",
         paletteTasksGroup: "Tareas",
         paletteActionsGroup: "Comandos",
@@ -112,7 +116,8 @@ const translations = {
         actionViewPlan: "Ver plan de hoy",
         actionAddSubject: "Añadir nueva asignatura",
         actionShowAgenda: "Mostrar agenda",
-        actionFocusMode: "Activar Modo Foco"
+        actionFocusMode: "Activar Modo Foco",
+        actionShowTour: "Ver el tour de bienvenida"
     },
     en: {
         alertAiAnalyzing: "🧠 SmartCheck is analyzing your tasks...",
@@ -178,6 +183,9 @@ const translations = {
         confirmBulkDelete: "Are you sure you want to delete the selected tasks?",
         bulkCompletedToast: "Tasks completed.",
         bulkDeletedToast: "Tasks deleted.",
+        taskDeletedToast: "Task deleted.",
+        subjectDeletedToast: "Subject deleted.",
+        undoBtn: "Undo",
         palettePlaceholder: "Search tasks or type a command...",
         paletteTasksGroup: "Tasks",
         paletteActionsGroup: "Commands",
@@ -192,7 +200,8 @@ const translations = {
         actionViewPlan: "View today's plan",
         actionAddSubject: "Add new subject",
         actionShowAgenda: "Show agenda",
-        actionFocusMode: "Turn on Focus Mode"
+        actionFocusMode: "Turn on Focus Mode",
+        actionShowTour: "Show welcome tour"
     }
 };
 
@@ -231,6 +240,15 @@ const DashboardPage = () => {
     // Command palette (Ctrl/Cmd+K) — a superset of the inline search above:
     // same task/subject matching, plus jump-to-action commands.
     const [paletteOpen, setPaletteOpen] = useState(false);
+
+    // One-time product tour for new users — shown automatically on first
+    // load (see the initial-data effect below), replayable anytime via the
+    // command palette's "Show tour" action.
+    const [showOnboarding, setShowOnboarding] = useState(false);
+    const handleCloseOnboarding = () => {
+        localStorage.setItem("rc_onboarding_seen", "true");
+        setShowOnboarding(false);
+    };
 
     const handleOpenTaskEditor = (subjectId: number, taskId: number) => {
         const subject = subjects.find(s => s.id === subjectId);
@@ -307,7 +325,17 @@ const DashboardPage = () => {
                 const [subjectIdStr, taskIdStr] = key.split(":");
                 return deleteTask(Number(subjectIdStr), Number(taskIdStr));
             }));
-            toast.success(t.bulkDeletedToast);
+            showUndoToast(t.bulkDeletedToast, async () => {
+                try {
+                    await Promise.all(keys.map(key => {
+                        const [subjectIdStr, taskIdStr] = key.split(":");
+                        return restoreTask(Number(subjectIdStr), Number(taskIdStr));
+                    }));
+                    await refreshData();
+                } catch {
+                    toast.error(t.errGeneric);
+                }
+            });
             exitSelectionMode();
             await refreshData();
         } catch (err) {
@@ -371,6 +399,13 @@ const DashboardPage = () => {
     const [addingSubjects, setAddingSubjects] = useState<number[]>([]);
     const [addingTasks, setAddingTasks] = useState<number[]>([]);
     const [deletingTasks, setDeletingTasks] = useState<number[]>([]);
+    // Tracks the pending optimistic-removal setTimeout for each in-flight
+    // soft-delete (see handleDeleteTask/handleDeleteSubject), so an Undo
+    // click can cancel it before it fires — otherwise a fast undo could
+    // race the timeout and get the just-restored item filtered right back
+    // out of local state.
+    const taskDeleteTimeoutsRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+    const subjectDeleteTimeoutsRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
     const [username, setUsername] = useState("");
     const [userEmail, setUserEmail] = useState("");
     const [updatedSubject, setUpdatedSubject] = useState({ name: "", description: "" });
@@ -488,24 +523,81 @@ const DashboardPage = () => {
         } catch { setError(t.errGeneric); }
     }, [updatedTask, t.errGeneric]);
 
+    // Stable identity (no external deps) — referenced from several
+    // useCallback-memoized handlers below (undo-delete flows), so it needs
+    // to stay the same function across renders rather than being recreated.
+    const refreshData = useCallback(async () => {
+        try {
+            const subjectsData = await getSubjects();
+            const subjectsWithTasks = await Promise.all(
+                subjectsData.map(async (subject) => {
+                    const tasks = await getTodayTasks(subject.id);
+                    return { ...subject, tasks };
+                })
+            );
+            setSubjects(subjectsWithTasks);
+        } catch (err) {
+            console.error("Error refreshing the dashboard:", err);
+        }
+    }, []);
+
+    // Every delete in this app is a soft-delete (goes to Trash, see
+    // TrashView) — so a quick "Undo" toast right after the action is a much
+    // faster recovery path than navigating to Trash and restoring it there.
+    // Built on toast.custom rather than the Toaster's built-in styling since
+    // it needs its own dedicated action button; the toastObj param is
+    // deliberately not named `t` to avoid shadowing the translations dict.
+    const showUndoToast = useCallback((message: string, onUndo: () => void) => {
+        toast.custom((toastObj) => (
+            <div
+                className={`flex items-center gap-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-lg rounded-2xl pl-4 pr-1.5 py-1.5 transition-opacity duration-200 ${toastObj.visible ? "opacity-100" : "opacity-0"}`}
+            >
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200 mr-1">{message}</span>
+                <button
+                    onClick={() => {
+                        onUndo();
+                        toast.dismiss(toastObj.id);
+                    }}
+                    className="shrink-0 px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-95 rounded-xl transition-all duration-150"
+                >
+                    {t.undoBtn}
+                </button>
+            </div>
+        ), { duration: 5000 });
+    }, [t.undoBtn]);
+
     const handleDeleteTask = useCallback(async (subjectId: number, taskId: number) => {
         setError(null);
         try {
             setDeletingTasks(prev => [...prev, taskId]);
             await deleteTask(subjectId, taskId);
-            setTimeout(() => {
+            const timeoutId = setTimeout(() => {
                 setSubjects(current => current.map(subject =>
                     subject.id !== subjectId
                         ? subject
                         : { ...subject, tasks: subject.tasks.filter(task => task.id !== taskId) }
                 ));
                 setDeletingTasks(prev => prev.filter(id => id !== taskId));
+                taskDeleteTimeoutsRef.current.delete(taskId);
             }, 400);
+            taskDeleteTimeoutsRef.current.set(taskId, timeoutId);
+
+            showUndoToast(t.taskDeletedToast, async () => {
+                clearTimeout(taskDeleteTimeoutsRef.current.get(taskId));
+                taskDeleteTimeoutsRef.current.delete(taskId);
+                setDeletingTasks(prev => prev.filter(id => id !== taskId));
+                try {
+                    await restoreTask(subjectId, taskId);
+                    await refreshData();
+                } catch {
+                    toast.error(t.errGeneric);
+                }
+            });
         } catch(err) {
             console.error("Error deleting the task:", err);
             setDeletingTasks(prev => prev.filter(id => id !== taskId));
         }
-    }, []);
+    }, [showUndoToast, t.taskDeletedToast, t.errGeneric, refreshData]);
 
     // Task create/edit/delete triggered from AgendaView (calendar), kept
     // separate from the inline-form handlers above since the calendar has
@@ -526,24 +618,45 @@ const DashboardPage = () => {
     const handleCalendarDeleteTask = useCallback(async (subjectId: number, taskId: number) => {
         await deleteTask(subjectId, taskId);
         setSubjects(prev => prev.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: subject.tasks.filter(task => task.id !== taskId) }));
-    }, []);
+        showUndoToast(t.taskDeletedToast, async () => {
+            try {
+                await restoreTask(subjectId, taskId);
+                await refreshData();
+            } catch {
+                toast.error(t.errGeneric);
+            }
+        });
+    }, [showUndoToast, t.taskDeletedToast, t.errGeneric, refreshData]);
 
     const handleDeleteSubject = useCallback(async (subjectId: number) => {
         setError(null);
         try {
             setDeletingSubjects(prev => [...prev, subjectId]);
             await deleteSubject(subjectId);
-            setTimeout(() => {
+            const timeoutId = setTimeout(() => {
                 setSubjects(current => current.filter(subject => subject.id !== subjectId));
                 setDeletingSubjects(prev => prev.filter(id => id !== subjectId));
+                subjectDeleteTimeoutsRef.current.delete(subjectId);
             }, 400);
+            subjectDeleteTimeoutsRef.current.set(subjectId, timeoutId);
 
+            showUndoToast(t.subjectDeletedToast, async () => {
+                clearTimeout(subjectDeleteTimeoutsRef.current.get(subjectId));
+                subjectDeleteTimeoutsRef.current.delete(subjectId);
+                setDeletingSubjects(prev => prev.filter(id => id !== subjectId));
+                try {
+                    await restoreSubject(subjectId);
+                    await refreshData();
+                } catch {
+                    toast.error(t.errGeneric);
+                }
+            });
         } catch(err) {
             console.error("Error sending to trash:", err);
             setError(t.errTrash);
             setDeletingSubjects(prev => prev.filter(id => id !== subjectId));
         }
-    }, [t.errTrash]);
+    }, [t.errTrash, t.subjectDeletedToast, t.errGeneric, showUndoToast, refreshData]);
 
     const handleUpdateSubject = useCallback(async (e: React.FormEvent, subjectId: number) => {
         e.preventDefault();
@@ -593,28 +706,16 @@ const DashboardPage = () => {
     // Updated to adapt the date to the current language
     const today = new Date().toLocaleDateString(language === 'es' ? "es-ES" : "en-US", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
 
-    const refreshData = async () => {
-        try {
-            const subjectsData = await getSubjects();
-            const subjectsWithTasks = await Promise.all(
-                subjectsData.map(async (subject) => {
-                    const tasks = await getTodayTasks(subject.id);
-                    return { ...subject, tasks };
-                })
-            );
-            setSubjects(subjectsWithTasks); 
-        } catch (err) {
-            console.error("Error refreshing the dashboard:", err);
-        }
-    };
-
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
                 const profile = await getUsername();
                 setUsername(profile.username);
                 setUserEmail(profile.email);
-                await refreshData(); 
+                await refreshData();
+                if (localStorage.getItem("rc_onboarding_seen") !== "true") {
+                    setShowOnboarding(true);
+                }
             } catch {
                 setError(t.errLoadData);
             } finally {
@@ -918,6 +1019,12 @@ const DashboardPage = () => {
             label: showCalendar ? t.actionFocusMode : t.actionShowAgenda,
             icon: showCalendar ? Focus : LayoutGrid,
             onSelect: () => setShowCalendar(!showCalendar),
+        },
+        {
+            id: "show-tour",
+            label: t.actionShowTour,
+            icon: HelpCircle,
+            onSelect: () => setShowOnboarding(true),
         },
     ];
 
@@ -1440,6 +1547,10 @@ const DashboardPage = () => {
                         actionsGroupLabel={t.paletteActionsGroup}
                         emptyLabel={t.paletteEmpty}
                     />
+                </Suspense>
+
+                <Suspense fallback={null}>
+                    <OnboardingTour isOpen={showOnboarding} onClose={handleCloseOnboarding} />
                 </Suspense>
             </div>
 
