@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useRef, type TouchEvent, type KeyboardEvent } from "react";
+import { useState, useEffect, useMemo, useRef, type TouchEvent, type KeyboardEvent, type DragEvent } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, Clock, CalendarDays, Plus } from "lucide-react";
+import { toast } from "react-hot-toast";
+import { ChevronLeft, ChevronRight, Clock, CalendarDays, Plus, Check } from "lucide-react";
 import { getProgressHeatmap } from "../api/progressRecordApi";
 import type { ProgressRecord, SubjectWithTasks, TaskRequest, TaskResponse } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
@@ -15,6 +16,7 @@ interface AgendaViewProps {
     onCreateTask: (subjectId: number, data: TaskRequest) => Promise<void>;
     onUpdateTask: (subjectId: number, taskId: number, data: TaskRequest) => Promise<void>;
     onDeleteTask: (subjectId: number, taskId: number) => Promise<void>;
+    onToggleTask: (subjectId: number, taskId: number) => Promise<void>;
 }
 
 // Either creating a new task on a clicked date, or editing/rescheduling one
@@ -40,6 +42,9 @@ const translations = {
         btnAddTask: "Añadir tarea",
         dayOffTitle: "¡Día libre!",
         dayOffDesc: "No hay tareas programadas para este día.",
+        ttToggleComplete: "Marcar como completada",
+        taskRescheduled: "Tarea reprogramada",
+        errReschedule: "No se pudo reprogramar la tarea.",
         weekDays: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
         months: ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
     },
@@ -57,6 +62,9 @@ const translations = {
         btnAddTask: "Add task",
         dayOffTitle: "Day off!",
         dayOffDesc: "No tasks scheduled for this day.",
+        ttToggleComplete: "Mark as complete",
+        taskRescheduled: "Task rescheduled",
+        errReschedule: "Couldn't reschedule the task.",
         weekDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
         months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
     }
@@ -96,7 +104,108 @@ const VIEW_ORDER: ViewMode[] = ["day", "week", "month"];
 // state (e.g. Confetti's lastTrigger comparison).
 type TransitionVariant = "next" | "prev" | "fade";
 
-export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDeleteTask }: AgendaViewProps) => {
+interface DatePickerPopoverProps {
+    selectedDate: Date;
+    onSelect: (date: Date) => void;
+    onClose: () => void;
+    weekDays: string[];
+    months: string[];
+}
+
+// A small in-house month picker for the header's "jump to date" button —
+// replaces a hidden native <input type="date">, which opened the browser's
+// own OS-styled calendar popup and broke the app's visual language. Not a
+// modal (no backdrop/focus-trap via ModalOverlay): it's a lightweight,
+// click-outside-to-dismiss popover, the same tier of UI as a native
+// <select> dropdown, not a dialog.
+const DatePickerPopover = ({ selectedDate, onSelect, onClose, weekDays, months }: DatePickerPopoverProps) => {
+    const [viewDate, setViewDate] = useState(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(e.target as Node)) onClose();
+        };
+        const handleEscKeyDown = (e: globalThis.KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        document.addEventListener("keydown", handleEscKeyDown);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("keydown", handleEscKeyDown);
+        };
+    }, [onClose]);
+
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    let firstDay = new Date(year, month, 1).getDay();
+    firstDay = firstDay === 0 ? 6 : firstDay - 1;
+    const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+    const today = new Date();
+
+    return (
+        <div
+            ref={containerRef}
+            className="absolute top-full right-0 mt-2 z-50 w-64 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-xl p-3 animate-soft-fade"
+        >
+            <div className="flex items-center justify-between mb-2 px-1">
+                <button
+                    type="button"
+                    onClick={() => setViewDate(new Date(year, month - 1, 1))}
+                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-md text-gray-500 dark:text-gray-400 transition-all"
+                >
+                    <ChevronLeft size={16} />
+                </button>
+                <span className="text-sm font-bold text-gray-800 dark:text-gray-100 capitalize">
+                    {months[month]} {year}
+                </span>
+                <button
+                    type="button"
+                    onClick={() => setViewDate(new Date(year, month + 1, 1))}
+                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-md text-gray-500 dark:text-gray-400 transition-all"
+                >
+                    <ChevronRight size={16} />
+                </button>
+            </div>
+            <div className="grid grid-cols-7 mb-1">
+                {weekDays.map(d => (
+                    <div key={d} className="text-center text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase">
+                        {d.substring(0, 2)}
+                    </div>
+                ))}
+            </div>
+            <div className="grid grid-cols-7 gap-0.5">
+                {Array.from({ length: totalCells }, (_, i) => {
+                    const dayNum = i - firstDay + 1;
+                    if (dayNum < 1 || dayNum > daysInMonth) return <div key={i} />;
+                    const cellDate = new Date(year, month, dayNum);
+                    const isToday = cellDate.toDateString() === today.toDateString();
+                    const isSelected = cellDate.toDateString() === selectedDate.toDateString();
+                    return (
+                        <button
+                            type="button"
+                            key={i}
+                            onClick={() => onSelect(cellDate)}
+                            className={`aspect-square rounded-lg text-xs font-semibold transition-all active:scale-90 ${
+                                isSelected
+                                    ? "bg-red-600 text-white hover:bg-red-600"
+                                    : isToday
+                                        ? "text-red-600 dark:text-red-400 font-bold hover:bg-gray-100 dark:hover:bg-gray-800"
+                                        : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            }`}
+                        >
+                            {dayNum}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
+export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDeleteTask, onToggleTask }: AgendaViewProps) => {
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
 
@@ -105,7 +214,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
     const [currentDate, setCurrentDate] = useState(new Date());
     const [records, setRecords] = useState<Record<string, ProgressRecord>>({});
     const [loadingRecords, setLoadingRecords] = useState(true);
-    const jumpDateInputRef = useRef<HTMLInputElement>(null);
+    const [datePickerOpen, setDatePickerOpen] = useState(false);
     const [taskModalState, setTaskModalState] = useState<TaskModalState | null>(null);
     const [transitionVariant, setTransitionVariant] = useState<TransitionVariant>("fade");
     // Month view's "+N more" hover preview (see the popover render near the
@@ -114,6 +223,102 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
     // nav (keyed wrapper), and a keyboard-triggered nav in particular can
     // fire while the mouse hasn't moved off the trigger at all.
     const [morePopover, setMorePopover] = useState<{ tasks: CalendarTask[]; rect: DOMRect } | null>(null);
+
+    // --- Drag-and-drop rescheduling (desktop/mouse only) --------------
+    // Native HTML5 drag-and-drop, not a pointer-tracking library — this
+    // repo has none, and native DnD is a proven, zero-dependency fit for
+    // "pick a chip up, drop it on a cell/hour row." It's mouse-only by
+    // platform design (mobile browsers don't initiate it from touch), so
+    // on touch the `draggable` attribute is simply inert and normal taps
+    // (open the edit modal) keep working exactly as before — mobile users
+    // still reschedule via the modal's own deadline field.
+    const [draggedTask, setDraggedTask] = useState<CalendarTask | null>(null);
+    const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+
+    const handleChipDragStart = (e: DragEvent<HTMLDivElement>, task: CalendarTask) => {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", String(task.id));
+        setDraggedTask(task);
+    };
+    const handleChipDragEnd = () => {
+        setDraggedTask(null);
+        setDragOverKey(null);
+    };
+    const handleDropZoneDragOver = (e: DragEvent<HTMLDivElement>, key: string) => {
+        if (!draggedTask) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        if (dragOverKey !== key) setDragOverKey(key);
+    };
+    const handleDropZoneDragLeave = (key: string) => {
+        setDragOverKey(prev => (prev === key ? null : prev));
+    };
+
+    // Same "YYYY-MM-DDTHH:mm" conversion CalendarTaskModal.tsx uses for its
+    // datetime-local field, duplicated rather than imported — that file's
+    // own copy is deliberately kept local so it doesn't depend on
+    // AgendaView, and the same reasoning applies here in reverse.
+    const toDatetimeLocalValue = (date: Date) => {
+        const d = new Date(date);
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().slice(0, 16);
+    };
+
+    const rescheduleTask = async (task: CalendarTask, mutate: (d: Date) => void) => {
+        if (!task.deadline) return;
+        const newDeadline = new Date(task.deadline);
+        mutate(newDeadline);
+        try {
+            await onUpdateTask(task.subjectId, task.id, {
+                title: task.title,
+                description: task.description ?? null,
+                deadline: toDatetimeLocalValue(newDeadline),
+            });
+            toast.success(t.taskRescheduled);
+        } catch (error) {
+            console.error("Error rescheduling task:", error);
+            toast.error(t.errReschedule);
+        }
+    };
+
+    // Dropped on a day cell (Month/Week): keep whatever time-of-day the
+    // task already had, just move it to the new date.
+    const handleDayCellDrop = (e: DragEvent<HTMLDivElement>, targetDate: Date) => {
+        e.preventDefault();
+        setDragOverKey(null);
+        const task = draggedTask;
+        setDraggedTask(null);
+        if (!task) return;
+        rescheduleTask(task, (d) => d.setFullYear(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate()));
+    };
+    // Dropped on a Day view hour row: move to that hour on the currently
+    // viewed day (there's only one day on screen in Day view, so unlike
+    // Month/Week this changes the time, not the date).
+    const handleHourRowDrop = (e: DragEvent<HTMLDivElement>, hour: number) => {
+        e.preventDefault();
+        setDragOverKey(null);
+        const task = draggedTask;
+        setDraggedTask(null);
+        if (!task) return;
+        rescheduleTask(task, (d) => {
+            d.setFullYear(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+            d.setHours(hour, 0, 0, 0);
+        });
+    };
+    // Dropped on the "all day" strip: same day, but strips the time
+    // component entirely — the natural way to turn a timed task into an
+    // all-day one from the calendar itself.
+    const handleAllDayDrop = (e: DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setDragOverKey(null);
+        const task = draggedTask;
+        setDraggedTask(null);
+        if (!task) return;
+        rescheduleTask(task, (d) => {
+            d.setFullYear(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+            d.setHours(0, 0, 0, 0);
+        });
+    };
 
     const changeView = (nextView: ViewMode) => {
         setTransitionVariant("fade");
@@ -195,13 +400,11 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
         setCurrentDate(new Date());
     };
 
-    const handleJumpDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        if (!value) return;
-        const [year, month, day] = value.split("-").map(Number);
+    const handleJumpToDate = (date: Date) => {
         setTransitionVariant("fade");
         setMorePopover(null);
-        setCurrentDate(new Date(year, month - 1, day));
+        setCurrentDate(date);
+        setDatePickerOpen(false);
     };
 
     // --- Mobile swipe to navigate prev/next --------------------------
@@ -376,7 +579,30 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
 
     // Shared between the "all day" strip and the hourly grid — one card
     // style, just placed in different containers.
-    const renderDayTaskCard = (task: (typeof tasksForCurrentDay)[number]) => {
+    // Day view has the room for a real complete-toggle affordance, unlike
+    // Month/Week's much smaller chips — scoped to Day view only for that
+    // reason, matching TaskItem's own checkbox (red fill + white check)
+    // rather than the calendar's own subject-color language, since it's
+    // literally the same action just reached from a different screen.
+    const renderCompleteToggle = (task: CalendarTask, size: "sm" | "xs") => {
+        const dims = size === "sm" ? "w-4 h-4" : "w-3.5 h-3.5";
+        const subjectColor = getSubjectColor(task.subjectId);
+        return (
+            <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onToggleTask(task.subjectId, task.id); }}
+                title={t.ttToggleComplete}
+                aria-label={t.ttToggleComplete}
+                className={`${dims} rounded-full border-2 shrink-0 flex items-center justify-center transition-all hover:scale-125 active:scale-90 ${
+                    task.completed ? "bg-red-500 border-red-500" : `border-transparent ${subjectColor.dot} hover:brightness-90`
+                }`}
+            >
+                {task.completed && <Check size={size === "sm" ? 10 : 8} className="text-white" strokeWidth={3} />}
+            </button>
+        );
+    };
+
+    const renderDayTaskCard = (task: CalendarTask, taskIdx = 0) => {
         const tDate = new Date(task.deadline!);
         const hasTime = tDate.getHours() !== 0 || tDate.getMinutes() !== 0;
         const timeString = hasTime
@@ -387,11 +613,17 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
         return (
             <div
                 key={task.id}
+                draggable
+                onDragStart={(e) => handleChipDragStart(e, task)}
+                onDragEnd={handleChipDragEnd}
                 title={task.title}
                 onClick={() => openEditModal(task)}
-                className={`bg-white dark:bg-gray-800 border p-2 sm:p-3 rounded-xl shadow-sm flex items-start gap-2 sm:gap-3 transition-all hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] cursor-pointer ${task.completed ? 'opacity-60 bg-gray-50 dark:bg-gray-900/50 dark:border-gray-800' : subjectColor.border}`}
+                style={{ animationDelay: `${taskIdx * 40}ms` }}
+                className={`animate-chip-in bg-white dark:bg-gray-800 border p-2 sm:p-3 rounded-xl shadow-sm flex items-start gap-2 sm:gap-3 transition-all hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] cursor-grab active:cursor-grabbing ${
+                    draggedTask?.id === task.id ? "opacity-30" : ""
+                } ${task.completed ? 'opacity-60 bg-gray-50 dark:bg-gray-900/50 dark:border-gray-800' : subjectColor.border}`}
             >
-                <div className={`mt-1 w-3 h-3 rounded-full border-2 shrink-0 transition-colors duration-300 ${task.completed ? 'border-green-500 bg-green-100 dark:bg-green-900/30' : `border-transparent ${subjectColor.dot}`}`} />
+                <div className="mt-1">{renderCompleteToggle(task, "sm")}</div>
                 <div className="flex flex-col flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-0.5">
                         <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider truncate transition-colors duration-300">
@@ -415,20 +647,27 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
     // and the "now" indicator's math), and the full renderDayTaskCard
     // above doesn't fit two of itself in that space even with an overflow
     // fallback. This one comfortably fits 2-3 per row instead.
-    const renderCompactHourTask = (task: (typeof tasksForCurrentDay)[number]) => {
+    const renderCompactHourTask = (task: CalendarTask, taskIdx = 0) => {
         const timeString = new Date(task.deadline!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const subjectColor = getSubjectColor(task.subjectId);
         return (
             <div
                 key={task.id}
+                draggable
+                onDragStart={(e) => handleChipDragStart(e, task)}
+                onDragEnd={handleChipDragEnd}
                 title={`${task.subjectName} — ${task.title}`}
                 onClick={() => openEditModal(task)}
-                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs shrink-0 cursor-pointer transition-all hover:shadow-sm hover:-translate-y-px active:translate-y-0 active:scale-95 ${
+                style={{ animationDelay: `${taskIdx * 40}ms` }}
+                className={`animate-chip-in flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs shrink-0 cursor-grab active:cursor-grabbing transition-all hover:shadow-sm hover:-translate-y-px active:translate-y-0 active:scale-95 ${
+                    draggedTask?.id === task.id ? "opacity-30" : ""
+                } ${
                     task.completed
                         ? 'bg-gray-50 dark:bg-gray-900/50 border-gray-100 dark:border-gray-800 text-gray-400 dark:text-gray-500 line-through'
                         : `${subjectColor.bg} ${subjectColor.border} text-gray-700 dark:text-gray-200`
                 }`}
             >
+                {renderCompleteToggle(task, "xs")}
                 <span className="shrink-0 font-semibold text-gray-400 dark:text-gray-500">{timeString}</span>
                 <span className="truncate font-medium">{task.title}</span>
             </div>
@@ -459,22 +698,22 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                         <div className="relative w-px self-stretch bg-gray-100 dark:bg-gray-800 mx-0.5" />
                         <div className="relative">
                             <button
-                                onClick={() => jumpDateInputRef.current?.showPicker?.() ?? jumpDateInputRef.current?.click()}
+                                onClick={() => setDatePickerOpen(o => !o)}
                                 title={t.jumpToDate}
                                 aria-label={t.jumpToDate}
-                                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-md text-gray-500 dark:text-gray-400 transition-all"
+                                className={`p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-md transition-all ${datePickerOpen ? "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"}`}
                             >
                                 <CalendarDays size={18} />
                             </button>
-                            <input
-                                ref={jumpDateInputRef}
-                                type="date"
-                                onChange={handleJumpDateChange}
-                                value={`${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`}
-                                aria-hidden="true"
-                                tabIndex={-1}
-                                className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
-                            />
+                            {datePickerOpen && (
+                                <DatePickerPopover
+                                    selectedDate={currentDate}
+                                    onSelect={handleJumpToDate}
+                                    onClose={() => setDatePickerOpen(false)}
+                                    weekDays={t.weekDays}
+                                    months={t.months}
+                                />
+                            )}
                         </div>
                     </div>
                 </div>
@@ -534,9 +773,13 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                 <div key={day} className="py-3 text-center text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{day.substring(0,3)}</div>
                             ))}
                         </div>
-                        <div className="flex-1 grid grid-cols-7 bg-gray-100 dark:bg-gray-800 gap-[1px] transition-colors duration-300" style={{ gridTemplateRows: `repeat(${rowsNeeded}, minmax(0, 1fr))` }}>
+                        {/* A soft gutter + rounded tiles instead of hairline grid rules —
+                            the gap background is just the page's own resting tone showing
+                            through, not a drawn border, so cells read as separated cards
+                            rather than a ruled spreadsheet grid. */}
+                        <div className="flex-1 grid grid-cols-7 bg-gray-100/60 dark:bg-gray-950/40 gap-1.5 p-1.5 transition-colors duration-300" style={{ gridTemplateRows: `repeat(${rowsNeeded}, minmax(0, 1fr))` }}>
                             {calendarCells.map((dayNum, i) => {
-                                if (!dayNum) return <div key={i} className="bg-gray-50/30 dark:bg-gray-800/30 p-3 transition-colors duration-300" />;
+                                if (!dayNum) return <div key={i} className="bg-gray-50/30 dark:bg-gray-800/30 rounded-lg p-3 transition-colors duration-300" />;
 
                                 const cellDateObj = new Date(currentYear, currentMonth, dayNum);
                                 const isToday = cellDateObj.toDateString() === todayObj.toDateString();
@@ -577,8 +820,18 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                 // before (future days showed nothing but a bare number).
                                 const dayTasks = getTasksForDate(subjects, cellDateObj);
 
+                                const monthCellKey = `month-${cellDateString}`;
                                 return (
-                                    <div key={i} onClick={() => jumpToDay(cellDateObj)} className={`${bgColorClass} p-1 sm:p-2 flex flex-col transition-colors hover:brightness-95 dark:hover:brightness-110 cursor-pointer relative group ${isToday ? "z-10" : ""}`}>
+                                    <div
+                                        key={i}
+                                        onClick={() => jumpToDay(cellDateObj)}
+                                        onDragOver={(e) => handleDropZoneDragOver(e, monthCellKey)}
+                                        onDragLeave={() => handleDropZoneDragLeave(monthCellKey)}
+                                        onDrop={(e) => handleDayCellDrop(e, cellDateObj)}
+                                        className={`${bgColorClass} rounded-lg p-1 sm:p-2 flex flex-col transition-all hover:brightness-95 dark:hover:brightness-110 hover:shadow-md hover:z-20 cursor-pointer relative group ${isToday ? "z-10" : ""} ${
+                                            dragOverKey === monthCellKey ? "z-20 ring-2 ring-inset ring-red-400 dark:ring-red-500" : ""
+                                        }`}
+                                    >
                                         <div className="flex justify-between items-start mb-1">
                                             <span className={`text-xs sm:text-sm font-bold w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full transition-colors duration-300 ${isToday ? "bg-red-600 text-white shadow-sm" : bgColorClass.includes("bg-[#4ade80]") || bgColorClass.includes("bg-[#16a34a]") ? "text-white drop-shadow-md" : "text-gray-500 dark:text-gray-400"}`}>
                                                 {dayNum}
@@ -596,14 +849,20 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                         </div>
                                         {dayTasks.length > 0 ? (
                                             <div className="flex-1 flex flex-col gap-0.5 sm:gap-1 overflow-y-auto no-scrollbar">
-                                                {dayTasks.slice(0, 2).map(task => {
+                                                {dayTasks.slice(0, 2).map((task, taskIdx) => {
                                                     const subjectColor = getSubjectColor(task.subjectId);
                                                     return (
                                                         <div
                                                             key={task.id}
+                                                            draggable
+                                                            onDragStart={(e) => handleChipDragStart(e, task)}
+                                                            onDragEnd={handleChipDragEnd}
                                                             title={`${task.subjectName} — ${task.title}`}
                                                             onClick={(e) => { e.stopPropagation(); openEditModal(task); }}
-                                                            className={`text-[8px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded truncate cursor-pointer transition-all hover:brightness-95 active:scale-95 ${
+                                                            style={{ animationDelay: `${taskIdx * 40}ms` }}
+                                                            className={`animate-chip-in text-[8px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded truncate cursor-grab active:cursor-grabbing transition-all hover:brightness-95 active:scale-95 ${
+                                                                draggedTask?.id === task.id ? "opacity-30" : ""
+                                                            } ${
                                                                 task.completed
                                                                     ? "bg-white/60 dark:bg-gray-900/60 text-gray-400 dark:text-gray-500 line-through"
                                                                     : `${subjectColor.bg} ${subjectColor.text}`
@@ -656,7 +915,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                 );
                             })}
                         </div>
-                        <div className="flex-1 grid grid-cols-7 bg-gray-100 dark:bg-gray-800 gap-[1px] transition-colors duration-300">
+                        <div className="flex-1 grid grid-cols-7 bg-gray-100/60 dark:bg-gray-950/40 gap-1.5 p-1.5 transition-colors duration-300">
                             {currentWeekDays.map((date, i) => {
                                 const isToday = date.toDateString() === todayObj.toDateString();
                                 const cellDateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -672,12 +931,18 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                 }
                                 
                                 const dayTasks = tasksByWeekDay[i];
+                                const weekCellKey = `week-${cellDateString}`;
 
                                 return (
                                     <div
                                         key={i}
                                         onClick={() => jumpToDay(date)}
-                                        className={`${bgColorClass} p-1 sm:p-2 flex flex-col gap-1 overflow-y-auto no-scrollbar cursor-pointer transition-colors hover:brightness-95 dark:hover:brightness-110 relative group`}
+                                        onDragOver={(e) => handleDropZoneDragOver(e, weekCellKey)}
+                                        onDragLeave={() => handleDropZoneDragLeave(weekCellKey)}
+                                        onDrop={(e) => handleDayCellDrop(e, date)}
+                                        className={`${bgColorClass} rounded-lg p-1 sm:p-2 flex flex-col gap-1 overflow-y-auto no-scrollbar cursor-pointer transition-all hover:brightness-95 dark:hover:brightness-110 hover:shadow-md hover:z-20 relative group ${
+                                            dragOverKey === weekCellKey ? "z-20 ring-2 ring-inset ring-red-400 dark:ring-red-500" : ""
+                                        }`}
                                     >
                                         {subjects.length > 0 && (
                                             <button
@@ -695,14 +960,20 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                             </div>
                                         ) : (
                                             <>
-                                                {dayTasks.slice(0, 4).map(task => {
+                                                {dayTasks.slice(0, 4).map((task, taskIdx) => {
                                                     const subjectColor = getSubjectColor(task.subjectId);
                                                     return (
                                                         <div
                                                             key={task.id}
+                                                            draggable
+                                                            onDragStart={(e) => handleChipDragStart(e, task)}
+                                                            onDragEnd={handleChipDragEnd}
                                                             title={`${task.subjectName} — ${task.title}`}
                                                             onClick={(e) => { e.stopPropagation(); openEditModal(task); }}
-                                                            className={`text-[9px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 sm:py-1 rounded-md truncate cursor-pointer transition-all hover:brightness-95 active:scale-95 ${
+                                                            style={{ animationDelay: `${taskIdx * 40}ms` }}
+                                                            className={`animate-chip-in text-[9px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 sm:py-1 rounded-md truncate cursor-grab active:cursor-grabbing transition-all hover:brightness-95 active:scale-95 ${
+                                                                draggedTask?.id === task.id ? "opacity-30" : ""
+                                                            } ${
                                                                 task.completed
                                                                     ? "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 line-through"
                                                                     : `${subjectColor.bg} ${subjectColor.text}`
@@ -734,9 +1005,16 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                             grid, calendar-convention style, instead of being
                             squeezed into a midnight row. */}
                         {allDayTasks.length > 0 && (
-                            <div className="shrink-0 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 p-2 sm:p-3 flex flex-col gap-1.5 transition-colors duration-300">
+                            <div
+                                onDragOver={(e) => handleDropZoneDragOver(e, "allday")}
+                                onDragLeave={() => handleDropZoneDragLeave("allday")}
+                                onDrop={handleAllDayDrop}
+                                className={`shrink-0 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 p-2 sm:p-3 flex flex-col gap-1.5 transition-colors duration-300 ${
+                                    dragOverKey === "allday" ? "ring-2 ring-inset ring-red-400 dark:ring-red-500" : ""
+                                }`}
+                            >
                                 <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">{t.lblAllDay}</span>
-                                {allDayTasks.map(task => renderDayTaskCard(task))}
+                                {allDayTasks.map((task, taskIdx) => renderDayTaskCard(task, taskIdx))}
                             </div>
                         )}
 
@@ -790,10 +1068,19 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                     <div className="relative z-20 sm:max-w-xl sm:ml-4">
                                         {hours.map(hour => {
                                             const hourDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), hour, 0);
+                                            const hourKey = `hour-${hour}`;
                                             return (
-                                                <div key={hour} className="h-20 shrink-0 flex items-center gap-1 overflow-y-auto no-scrollbar py-0.5 group">
+                                                <div
+                                                    key={hour}
+                                                    onDragOver={(e) => handleDropZoneDragOver(e, hourKey)}
+                                                    onDragLeave={() => handleDropZoneDragLeave(hourKey)}
+                                                    onDrop={(e) => handleHourRowDrop(e, hour)}
+                                                    className={`h-20 shrink-0 flex items-center gap-1 overflow-y-auto no-scrollbar py-0.5 group rounded-lg transition-all ${
+                                                        dragOverKey === hourKey ? "ring-2 ring-inset ring-red-400 dark:ring-red-500 bg-red-50/40 dark:bg-red-900/10" : ""
+                                                    }`}
+                                                >
                                                     <div className="flex flex-col justify-center gap-1 flex-1 min-w-0">
-                                                        {(timedTasksByHour[hour] ?? []).map(task => renderCompactHourTask(task))}
+                                                        {(timedTasksByHour[hour] ?? []).map((task, taskIdx) => renderCompactHourTask(task, taskIdx))}
                                                     </div>
                                                     {subjects.length > 0 && (
                                                         <button

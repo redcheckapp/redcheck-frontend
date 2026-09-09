@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { X, Trash2, BookOpen, Type, AlignLeft, Clock3, ChevronDown, CalendarPlus, CalendarClock } from "lucide-react";
+import { X, Trash2, BookOpen, Type, AlignLeft, Clock3, ChevronDown, CalendarPlus, CalendarClock, Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import type { SubjectWithTasks, TaskRequest, TaskResponse } from "../types";
 import { ModalOverlay } from "./ModalOverlay";
 import { getSubjectColor } from "../utils/subjectColors";
+import { triggerHapticFeedback } from "../utils/feedback";
 
 interface CalendarTaskModalProps {
     isOpen: boolean;
@@ -110,6 +111,15 @@ export const CalendarTaskModal = ({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!title.trim() || subjectId === null) return;
+        // Fired synchronously, before the `await` below — same gesture-timing
+        // constraint as the task-completion haptic in DashboardPage.tsx (see
+        // feedback.ts). Reads the setting straight from localStorage rather
+        // than threading it down as a prop through AgendaView, matching the
+        // lightweight-preference pattern ThemeContext/LanguageContext already
+        // use for cookie/localStorage-backed settings.
+        if (localStorage.getItem("taskFeedbackEnabled") !== "false") {
+            triggerHapticFeedback();
+        }
         setSubmitting(true);
         try {
             const data: TaskRequest = { title: title.trim(), description: description.trim() || null, deadline: deadline || null };
@@ -264,8 +274,9 @@ export const CalendarTaskModal = ({
                                     <button
                                         type="submit"
                                         disabled={submitting}
-                                        className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 hover:shadow-lg hover:shadow-red-600/20 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 rounded-xl shadow-sm transition-all duration-200 disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+                                        className="flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 hover:shadow-lg hover:shadow-red-600/20 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 rounded-xl shadow-sm transition-all duration-200 disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
                                     >
+                                        {submitting && <Loader2 size={14} className="animate-spin" />}
                                         {mode === "edit" ? t.btnSave : t.btnCreate}
                                     </button>
                                 </div>

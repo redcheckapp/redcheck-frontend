@@ -978,6 +978,7 @@ const DashboardPage = () => {
                                         onCreateTask={handleCalendarCreateTask}
                                         onUpdateTask={handleCalendarUpdateTask}
                                         onDeleteTask={handleCalendarDeleteTask}
+                                        onToggleTask={handleToggleTask}
                                     />
                                 </main>
                             </div>

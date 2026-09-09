@@ -125,3 +125,24 @@
 .animate-count-pop {
   animation: countPop 0.4s ease-out;
 }
+
+/* Calendar task chips (Month/Week/Day views) — each chip gets this class
+   plus an inline `animationDelay` scaled by its index within its own list,
+   so a freshly-mounted view's chips cascade in one after another instead
+   of all popping in at once. Only plays on actual mount (a new task chip,
+   or the whole view remounting via AgendaView's key-per-navigation), never
+   replays for an existing chip re-rendering in place. */
+@keyframes chipIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-chip-in {
+  animation: chipIn 0.25s ease-out backwards;
+}
