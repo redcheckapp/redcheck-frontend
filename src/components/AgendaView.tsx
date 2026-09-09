@@ -1,10 +1,12 @@
-import { useState, useEffect, useMemo, useRef, type TouchEvent } from "react";
-import { ChevronLeft, ChevronRight, Clock, CheckCircle2, CalendarDays, Plus } from "lucide-react";
+import { useState, useEffect, useMemo, useRef, type TouchEvent, type KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
+import { ChevronLeft, ChevronRight, Clock, CalendarDays, Plus } from "lucide-react";
 import { getProgressHeatmap } from "../api/progressRecordApi";
 import type { ProgressRecord, SubjectWithTasks, TaskRequest, TaskResponse } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import { CalendarTaskModal } from "./CalendarTaskModal";
 import { getSubjectColor } from "../utils/subjectColors";
+import { DayOffIllustration } from "./illustrations/DayOffIllustration";
 
 type ViewMode = "day" | "week" | "month";
 
@@ -29,7 +31,6 @@ const translations = {
         btnDay: "Día",
         btnWeek: "Semana",
         btnMonth: "Mes",
-        loadingHistory: "Cargando historial...",
         lblTasks: "Tareas",
         lblViewTasks: "Ver tareas",
         lblAllDay: "Todo el día",
@@ -47,7 +48,6 @@ const translations = {
         btnDay: "Day",
         btnWeek: "Week",
         btnMonth: "Month",
-        loadingHistory: "Loading history...",
         lblTasks: "Tasks",
         lblViewTasks: "View tasks",
         lblAllDay: "All day",
@@ -61,6 +61,8 @@ const translations = {
         months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
     }
 };
+
+type CalendarTask = TaskResponse & { subjectName: string };
 
 // Tasks due on a given calendar day, across all subjects — pulled out to
 // module scope (rather than a closure inside the component) so it can be
@@ -106,14 +108,22 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
     const jumpDateInputRef = useRef<HTMLInputElement>(null);
     const [taskModalState, setTaskModalState] = useState<TaskModalState | null>(null);
     const [transitionVariant, setTransitionVariant] = useState<TransitionVariant>("fade");
+    // Month view's "+N more" hover preview (see the popover render near the
+    // bottom of this component). Cleared on every navigation below, not
+    // just on mouseleave — the grid content it's anchored to remounts on
+    // nav (keyed wrapper), and a keyboard-triggered nav in particular can
+    // fire while the mouse hasn't moved off the trigger at all.
+    const [morePopover, setMorePopover] = useState<{ tasks: CalendarTask[]; rect: DOMRect } | null>(null);
 
     const changeView = (nextView: ViewMode) => {
         setTransitionVariant("fade");
+        setMorePopover(null);
         setView(nextView);
     };
 
     const jumpToDay = (date: Date) => {
         setTransitionVariant("fade");
+        setMorePopover(null);
         setCurrentDate(date);
         setView("day");
     };
@@ -127,7 +137,21 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
 
     const todayObj = new Date();
     const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth(); 
+    const currentMonth = currentDate.getMonth();
+
+    // Monday of today's week, for Month view's "current week" row tint —
+    // same Monday-start math as currentWeekDays below, just anchored on
+    // today instead of currentDate so it doesn't shift as the user navigates.
+    const todayWeekStart = (() => {
+        const d = new Date(todayObj);
+        const day = d.getDay();
+        d.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
+        d.setHours(0, 0, 0, 0);
+        return d;
+    })();
+    const todayWeekEnd = new Date(todayWeekStart);
+    todayWeekEnd.setDate(todayWeekEnd.getDate() + 6);
+    todayWeekEnd.setHours(23, 59, 59, 999);
 
     useEffect(() => {
         const fetchHeatmap = async () => {
@@ -151,6 +175,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
 
     const handlePrev = () => {
         setTransitionVariant("prev");
+        setMorePopover(null);
         if (view === "month") setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
         if (view === "week") setCurrentDate(new Date(currentYear, currentMonth, currentDate.getDate() - 7));
         if (view === "day") setCurrentDate(new Date(currentYear, currentMonth, currentDate.getDate() - 1));
@@ -158,6 +183,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
 
     const handleNext = () => {
         setTransitionVariant("next");
+        setMorePopover(null);
         if (view === "month") setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
         if (view === "week") setCurrentDate(new Date(currentYear, currentMonth, currentDate.getDate() + 7));
         if (view === "day") setCurrentDate(new Date(currentYear, currentMonth, currentDate.getDate() + 1));
@@ -165,6 +191,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
 
     const handleToday = () => {
         setTransitionVariant("fade");
+        setMorePopover(null);
         setCurrentDate(new Date());
     };
 
@@ -173,6 +200,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
         if (!value) return;
         const [year, month, day] = value.split("-").map(Number);
         setTransitionVariant("fade");
+        setMorePopover(null);
         setCurrentDate(new Date(year, month - 1, day));
     };
 
@@ -205,6 +233,48 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
         if (Math.abs(deltaX) < SWIPE_THRESHOLD_PX || Math.abs(deltaX) < Math.abs(deltaY) * 1.5) return;
         if (deltaX < 0) handleNext();
         else handlePrev();
+    };
+
+    // --- Desktop keyboard navigation ----------------------------------
+    // Scoped to the calendar surface itself (onKeyDown on the GRID AREA
+    // container, which only fires while focus is inside it) rather than a
+    // global window listener — the calendar stays mounted-but-hidden both
+    // on mobile (Tasks tab active) and on desktop (Focus Mode), so a global
+    // listener would keep firing even while invisible and could steal keys
+    // from the search bar or task modal elsewhere on the page. This way, no
+    // extra "is the calendar visible" bookkeeping is needed at all.
+    const handleGridKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        switch (e.key) {
+            case "ArrowLeft":
+                e.preventDefault();
+                handlePrev();
+                break;
+            case "ArrowRight":
+                e.preventDefault();
+                handleNext();
+                break;
+            case "t":
+            case "T":
+                e.preventDefault();
+                handleToday();
+                break;
+            case "d":
+            case "D":
+                e.preventDefault();
+                changeView("day");
+                break;
+            case "w":
+            case "W":
+                e.preventDefault();
+                changeView("week");
+                break;
+            case "m":
+            case "M":
+                e.preventDefault();
+                changeView("month");
+                break;
+        }
     };
 
     const currentWeekDays = useMemo(() => {
@@ -269,9 +339,15 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
         return (dayNumber > 0 && dayNumber <= daysInMonth) ? dayNumber : null;
     });
 
+    // Day view's full title ("9 September 2026") is the one that overflows
+    // its row on narrow screens and wraps to two lines — Month/Week's titles
+    // already fit, so `headerTitleShort` only actually differs for Day
+    // (abbreviated month), and just mirrors `headerTitle` otherwise.
     let headerTitle = "";
+    let headerTitleShort = "";
     if (view === "month") {
         headerTitle = `${t.months[currentMonth]} ${currentYear}`;
+        headerTitleShort = headerTitle;
     } else if (view === "week") {
         const first = currentWeekDays[0];
         const last = currentWeekDays[6];
@@ -280,8 +356,10 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
         } else {
             headerTitle = `${first.getDate()} ${t.months[first.getMonth()].substring(0,3)} - ${last.getDate()} ${t.months[last.getMonth()].substring(0,3)} ${last.getFullYear()}`;
         }
+        headerTitleShort = headerTitle;
     } else {
         headerTitle = `${currentDate.getDate()} ${t.months[currentDate.getMonth()]} ${currentYear}`;
+        headerTitleShort = `${currentDate.getDate()} ${t.months[currentDate.getMonth()].substring(0,3)} ${currentYear}`;
     }
 
     const getSquareColor = (dateString: string) => {
@@ -363,8 +441,9 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
             {/* --- HEADER --- */}
             <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3 sm:gap-y-2 mb-4 sm:mb-8 shrink-0">
                 <div className="flex items-center gap-2 sm:gap-4">
-                    <h1 className="text-xl sm:text-3xl font-black text-gray-900 dark:text-gray-100 tracking-tight capitalize sm:min-w-[280px] transition-colors duration-300">
-                        {headerTitle}
+                    <h1 className="text-xl sm:text-3xl font-black text-gray-900 dark:text-gray-100 tracking-tight capitalize whitespace-nowrap sm:min-w-[280px] transition-colors duration-300">
+                        <span className="sm:hidden">{headerTitleShort}</span>
+                        <span className="hidden sm:inline">{headerTitle}</span>
                     </h1>
 
                     <div className="flex items-center gap-1 bg-white dark:bg-gray-900 p-1 rounded-lg shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300">
@@ -428,16 +507,13 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
 
             {/* --- GRID AREA --- */}
             <div
+                tabIndex={0}
                 onTouchStart={handleGridTouchStart}
                 onTouchEnd={handleGridTouchEnd}
                 onTouchCancel={() => { swipeStartRef.current = null; }}
-                className="flex-1 bg-white dark:bg-gray-900 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col relative transition-colors duration-300"
+                onKeyDown={handleGridKeyDown}
+                className="flex-1 bg-white dark:bg-gray-900 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col relative transition-colors duration-300 outline-none focus-visible:ring-2 focus-visible:ring-red-400/60 dark:focus-visible:ring-red-500/50"
             >
-                {loadingRecords && (
-                    <div className="absolute inset-0 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center transition-colors duration-300">
-                        <span className="text-gray-500 dark:text-gray-400 font-bold animate-pulse">{t.loadingHistory}</span>
-                    </div>
-                )}
 
                 {/* Remounted (via `key`) on every view switch, prev/next, jump,
                     or drill-down click — the CSS keyframe on the matching
@@ -468,9 +544,28 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                 
                                 const cellDateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
                                 
-                                let bgColorClass = isPast || isToday ? getSquareColor(cellDateString) : "bg-white dark:bg-gray-900";
-                                if (isToday && bgColorClass === "bg-white dark:bg-gray-900") {
-                                    bgColorClass = "bg-red-50/50 dark:bg-red-900/20";
+                                // While the heatmap is still loading, past/today cells (the
+                                // only ones that depend on it) get a pulsing skeleton tile
+                                // instead of silently rendering as "no data" — a skeleton
+                                // shaped like the real content, per this app's own loading-
+                                // state convention (DashboardSkeleton.tsx), rather than a
+                                // blur+spinner overlay on top of an otherwise-ready grid.
+                                let bgColorClass: string;
+                                if ((isPast || isToday) && loadingRecords) {
+                                    bgColorClass = "bg-gray-100 dark:bg-gray-800/60 animate-pulse";
+                                } else {
+                                    bgColorClass = isPast || isToday ? getSquareColor(cellDateString) : "bg-white dark:bg-gray-900";
+                                    if (isToday && bgColorClass === "bg-white dark:bg-gray-900") {
+                                        bgColorClass = "bg-red-50/50 dark:bg-red-900/20";
+                                    }
+                                    // A faint "this week" tint for cells that would otherwise
+                                    // render as the plain blank/no-data background — only
+                                    // overrides that default, never a heatmap-driven color, so
+                                    // it groups the current week visually without competing
+                                    // with the completion-rate colors.
+                                    if (bgColorClass === "bg-white dark:bg-gray-900" && cellDateObj >= todayWeekStart && cellDateObj <= todayWeekEnd) {
+                                        bgColorClass = "bg-gray-50/70 dark:bg-gray-800/40";
+                                    }
                                 }
 
                                 const record = records[cellDateString];
@@ -519,7 +614,11 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                                     );
                                                 })}
                                                 {dayTasks.length > 2 && (
-                                                    <span className="hidden sm:inline text-[9px] text-gray-400 dark:text-gray-500 font-bold px-1">
+                                                    <span
+                                                        onMouseEnter={(e) => { e.stopPropagation(); setMorePopover({ tasks: dayTasks, rect: e.currentTarget.getBoundingClientRect() }); }}
+                                                        onMouseLeave={() => setMorePopover(null)}
+                                                        className="hidden sm:inline text-[9px] text-gray-400 dark:text-gray-500 font-bold px-1 hover:text-gray-600 dark:hover:text-gray-300 cursor-default"
+                                                    >
                                                         +{dayTasks.length - 2} {t.moreTasks}
                                                     </span>
                                                 )}
@@ -562,9 +661,14 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                 const isToday = date.toDateString() === todayObj.toDateString();
                                 const cellDateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                                 
-                                let bgColorClass = (date < todayObj || isToday) ? getSquareColor(cellDateString) : "bg-white dark:bg-gray-900";
-                                if (isToday && bgColorClass === "bg-white dark:bg-gray-900") {
-                                    bgColorClass = "bg-red-50/50 dark:bg-red-900/20";
+                                let bgColorClass: string;
+                                if ((date < todayObj || isToday) && loadingRecords) {
+                                    bgColorClass = "bg-gray-100 dark:bg-gray-800/60 animate-pulse";
+                                } else {
+                                    bgColorClass = (date < todayObj || isToday) ? getSquareColor(cellDateString) : "bg-white dark:bg-gray-900";
+                                    if (isToday && bgColorClass === "bg-white dark:bg-gray-900") {
+                                        bgColorClass = "bg-red-50/50 dark:bg-red-900/20";
+                                    }
                                 }
                                 
                                 const dayTasks = tasksByWeekDay[i];
@@ -658,13 +762,16 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                         className="absolute left-0 right-0 border-t-2 border-red-500 z-10 flex items-center pointer-events-none"
                                         style={{ top: `${((todayObj.getHours() - 8) * 5) + (todayObj.getMinutes() / 12)}rem` }}
                                     >
-                                        <div className="w-3 h-3 bg-red-500 rounded-full -ml-1.5 border-2 border-white dark:border-gray-900 transition-colors duration-300"></div>
+                                        <div className="relative w-3 h-3 -ml-1.5">
+                                            <span className="absolute inset-0 rounded-full bg-red-400 opacity-75 animate-ping" />
+                                            <div className="relative w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-900 transition-colors duration-300" />
+                                        </div>
                                     </div>
                                 )}
 
                                 {tasksForCurrentDay.length === 0 ? (
                                     <div className="relative z-20 mt-10 p-6 sm:max-w-xl sm:ml-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center text-center bg-white/50 dark:bg-gray-800/50 transition-colors duration-300">
-                                        <CheckCircle2 size={32} className="text-gray-300 dark:text-gray-600 mb-2 transition-colors duration-300" />
+                                        <DayOffIllustration className="w-20 h-20 mb-2" />
                                         <h3 className="text-gray-500 dark:text-gray-400 font-bold transition-colors duration-300">{t.dayOffTitle}</h3>
                                         <p className="text-sm text-gray-400 dark:text-gray-500 mb-3 transition-colors duration-300">{t.dayOffDesc}</p>
                                         {subjects.length > 0 && (
@@ -709,6 +816,40 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                 )}
                 </div>
             </div>
+
+            {/* Month view's "+N more" hover preview — non-interactive (a
+                plain preview, not a menu), positioned via a portal so it
+                escapes the GRID AREA's overflow-hidden instead of getting
+                clipped at the cell/row edge, same reasoning as ModalOverlay's
+                use of createPortal for floating elements. */}
+            {morePopover && createPortal(
+                <div
+                    className="fixed z-[90] w-56 max-h-64 overflow-y-auto bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl shadow-xl p-2 flex flex-col gap-1 pointer-events-none animate-soft-fade"
+                    style={{
+                        left: Math.min(Math.max(morePopover.rect.left, 8), window.innerWidth - 224 - 8),
+                        ...(morePopover.rect.bottom + 260 > window.innerHeight
+                            ? { bottom: window.innerHeight - morePopover.rect.top + 6 }
+                            : { top: morePopover.rect.bottom + 6 }),
+                    }}
+                >
+                    {morePopover.tasks.map(task => {
+                        const subjectColor = getSubjectColor(task.subjectId);
+                        return (
+                            <div
+                                key={task.id}
+                                className={`text-xs font-semibold px-2 py-1.5 rounded-lg truncate ${
+                                    task.completed
+                                        ? "bg-gray-50 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500 line-through"
+                                        : `${subjectColor.bg} ${subjectColor.text}`
+                                }`}
+                            >
+                                {task.title}
+                            </div>
+                        );
+                    })}
+                </div>,
+                document.body
+            )}
 
             <CalendarTaskModal
                 isOpen={taskModalState !== null}
