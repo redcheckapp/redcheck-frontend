@@ -968,9 +968,19 @@ const DashboardPage = () => {
                     ) : (
                         <>
                             {/* --- BLOCK 1: AGENDA (LEFT) --- */}
+                            {/* sm:min-w-[700px] here matches the <main> below —
+                                without it, this flex item's own box stays
+                                pinned at exactly 55% even when that's narrower
+                                than its min-width-700 child needs, and the
+                                child silently overflows past this box's right
+                                edge (no overflow-hidden here) and under BLOCK 2.
+                                Harmless at typical desktop widths where 55% is
+                                already >700px, but became visible at the
+                                app's compact (80%-equivalent) root font-size,
+                                which doesn't shrink these two hard px values. */}
                             <div className={`${mobileView === "agenda" ? "flex" : "hidden"} sm:flex
                                 w-full h-full sm:h-auto sm:transition-all sm:duration-500 sm:ease-in-out flex-col overflow-hidden shrink-0 ${
-                                showCalendar ? "sm:w-[55%] sm:opacity-100 sm:ml-4" : "sm:w-0 sm:opacity-0 sm:ml-0"
+                                showCalendar ? "sm:w-[55%] sm:min-w-[700px] sm:opacity-100 sm:ml-4" : "sm:w-0 sm:min-w-0 sm:opacity-0 sm:ml-0"
                             }`}>
                                 <main className="w-full h-full relative flex flex-col min-w-0 sm:min-w-[700px]">
                                     <AgendaView

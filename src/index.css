@@ -8,6 +8,19 @@
 @custom-variant can-hover (@media (any-hover: hover));
 @custom-variant no-hover (@media (any-hover: none));
 
+/* 3. Desktop-only compact scale, matching how the app looked at ~80%
+   browser zoom (the user's own workaround before this was added) — every
+   Tailwind spacing/sizing/font-size utility is rem-based by default, so
+   scaling the root font-size scales nearly the whole UI proportionally
+   without the hit-testing/scroll quirks of `zoom` or `transform: scale`.
+   Scoped to the `sm` breakpoint and up (640px) to match this app's own
+   mobile/desktop split — phone sizing is unaffected. */
+@media (min-width: 640px) {
+  html {
+    font-size: 80%;
+  }
+}
+
 
 /* --- ANIMATIONS --- */
 @keyframes slideDown {
