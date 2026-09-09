@@ -27,7 +27,10 @@ interface SidebarProps {
 
 // Feature flags for sections hidden per product decision — not deleted so
 // they can be quickly re-enabled later. See CLAUDE.md.
-const SHOW_ANALYSIS_ENGINE_LABEL = false;
+// SHOW_ANALYSIS_ENGINE_LABEL is back on for desktop only (per user request)
+// — the label's own className now carries `hidden sm:flex` to enforce that,
+// since this flag alone doesn't distinguish mobile from desktop.
+const SHOW_ANALYSIS_ENGINE_LABEL = true;
 const SHOW_RISK_ANALYSIS_BUTTON = false;
 
 // --- Translation dictionary for the Sidebar ---
@@ -300,7 +303,7 @@ export const Sidebar = ({
                 </div>
 
                 {SHOW_ANALYSIS_ENGINE_LABEL && (
-                    <div className={`flex flex-col items-center overflow-hidden transition-all duration-300 ease-in-out w-full ${expanded ? "max-h-[60px] opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"}`}>
+                    <div className={`hidden sm:flex flex-col items-center overflow-hidden transition-all duration-300 ease-in-out w-full ${expanded ? "max-h-[60px] opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"}`}>
                         <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 tracking-wide">
                             SmartCheck AI
                         </h3>
