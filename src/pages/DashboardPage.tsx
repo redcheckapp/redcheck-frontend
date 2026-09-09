@@ -2,7 +2,7 @@ import { Sidebar } from "../components/Sidebar";
 import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
 import { useState, useEffect, useMemo, useRef, useCallback, Suspense, lazy } from "react";
-import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2, Settings, Moon, Sun, Languages, Archive, HelpCircle, ArrowUpDown, MessageSquarePlus, Clock3 } from "lucide-react";
+import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2, Settings, Moon, Sun, Languages, Archive, HelpCircle, ArrowUpDown, MessageSquarePlus, Clock3, Repeat } from "lucide-react";
 import { ArchivedSubjectsPopover } from "../components/ArchivedSubjectsPopover";
 import type { CommandAction } from "../components/CommandPalette";
 import { ProgressHeatmap } from "../components/ProgressHeatmap";
@@ -13,7 +13,7 @@ import type { SmartCheckAiData, SubjectWithTasks, TaskPriority, TaskRequest } fr
 import { useNavigate } from "react-router-dom";
 import { deleteUser, getUsername } from "../api/userApi";
 import { addRecurringTask } from "../api/recurringTaskApi";
-import { buildCustomFrequency } from "../utils/recurrenceUtils";
+import { DEFAULT_RECURRENCE_STATE, isRecurrenceStateValid, resolveFrequency, type RecurrenceState } from "../utils/recurrenceUtils";
 import { dailyAnalysis, pollForAnalysis } from "../api/smartCheckApi";
 import { PageTransition } from "../components/PageTransition";
 import { AgendaView } from "../components/AgendaView";
@@ -32,6 +32,7 @@ import { toast } from "react-hot-toast";
 const SettingsModal = lazy(() => import("../components/SettingsModal").then(m => ({ default: m.SettingsModal })));
 const SmartCheckModal = lazy(() => import("../components/SmartCheckModal"));
 const TrashView = lazy(() => import("../components/TrashView").then(m => ({ default: m.TrashView })));
+const RoutinesView = lazy(() => import("../components/RoutinesView").then(m => ({ default: m.RoutinesView })));
 const CommandPalette = lazy(() => import("../components/CommandPalette").then(m => ({ default: m.CommandPalette })));
 const OnboardingTour = lazy(() => import("../components/OnboardingTour").then(m => ({ default: m.OnboardingTour })));
 const FeedbackModal = lazy(() => import("../components/FeedbackModal").then(m => ({ default: m.FeedbackModal })));
@@ -137,6 +138,8 @@ const translations = {
         actionOpenSettings: "Abrir ajustes",
         actionOpenTrash: "Abrir papelera",
         actionCloseTrash: "Cerrar papelera",
+        actionOpenRoutines: "Ver mis rutinas",
+        actionCloseRoutines: "Cerrar rutinas",
         actionGeneratePlan: "Generar plan de SmartCheck",
         actionViewPlan: "Ver plan de hoy",
         actionAddSubject: "Añadir nueva asignatura",
@@ -231,6 +234,8 @@ const translations = {
         actionOpenSettings: "Open settings",
         actionOpenTrash: "Open trash",
         actionCloseTrash: "Close trash",
+        actionOpenRoutines: "View my routines",
+        actionCloseRoutines: "Close routines",
         actionGeneratePlan: "Generate SmartCheck plan",
         actionViewPlan: "View today's plan",
         actionAddSubject: "Add new subject",
@@ -247,6 +252,10 @@ const MOBILE_TAB_ORDER: MobileView[] = ["tasks", "agenda", "performance"];
 // Only used to label the Ctrl/Cmd+K search hint — doesn't need to be
 // reactive, so it's read once at module scope instead of in a component.
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform ?? navigator.userAgent);
+
+// Module-level (not recreated every render) so it's a stable reference for
+// handleSubmitTask's useCallback deps and the post-submit reset below.
+const NEW_TASK_INITIAL = { title: "", description: "", deadline: "", priority: "MEDIUM" as TaskPriority, recurrence: DEFAULT_RECURRENCE_STATE };
 
 const DashboardPage = () => {
     const navigate = useNavigate();
@@ -271,6 +280,7 @@ const DashboardPage = () => {
 
     const [showCalendar, setShowCalendar] = useState(true);
     const [showTrash, setShowTrash] = useState(false);
+    const [showRoutines, setShowRoutines] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -467,7 +477,7 @@ const DashboardPage = () => {
     const [username, setUsername] = useState("");
     const [userEmail, setUserEmail] = useState("");
     const [updatedSubject, setUpdatedSubject] = useState({ name: "", description: "" });
-    const [newTask, setNewTask] = useState<{ title: string; description: string; deadline: string; recurrence: string; priority: TaskPriority; customDays: number[]; recurrenceTime: string; recurrenceEndDate: string }>({ title: "", description: "", deadline: "", recurrence: "NONE", priority: "MEDIUM", customDays: [], recurrenceTime: "", recurrenceEndDate: "" });
+    const [newTask, setNewTask] = useState<{ title: string; description: string; deadline: string; priority: TaskPriority; recurrence: RecurrenceState }>(NEW_TASK_INITIAL);
     const [updatedTask, setUpdatedTask] = useState<{ title: string; description: string; deadline: string; priority: TaskPriority }>({ title: "", description: "", deadline: "", priority: "MEDIUM" });
     const [newSubject, setNewSubject] = useState({ name: "", description: "" });
     // Mutually exclusive: these are two alternative orderings for the same
@@ -495,11 +505,8 @@ const DashboardPage = () => {
     const handleChangeTask = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setNewTask(prev => ({ ...prev, [e.target.name]: e.target.value }));
     }, []);
-    const handleToggleNewTaskCustomDay = useCallback((day: number) => {
-        setNewTask(prev => ({
-            ...prev,
-            customDays: prev.customDays.includes(day) ? prev.customDays.filter(d => d !== day) : [...prev.customDays, day]
-        }));
+    const handleChangeNewTaskRecurrence = useCallback((next: RecurrenceState) => {
+        setNewTask(prev => ({ ...prev, recurrence: next }));
     }, []);
     const handleChangeUpdateTask = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setUpdatedTask(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -552,12 +559,12 @@ const DashboardPage = () => {
     const handleSubmitTask = useCallback(async (e: React.FormEvent, subjectId: number) => {
         e.preventDefault();
         setError(null);
-        if (newTask.recurrence === "CUSTOM" && newTask.customDays.length === 0) {
+        if (!isRecurrenceStateValid(newTask.recurrence)) {
             setError(t.errCustomDaysRequired);
             return;
         }
         try {
-            if (newTask.recurrence === "NONE") {
+            if (newTask.recurrence.recurrence === "NONE") {
                 const response = await addNewTask(subjectId, {
                     title: newTask.title,
                     description: newTask.description,
@@ -570,7 +577,7 @@ const DashboardPage = () => {
                 setOpenFormSubjectId(null);
 
                 setTimeout(() => {
-                    setNewTask({title: "", description: "", deadline: "", recurrence: "NONE", priority: "MEDIUM", customDays: [], recurrenceTime: "", recurrenceEndDate: ""});
+                    setNewTask(NEW_TASK_INITIAL);
                 }, 500);
 
                 setTimeout(() => {
@@ -581,15 +588,15 @@ const DashboardPage = () => {
                 await addRecurringTask(subjectId, {
                     title: newTask.title,
                     description: newTask.description,
-                    periodicidad: newTask.recurrence === "CUSTOM" ? buildCustomFrequency(newTask.customDays) : newTask.recurrence,
-                    time: newTask.recurrenceTime,
-                    endDate: newTask.recurrenceEndDate
+                    periodicidad: resolveFrequency(newTask.recurrence.recurrence, newTask.recurrence.customMode, newTask.recurrence.customDays, newTask.recurrence.monthDay),
+                    time: newTask.recurrence.time,
+                    endDate: newTask.recurrence.endDate
                 });
                 toast.success(t.alertRecurringCreated);
 
                 setOpenFormSubjectId(null);
                 setTimeout(() => {
-                    setNewTask({title: "", description: "", deadline: "", recurrence: "NONE", priority: "MEDIUM", customDays: [], recurrenceTime: "", recurrenceEndDate: ""});
+                    setNewTask(NEW_TASK_INITIAL);
                 }, 500);
             }
         } catch {
@@ -924,6 +931,8 @@ const DashboardPage = () => {
                 setMobileSidebarOpen(false);
             } else if (showTrash) {
                 setShowTrash(false);
+            } else if (showRoutines) {
+                setShowRoutines(false);
             } else if (openFormNewSubject) {
                 setOpenFormNewSubject(false);
             } else if (openFormSubjectId !== null) {
@@ -948,6 +957,7 @@ const DashboardPage = () => {
         showFeedbackModal,
         mobileSidebarOpen,
         showTrash,
+        showRoutines,
         openFormNewSubject,
         openFormSubjectId,
         openFormUpdateSubject,
@@ -1091,6 +1101,20 @@ const DashboardPage = () => {
                 }
             },
         },
+        {
+            id: "toggle-routines",
+            label: showRoutines ? t.actionCloseRoutines : t.actionOpenRoutines,
+            icon: Repeat,
+            onSelect: () => {
+                if (showRoutines) {
+                    setShowRoutines(false);
+                    refreshData();
+                } else {
+                    setShowRoutines(true);
+                    setShowTrash(false);
+                }
+            },
+        },
         ...(!isAiLoading ? [{
             id: "generate-plan",
             label: t.actionGeneratePlan,
@@ -1161,9 +1185,20 @@ const DashboardPage = () => {
                             refreshData();
                         } else {
                             setShowTrash(true);
+                            setShowRoutines(false);
                         }
                     }}
-                    onGoHome={() => setShowTrash(false)}
+                    showRoutines={showRoutines}
+                    onOpenRoutines={() => {
+                        if (showRoutines) {
+                            setShowRoutines(false);
+                            refreshData();
+                        } else {
+                            setShowRoutines(true);
+                            setShowTrash(false);
+                        }
+                    }}
+                    onGoHome={() => { setShowTrash(false); setShowRoutines(false); }}
                     onMarkNotificationsRead={() => setAiNotificationReady(false)}
                 />
 
@@ -1205,7 +1240,7 @@ const DashboardPage = () => {
                     enough to always avoid that. A scrollbar appearing on a
                     cramped tablet width is a far better failure mode than
                     silently losing access to the tasks panel. */}
-                <div key={showTrash ? 'view-trash' : 'view-dashboard'} className="flex-1 flex h-full min-h-0 overflow-x-auto animate-soft-fade">
+                <div key={showTrash ? 'view-trash' : showRoutines ? 'view-routines' : 'view-dashboard'} className="flex-1 flex h-full min-h-0 overflow-x-auto animate-soft-fade">
 
                     {showTrash ? (
                         <div className="flex-1 sm:ml-4">
@@ -1213,6 +1248,18 @@ const DashboardPage = () => {
                                 <TrashView
                                     onClose={() => {
                                         setShowTrash(false);
+                                        refreshData();
+                                    }}
+                                />
+                            </Suspense>
+                        </div>
+                    ) : showRoutines ? (
+                        <div className="flex-1 sm:ml-4">
+                            <Suspense fallback={null}>
+                                <RoutinesView
+                                    subjects={subjects}
+                                    onClose={() => {
+                                        setShowRoutines(false);
                                         refreshData();
                                     }}
                                 />
@@ -1492,7 +1539,7 @@ const DashboardPage = () => {
                                                     handleSubmitTask={handleSubmitTask}
                                                     newTask={newTask}
                                                     handleChangeTask={handleChangeTask}
-                                                    onToggleNewTaskCustomDay={handleToggleNewTaskCustomDay}
+                                                    onChangeNewTaskRecurrence={handleChangeNewTaskRecurrence}
                                                     error={error}
                                                     loading={loading}
                                                     deletingTasks={deletingTasks}
@@ -1696,7 +1743,7 @@ const DashboardPage = () => {
             </div>
 
             {/* --- MOBILE BOTTOM TAB BAR --- */}
-            {!showTrash && (
+            {!showTrash && !showRoutines && (
                 <div className="sm:hidden relative shrink-0 mt-2 grid grid-cols-3 gap-1 p-1.5 rounded-2xl bg-white dark:bg-gray-900 shadow-md">
                     {/* Sliding pill background, same pattern as AgendaView's
                         Day/Week/Month selector — one animated layer that

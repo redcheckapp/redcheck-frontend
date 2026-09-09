@@ -21,6 +21,15 @@ export const getRecurringTasks = async (subjectId: number): Promise<RecurringTas
     return response.data;
 };
 
+// Top-level, not subject-scoped — every routine across every subject in one
+// call, for the global routines overview (RoutinesView.tsx). Mirrors
+// taskApi.ts's getTasksForDateRange hitting the top-level /tasks endpoint
+// for the same reason.
+export const getAllRecurringTasks = async (): Promise<RecurringTaskResponse[]> => {
+    const response = await api.get("/recurring-tasks");
+    return response.data;
+};
+
 export const toggleRecurringTaskActive = async (subjectId: number, recurringTaskId: number, active: boolean): Promise<RecurringTaskResponse> => {
     const response = await api.patch(`/subjects/${subjectId}/recurring-tasks/${recurringTaskId}/active`, { active });
     return response.data;

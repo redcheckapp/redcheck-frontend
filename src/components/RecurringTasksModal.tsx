@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { X, Trash2, Power, PowerOff, Pencil, Repeat, Clock, CalendarX2, CalendarClock } from "lucide-react";
+import { X, Repeat } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { getRecurringTasks, toggleRecurringTaskActive, deleteRecurringTask, updateRecurringTask } from "../api/recurringTaskApi";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import { useConfirm } from "../context/ConfirmContext";
 import type { RecurringTaskResponse } from "../types";
 import { ModalOverlay } from "./ModalOverlay";
-import { WeekdayPicker } from "./WeekdayPicker";
-import { RecurrencePreview } from "./RecurrencePreview";
-import { buildCustomFrequency, formatCustomFrequencyLabel, parseCustomFrequencyDays } from "../utils/recurrenceUtils";
+import { RecurrenceFieldset } from "./RecurrenceFieldset";
+import { RoutineRow } from "./RoutineRow";
+import { DEFAULT_RECURRENCE_STATE, isRecurrenceStateValid, parseFrequencyForEditing, resolveFrequency, type RecurrenceState } from "../utils/recurrenceUtils";
 
 interface RecurringTasksModalProps {
     isOpen: boolean;
@@ -26,10 +26,22 @@ const translations = {
         empty: "No hay tareas recurrentes para esta asignatura.",
         phTitle: "Título",
         phDesc: "Descripción (opcional)",
+        lblRecurrence: "Repetición",
+        optNone: "No se repite",
         optDaily: "Diariamente",
         optWeekly: "Semanalmente",
         optBiweekly: "Quincenalmente",
         optMonthly: "Mensualmente",
+        optCustom: "Personalizada",
+        lblCustomDays: "Se repite los días",
+        weekDaysShort: ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"],
+        lblMonthDay: "Día del mes",
+        monthlyDayPrefix: "Día",
+        lastDay: "Último día",
+        lblRecurrenceTime: "Hora (opcional)",
+        lblEndDate: "Termina el (opcional)",
+        lblUpcoming: "Próximas fechas:",
+        errCustomDaysRequired: "Selecciona al menos un día de la semana",
         close: "Cerrar",
         btnCancel: "Cancelar",
         btnSave: "Guardar cambios",
@@ -38,6 +50,8 @@ const translations = {
         ttPause: "Pausar rutina",
         ttResume: "Reactivar rutina",
         ttDelete: "Borrar rutina permanentemente",
+        ttStreak: "Racha actual",
+        ttCompletionRate: "Cumplimiento",
         confirmDeleteTitle: "¿Borrar rutina?",
         confirmDelete: "¿Seguro que quieres borrar esta rutina? No se generarán más tareas.",
         errUpdate: "Hubo un error al actualizar la rutina.",
@@ -45,13 +59,6 @@ const translations = {
         freqWeekly: "Semanal",
         freqBiweekly: "Quincenal",
         freqMonthly: "Mensual",
-        optCustom: "Personalizada",
-        lblCustomDays: "Se repite los días",
-        weekDaysShort: ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"],
-        errCustomDaysRequired: "Selecciona al menos un día de la semana",
-        lblRecurrenceTime: "Hora (opcional)",
-        lblEndDate: "Termina el (opcional)",
-        lblUpcoming: "Próximas fechas:",
         lblUntil: "hasta",
         lblNext: "Próxima:",
         lblPaused: "En pausa"
@@ -63,10 +70,22 @@ const translations = {
         empty: "No recurring tasks for this subject.",
         phTitle: "Title",
         phDesc: "Description (optional)",
+        lblRecurrence: "Recurrence",
+        optNone: "Does not repeat",
         optDaily: "Daily",
         optWeekly: "Weekly",
         optBiweekly: "Biweekly",
         optMonthly: "Monthly",
+        optCustom: "Custom",
+        lblCustomDays: "Repeats on",
+        weekDaysShort: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
+        lblMonthDay: "Day of month",
+        monthlyDayPrefix: "Day",
+        lastDay: "Last day",
+        lblRecurrenceTime: "Time (optional)",
+        lblEndDate: "Ends on (optional)",
+        lblUpcoming: "Upcoming dates:",
+        errCustomDaysRequired: "Select at least one day of the week",
         close: "Close",
         btnCancel: "Cancel",
         btnSave: "Save changes",
@@ -75,6 +94,8 @@ const translations = {
         ttPause: "Pause routine",
         ttResume: "Resume routine",
         ttDelete: "Delete routine permanently",
+        ttStreak: "Current streak",
+        ttCompletionRate: "Completion rate",
         confirmDeleteTitle: "Delete routine?",
         confirmDelete: "Are you sure you want to delete this routine? No more tasks will be generated.",
         errUpdate: "There was an error updating the routine.",
@@ -82,13 +103,6 @@ const translations = {
         freqWeekly: "Weekly",
         freqBiweekly: "Biweekly",
         freqMonthly: "Monthly",
-        optCustom: "Custom",
-        lblCustomDays: "Repeats on",
-        weekDaysShort: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
-        errCustomDaysRequired: "Select at least one day of the week",
-        lblRecurrenceTime: "Time (optional)",
-        lblEndDate: "Ends on (optional)",
-        lblUpcoming: "Upcoming dates:",
         lblUntil: "until",
         lblNext: "Next:",
         lblPaused: "Paused"
@@ -105,7 +119,9 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
 
     // States for editing
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-    const [editForm, setEditForm] = useState({ title: "", description: "", frequency: "DAILY", customDays: [] as number[], time: "", endDate: "" });
+    const [editTitle, setEditTitle] = useState("");
+    const [editDescription, setEditDescription] = useState("");
+    const [editRecurrence, setEditRecurrence] = useState<RecurrenceState>(DEFAULT_RECURRENCE_STATE);
 
     const fetchTasks = useCallback(async () => {
         setLoading(true);
@@ -147,37 +163,28 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
 
     const handleStartEdit = (task: RecurringTaskResponse) => {
         setEditingTaskId(task.id);
-        const customDays = parseCustomFrequencyDays(task.frequency);
-        setEditForm({
-            title: task.title,
-            description: task.description || "",
-            frequency: customDays ? "CUSTOM" : task.frequency,
-            customDays: customDays ?? [],
+        setEditTitle(task.title);
+        setEditDescription(task.description || "");
+        setEditRecurrence({
+            ...parseFrequencyForEditing(task.frequency),
             time: task.time ? task.time.slice(0, 5) : "",
             endDate: task.endDate || ""
         });
     };
 
-    const handleToggleEditCustomDay = (day: number) => {
-        setEditForm(prev => ({
-            ...prev,
-            customDays: prev.customDays.includes(day) ? prev.customDays.filter(d => d !== day) : [...prev.customDays, day]
-        }));
-    };
-
     const handleUpdateSubmit = async (e: React.FormEvent, taskId: number) => {
         e.preventDefault();
-        if (editForm.frequency === "CUSTOM" && editForm.customDays.length === 0) {
+        if (!isRecurrenceStateValid(editRecurrence)) {
             toast.error(t.errCustomDaysRequired);
             return;
         }
         try {
             const updatedTask = await updateRecurringTask(subjectId, taskId, {
-                title: editForm.title,
-                description: editForm.description,
-                frequency: editForm.frequency === "CUSTOM" ? buildCustomFrequency(editForm.customDays) : editForm.frequency,
-                time: editForm.time,
-                endDate: editForm.endDate,
+                title: editTitle,
+                description: editDescription,
+                frequency: resolveFrequency(editRecurrence.recurrence, editRecurrence.customMode, editRecurrence.customDays, editRecurrence.monthDay),
+                time: editRecurrence.time,
+                endDate: editRecurrence.endDate,
                 subjectId: subjectId
             });
             // We update visually
@@ -187,18 +194,6 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
             console.error("Error updating the routine:", error);
             toast.error(t.errUpdate);
         }
-    };
-
-    const translateFrequency = (freq: string) => {
-        const customLabel = formatCustomFrequencyLabel(freq, t.weekDaysShort);
-        if (customLabel) return customLabel;
-        const dict: Record<string, string> = {
-            "DAILY": t.freqDaily,
-            "WEEKLY": t.freqWeekly,
-            "BIWEEKLY": t.freqBiweekly,
-            "MONTHLY": t.freqMonthly
-        };
-        return dict[freq] || freq;
     };
 
     return (
@@ -239,102 +234,24 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
                                     /* INLINE EDIT MODE */
                                     <form key={task.id} onSubmit={(e) => handleUpdateSubmit(e, task.id)} className="flex flex-col gap-3 p-3.5 border border-red-200 dark:border-red-800/50 bg-red-50/50 dark:bg-red-900/20 rounded-xl transition-all w-full duration-300">
                                         <div className="flex flex-col gap-1.5">
-                                            <input type="text" value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-500/50 transition-colors duration-300" required placeholder={t.phTitle} />
+                                            <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-500/50 transition-colors duration-300" required placeholder={t.phTitle} />
                                         </div>
-                                        <div className="flex flex-col sm:flex-row gap-2">
-                                            <input type="text" value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} className="flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-500/50 transition-colors duration-300" placeholder={t.phDesc} />
-                                            <select value={editForm.frequency} onChange={e => setEditForm({...editForm, frequency: e.target.value})} className="w-full sm:w-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-500/50 cursor-pointer transition-colors duration-300">
-                                                <option value="DAILY">{t.optDaily}</option>
-                                                <option value="WEEKLY">{t.optWeekly}</option>
-                                                <option value="BIWEEKLY">{t.optBiweekly}</option>
-                                                <option value="MONTHLY">{t.optMonthly}</option>
-                                                <option value="CUSTOM">{t.optCustom}</option>
-                                            </select>
-                                        </div>
-                                        {editForm.frequency === "CUSTOM" && (
-                                            <div className="flex flex-col gap-1.5">
-                                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.lblCustomDays}</label>
-                                                <WeekdayPicker selectedDays={editForm.customDays} onToggleDay={handleToggleEditCustomDay} dayLabels={t.weekDaysShort} />
-                                            </div>
-                                        )}
-                                        <div className="flex flex-col sm:flex-row gap-2">
-                                            <input type="time" value={editForm.time} onChange={e => setEditForm({...editForm, time: e.target.value})} title={t.lblRecurrenceTime} className="flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-500/50 transition-colors duration-300" />
-                                            <input type="date" value={editForm.endDate} onChange={e => setEditForm({...editForm, endDate: e.target.value})} min={new Date().toISOString().slice(0, 10)} title={t.lblEndDate} className="flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-500/50 transition-colors duration-300" />
-                                        </div>
-                                        {(editForm.frequency !== "CUSTOM" || editForm.customDays.length > 0) && (
-                                            <RecurrencePreview
-                                                frequency={editForm.frequency === "CUSTOM" ? buildCustomFrequency(editForm.customDays) : editForm.frequency}
-                                                endDate={editForm.endDate}
-                                                locale={language}
-                                                label={t.lblUpcoming}
-                                            />
-                                        )}
+                                        <input type="text" value={editDescription} onChange={e => setEditDescription(e.target.value)} className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-500/50 transition-colors duration-300" placeholder={t.phDesc} />
+                                        <RecurrenceFieldset value={editRecurrence} onChange={setEditRecurrence} labels={t} locale={language} compact allowNone={false} />
                                         <div className="flex justify-end gap-2 mt-1 transition-colors duration-300">
                                             <button type="button" onClick={() => setEditingTaskId(null)} className="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg transition-all duration-300">{t.btnCancel}</button>
                                             <button type="submit" className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 rounded-lg shadow-sm transition-all duration-300">{t.btnSave}</button>
                                         </div>
                                     </form>
                                 ) : (
-                                    /* VIEW MODE */
-                                    <div key={task.id} className={`flex items-center justify-between p-3.5 border rounded-xl transition-all duration-300 ${task.active ? 'border-red-100 dark:border-red-900/30 bg-white dark:bg-gray-800 shadow-sm' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 opacity-75'}`}>
-                                        <div className="flex-1 min-w-0 pr-3">
-                                            <p className={`text-sm font-semibold truncate transition-colors duration-300 ${task.active ? 'text-gray-800 dark:text-gray-200' : 'text-gray-500 dark:text-gray-500'}`}>{task.title}</p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5 flex items-center gap-1.5 transition-colors duration-300">
-                                                <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 transition-colors duration-300">
-                                                    {translateFrequency(task.frequency)}
-                                                </span>
-                                                <span className="truncate">{task.description || t.noDesc}</span>
-                                            </p>
-                                            {(task.time || task.endDate || task.nextOccurrence || !task.active) && (
-                                                <p className="flex items-center gap-2.5 flex-wrap mt-1 text-[10px] font-medium text-gray-400 dark:text-gray-500 transition-colors duration-300">
-                                                    {task.time && (
-                                                        <span className="flex items-center gap-1">
-                                                            <Clock size={11} />{task.time.slice(0, 5)}
-                                                        </span>
-                                                    )}
-                                                    {task.endDate && (
-                                                        <span className="flex items-center gap-1">
-                                                            <CalendarX2 size={11} />{t.lblUntil} {new Date(`${task.endDate}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
-                                                        </span>
-                                                    )}
-                                                    {task.active ? (
-                                                        task.nextOccurrence && (
-                                                            <span className="flex items-center gap-1 text-red-500 dark:text-red-400 font-semibold">
-                                                                <CalendarClock size={11} />{t.lblNext} {new Date(task.nextOccurrence).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
-                                                            </span>
-                                                        )
-                                                    ) : (
-                                                        <span className="italic">{t.lblPaused}</span>
-                                                    )}
-                                                </p>
-                                            )}
-                                        </div>
-                                        
-                                        {/* Action buttons */}
-                                        <div className="flex items-center gap-1.5 shrink-0">
-                                            <button
-                                                onClick={() => handleStartEdit(task)}
-                                                className="p-2 text-gray-500 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-90 rounded-lg transition-all duration-200"
-                                                title={t.ttEdit}
-                                            >
-                                                <Pencil size={18} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleToggle(task.id, task.active)}
-                                                className={`p-2 rounded-lg active:scale-90 transition-all duration-200 ${task.active ? 'text-green-600 dark:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30' : 'text-gray-500 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
-                                                title={task.active ? t.ttPause : t.ttResume}
-                                            >
-                                                {task.active ? <Power size={18} /> : <PowerOff size={18} />}
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(task.id)}
-                                                className="p-2 text-red-400 dark:text-red-500/70 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-90 rounded-lg transition-all duration-200"
-                                                title={t.ttDelete}
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
-                                    </div>
+                                    <RoutineRow
+                                        key={task.id}
+                                        task={task}
+                                        labels={t}
+                                        onEdit={() => handleStartEdit(task)}
+                                        onToggleActive={() => handleToggle(task.id, task.active)}
+                                        onDelete={() => handleDelete(task.id)}
+                                    />
                                 )
                             ))}
                         </div>

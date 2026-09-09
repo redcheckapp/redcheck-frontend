@@ -79,6 +79,11 @@ export interface RecurringTaskResponse {
     createdDate: string,
     latestGeneratedDate: string,
     nextOccurrence: string | null, // server-computed preview, ISO datetime
+    currentStreak: number,
+    longestStreak: number,
+    completionRate: number, // 0-1
+    totalGenerated: number,
+    totalCompleted: number,
     subjectId: number
 }
 

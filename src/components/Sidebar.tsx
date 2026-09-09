@@ -1,4 +1,4 @@
-import { LogOut, Settings, Bell, Check, Sparkles, Trash2, Eye } from "lucide-react";
+import { LogOut, Settings, Bell, Check, Sparkles, Trash2, Eye, Repeat } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect, type TouchEvent } from "react";
 import type { SubjectStat, SubjectWithTasks } from "../types";
@@ -20,6 +20,8 @@ interface SidebarProps {
     subjectStats: SubjectStat[];
     showTrash: boolean;
     onOpenTrash: () => void;
+    showRoutines: boolean;
+    onOpenRoutines: () => void;
     onGoHome: () => void;
     mobileOpen: boolean;
     onCloseMobile: () => void;
@@ -54,6 +56,7 @@ const translations = {
         riskAnalysisSub: "Identifica posibles bloqueos o retrasos.",
         viewLastPlan: "Ver plan de hoy",
         trash: "Papelera",
+        routines: "Mis rutinas",
         settings: "Ajustes",
         logout: "Cerrar sesión"
     },
@@ -75,6 +78,7 @@ const translations = {
         riskAnalysisSub: "Identify potential blockers or delays.",
         viewLastPlan: "View today's plan",
         trash: "Trash",
+        routines: "My routines",
         settings: "Settings",
         logout: "Log out"
     }
@@ -94,6 +98,8 @@ export const Sidebar = ({
     subjectStats,
     showTrash,
     onOpenTrash,
+    showRoutines,
+    onOpenRoutines,
     onGoHome,
     mobileOpen,
     onCloseMobile,
@@ -410,6 +416,21 @@ export const Sidebar = ({
                     <div className={`flex items-center overflow-hidden transition-all duration-300 ease-in-out ${expanded ? "w-[120px] opacity-100" : "w-0 opacity-0"}`}>
                         <span className="text-sm font-medium whitespace-nowrap ml-3">
                             {t.trash}
+                        </span>
+                    </div>
+                </button>
+
+                <button
+                    onClick={() => { onOpenRoutines(); onCloseMobile(); }}
+                    className={`flex items-center p-2 rounded-xl transition-all active:scale-95 w-full ${showRoutines ? "bg-gray-800 dark:bg-gray-800 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800"}`}
+                    title={t.routines}
+                >
+                    <div className="flex items-center justify-center shrink-0 w-6 h-6">
+                        <Repeat size={20} />
+                    </div>
+                    <div className={`flex items-center overflow-hidden transition-all duration-300 ease-in-out ${expanded ? "w-[120px] opacity-100" : "w-0 opacity-0"}`}>
+                        <span className="text-sm font-medium whitespace-nowrap ml-3">
+                            {t.routines}
                         </span>
                     </div>
                 </button>
