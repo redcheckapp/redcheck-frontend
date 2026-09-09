@@ -304,7 +304,8 @@ export const Sidebar = ({
 
                 {SHOW_ANALYSIS_ENGINE_LABEL && (
                     <div className={`hidden sm:flex flex-col items-center overflow-hidden transition-all duration-300 ease-in-out w-full ${expanded ? "max-h-[60px] opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"}`}>
-                        <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 tracking-wide">
+                        <h3 className="flex items-center gap-1.5 text-sm font-bold text-gray-800 dark:text-gray-100 tracking-wide">
+                            <Sparkles size={14} strokeWidth={2} className="text-red-500 dark:text-red-400" />
                             SmartCheck AI
                         </h3>
                         <p className="text-[11px] text-gray-400 dark:text-gray-500 font-medium mt-0.5 tracking-wide uppercase">
