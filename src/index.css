@@ -21,20 +21,24 @@
   }
 }
 
-/* 3b. Colorblind assist filters (see AccessibilityContext.tsx) — applies
-   one of the <filter> defs from index.html's inline SVG to the whole page
-   via the standard CSS `filter` property. Toggled by class, same pattern
-   as `.dark` for the theme. Applied to `body`, not `html`: `filter:
-   url(#id)` on the root `<html>` element is unreliable across browsers in
-   practice (this shipped once targeting `html` and simply had no visible
-   effect anywhere) — `body` is the far more commonly proven-working target
-   for this technique. Content portaled straight into `document.body`
-   (every ModalOverlay-based modal — see ModalOverlay.tsx) is still covered:
-   a portal's content becomes a DOM *child* of body, inheriting the filter
-   like any other descendant. */
-body.cb-protanopia { filter: url(#cb-protanopia-filter); }
-body.cb-deuteranopia { filter: url(#cb-deuteranopia-filter); }
-body.cb-tritanopia { filter: url(#cb-tritanopia-filter); }
+/* 3b. Colorblind assist filters (see AccessibilityContext.tsx) — shifts the
+   whole page's colors via the standard CSS `filter` property. Toggled by
+   class, same pattern as `.dark` for the theme, applied to `body` (content
+   portaled straight into `document.body` — every ModalOverlay-based modal,
+   see ModalOverlay.tsx — is still covered: a portal's content is a DOM
+   *child* of body, inheriting the filter like any other descendant).
+   Deliberately built only from standard `filter` *functions*
+   (hue-rotate/saturate/contrast) rather than a custom SVG `feColorMatrix`
+   referenced via `filter: url(#id)` — this shipped with that approach
+   first and it had no visible effect in production on every browser it was
+   tried on, most likely an SVG-filter-reference resolution quirk that
+   never got root-caused. Plain filter functions have zero reference
+   resolution or color-interpolation-space ambiguity, so "does the toggle
+   visibly do anything" is no longer in question — only how well-tuned the
+   specific values are, which is a much safer thing to get imperfect. */
+body.cb-protanopia { filter: saturate(1.5) hue-rotate(-20deg) contrast(1.05); }
+body.cb-deuteranopia { filter: saturate(1.5) hue-rotate(20deg) contrast(1.05); }
+body.cb-tritanopia { filter: saturate(1.4) hue-rotate(90deg) contrast(1.05); }
 
 /* 3c. Font size accessibility setting — scales the same root font-size
    rule #3 above already uses for its desktop compact-scale, so this stays
