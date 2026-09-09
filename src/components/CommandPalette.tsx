@@ -153,7 +153,11 @@ export const CommandPalette = ({
                         />
                     </div>
 
-                    <div className="relative max-h-80 overflow-y-auto py-2">
+                    {/* Tall enough to fit MAX_TASK_RESULTS (6) task rows +
+                        the full actions list without scrolling in the
+                        common case — min() keeps a viewport-relative fallback
+                        so it still fits on short mobile screens. */}
+                    <div className="relative max-h-[min(28rem,70vh)] overflow-y-auto py-2">
                         <div
                             ref={highlightBarRef}
                             className="absolute left-2 right-2 rounded-lg bg-red-50 dark:bg-red-900/20 opacity-0 transition-all duration-150 ease-out pointer-events-none"

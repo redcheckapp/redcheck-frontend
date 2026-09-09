@@ -210,8 +210,13 @@ export const TaskItem = memo(({
                     ? "opacity-0 scale-95 max-h-0 !mb-[-0.5rem]"
                     : "opacity-100 scale-100 max-h-[1000px]"
         }`}>
-            {/* Main task row */}
+            {/* Main task row — while selectionMode is active, the whole row
+                (not just the checkbox) toggles selection: a tap anywhere
+                bubbles up to this onClick. The checkbox's own onClick only
+                acts outside selectionMode, so a checkbox tap isn't handled
+                twice (once there, once bubbled here). */}
             <div
+                onClick={() => { if (selectionMode) onToggleSelect?.(subjectId, task.id); }}
                 onTouchStart={handleRowTouchStart}
                 onTouchMove={handleRowTouchMove}
                 onTouchEnd={clearLongPressTimer}
@@ -224,7 +229,7 @@ export const TaskItem = memo(({
 
                 {/* Checkbox — doubles as the selection toggle in selection mode */}
                 <button
-                    onClick={() => selectionMode ? onToggleSelect?.(subjectId, task.id) : handleToggleTask(subjectId, task.id)}
+                    onClick={() => { if (!selectionMode) handleToggleTask(subjectId, task.id); }}
                     role="checkbox"
                     aria-checked={selectionMode ? isSelected : task.completed}
                     aria-label={selectionMode ? t.ttSelectTask : (task.completed ? t.ttMarkIncomplete : t.ttMarkComplete)}
@@ -268,8 +273,13 @@ export const TaskItem = memo(({
 
                 {/* Priority badge — separate color dimension from subject
                     color (see priorityColors.ts), so it stays legible next
-                    to the deadline badge above rather than competing with it. */}
-                {!task.completed && (() => {
+                    to the deadline badge above rather than competing with it.
+                    MEDIUM is the default every task gets when priority isn't
+                    deliberately set (see redcheck-backend's TaskService), so
+                    it's treated as "no priority" here and shown as nothing —
+                    the badge only appears once the user actually picks LOW
+                    or HIGH, keeping it opt-in rather than on every task. */}
+                {!task.completed && task.priority !== "MEDIUM" && (() => {
                     const pc = getPriorityColor(task.priority);
                     return (
                         <span

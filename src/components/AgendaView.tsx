@@ -795,8 +795,12 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                         <span className="flex items-center gap-1 min-w-0 text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider truncate transition-colors duration-300">
                             {/* Priority dot — separate color dimension from
                                 this card's subject-colored border, see
-                                priorityColors.ts. */}
-                            <span title={priorityLabel(task.priority, t)} className={`shrink-0 w-1.5 h-1.5 rounded-full ${getPriorityColor(task.priority).dot}`} />
+                                priorityColors.ts. MEDIUM (the default) shows
+                                nothing, same "opt-in, not on every task" rule
+                                as TaskItem.tsx's badge. */}
+                            {task.priority !== "MEDIUM" && (
+                                <span title={priorityLabel(task.priority, t)} className={`shrink-0 w-1.5 h-1.5 rounded-full ${getPriorityColor(task.priority).dot}`} />
+                            )}
                             <span className="truncate">{task.subjectName}</span>
                         </span>
                         <div className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 sm:px-2 py-0.5 rounded-md shrink-0 transition-colors duration-300">
@@ -842,7 +846,9 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                 }`}
             >
                 {renderCompleteToggle(task, "xs")}
-                <span title={priorityLabel(task.priority, t)} className={`shrink-0 w-1.5 h-1.5 rounded-full ${getPriorityColor(task.priority).dot}`} />
+                {task.priority !== "MEDIUM" && (
+                    <span title={priorityLabel(task.priority, t)} className={`shrink-0 w-1.5 h-1.5 rounded-full ${getPriorityColor(task.priority).dot}`} />
+                )}
                 <span className="shrink-0 font-semibold text-gray-500 dark:text-gray-500">{timeString}</span>
                 <span className="truncate font-medium">{task.title}</span>
             </div>
@@ -1054,7 +1060,7 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                                             } ${
                                                                 task.completed
                                                                     ? "bg-white/60 dark:bg-gray-900/60 text-gray-500 dark:text-gray-500 line-through border-transparent"
-                                                                    : `${subjectColor.bg} ${subjectColor.text} ${getPriorityColor(task.priority).border}`
+                                                                    : `${subjectColor.bg} ${subjectColor.text} ${task.priority === "MEDIUM" ? "border-transparent" : getPriorityColor(task.priority).border}`
                                                             }`}
                                                         >
                                                             {task.title}
@@ -1173,7 +1179,7 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                                             } ${
                                                                 task.completed
                                                                     ? "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500 line-through border-transparent"
-                                                                    : `${subjectColor.bg} ${subjectColor.text} ${getPriorityColor(task.priority).border}`
+                                                                    : `${subjectColor.bg} ${subjectColor.text} ${task.priority === "MEDIUM" ? "border-transparent" : getPriorityColor(task.priority).border}`
                                                             }`}
                                                         >
                                                             {task.title}
@@ -1324,7 +1330,7 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                 className={`text-xs font-semibold px-2 py-1.5 rounded-lg truncate border-l-2 ${
                                     task.completed
                                         ? "bg-gray-50 dark:bg-gray-800/60 text-gray-500 dark:text-gray-500 line-through border-transparent"
-                                        : `${subjectColor.bg} ${subjectColor.text} ${getPriorityColor(task.priority).border}`
+                                        : `${subjectColor.bg} ${subjectColor.text} ${task.priority === "MEDIUM" ? "border-transparent" : getPriorityColor(task.priority).border}`
                                 }`}
                             >
                                 {task.title}

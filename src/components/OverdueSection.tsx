@@ -173,8 +173,10 @@ export const OverdueSection = memo(({
                                                     </div>
 
                                                     {/* Priority badge — see priorityColors.ts; a separate color
-                                                        dimension from this section's red overdue styling. */}
-                                                    {!task.completed && (() => {
+                                                        dimension from this section's red overdue styling. MEDIUM
+                                                        is the default (see TaskItem.tsx's identical note), so it
+                                                        shows nothing — only a deliberate LOW/HIGH gets a badge. */}
+                                                    {!task.completed && task.priority !== "MEDIUM" && (() => {
                                                         const pc = getPriorityColor(task.priority);
                                                         return (
                                                             <span

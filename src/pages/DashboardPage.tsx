@@ -1343,7 +1343,7 @@ const DashboardPage = () => {
                                                     onClick={() => setSortByPriority(v => !v)}
                                                     aria-pressed={sortByPriority}
                                                     title={t.ttSortByPriority}
-                                                    className={`ml-auto flex items-center gap-1.5 text-sm font-medium transition-colors ${
+                                                    className={`ml-auto mr-4 flex items-center gap-1.5 text-sm font-medium transition-colors ${
                                                         sortByPriority
                                                             ? "text-red-600 dark:text-red-400"
                                                             : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
