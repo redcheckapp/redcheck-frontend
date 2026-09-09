@@ -286,20 +286,21 @@ export const Sidebar = ({
                 />
 
                 {/* AI hint — collapsed-sidebar-only affordance (desktop). A
-                    quick visual cue that SmartCheck AI lives here; fades out
-                    smoothly once the sidebar expands, and never renders on
-                    mobile (the drawer has no collapsed state to hint at).
-                    The full "SmartCheck AI / Analysis Engine" label below is
-                    hidden per product decision — see CLAUDE.md — but kept
-                    in the code (via `false &&`) for a fast re-enable. */}
+                    quick visual cue that SmartCheck AI lives here; collapses
+                    to zero height (not just opacity) once the sidebar
+                    expands, so it doesn't leave a gap above the "SmartCheck
+                    AI / Analysis Engine" label below once that takes over —
+                    a fixed h-11 + margins here used to keep reserving that
+                    space even at opacity-0. Never renders on mobile (the
+                    drawer has no collapsed state to hint at). */}
                 <div
                     onClick={() => setSidebarOpen(true)}
-                    className={`hidden sm:flex items-center justify-center w-11 h-11 mx-auto mt-4 mb-2 rounded-2xl cursor-pointer text-gray-400 dark:text-gray-500 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 hover:shadow-sm transition-all duration-300 ease-in-out ${
-                        sidebarOpen ? "opacity-0 pointer-events-none" : "opacity-100"
+                    className={`hidden sm:flex items-center justify-center w-11 mx-auto rounded-2xl cursor-pointer text-gray-400 dark:text-gray-500 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 hover:shadow-sm transition-all duration-300 ease-in-out overflow-hidden ${
+                        sidebarOpen ? "opacity-0 pointer-events-none max-h-0 mt-0 mb-0" : "opacity-100 max-h-11 mt-4 mb-2"
                     }`}
                     title="SmartCheck AI"
                 >
-                    <Sparkles size={22} strokeWidth={1.5} />
+                    <Sparkles size={22} strokeWidth={1.5} className="shrink-0" />
                 </div>
 
                 {SHOW_ANALYSIS_ENGINE_LABEL && (
