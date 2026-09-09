@@ -692,19 +692,26 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
     // Day view now spans the full 24h, so an empty midnight can't be the
     // first thing shown on open — scroll the shared hour container to the
     // current hour (today) or the old 8am default (any other day) whenever
-    // Day view becomes active or the visible date changes.
+    // Day view becomes active or the visible date changes. An empty day
+    // scrolls to the very top instead, so its "day off" placeholder (pinned
+    // near the top of the ruled-line column, see below) is actually visible
+    // without the user having to scroll up first.
     const dayScrollRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
         if (view !== "day" || !dayScrollRef.current) return;
+        if (tasksForCurrentDay.length === 0) {
+            dayScrollRef.current.scrollTop = 0;
+            return;
+        }
         const isToday = currentDate.toDateString() === todayObj.toDateString();
         const targetHour = isToday ? todayObj.getHours() : 8;
         dayScrollRef.current.scrollTop = Math.max(0, (targetHour - 1) * 80);
         // todayObj is a fresh `new Date()` every render, not a stable value to
-        // depend on — this should only re-run when the visible view/date
-        // changes, not on every unrelated re-render (which would fight the
-        // user's own manual scrolling).
+        // depend on — this should only re-run when the visible view/date (or
+        // whether *this* day has any tasks) changes, not on every unrelated
+        // re-render, which would fight the user's own manual scrolling.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [view, currentDate]);
+    }, [view, currentDate, tasksForCurrentDay.length === 0]);
 
     // One list per day of the visible week, for the Week view's per-day
     // task chips — same underlying filter as Day view, just run 7 times.
@@ -1379,29 +1386,33 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                     })}
                                 </div>
 
-                                {/* Empty-day message: sticky (not absolute) so it stays
-                                    pinned near the top of the current scroll position
-                                    instead of only being visible if the user happens to be
-                                    scrolled to hour 0 — h-0 on the sticky wrapper keeps it
-                                    from adding any layout height of its own (the actual
-                                    card, an overflowing child, still renders fine past a
-                                    zero-height parent, same visible-overflow behavior the
-                                    self-start fix above relies on). */}
+                                {/* Empty-day message: absolutely positioned (like the "now"
+                                    line above, in this same `relative` column) instead of
+                                    sticky. `position: sticky` was tried first, but a sticky
+                                    element only overrides its position once its own natural
+                                    in-flow position would scroll past the threshold — and
+                                    this element's natural position, placed after the 24-row
+                                    grid in the DOM, is at the very *bottom* of the column, so
+                                    it just sat there unstuck instead of pinning to the top
+                                    (fixed 2026-09-09). `absolute` takes it out of flow
+                                    entirely, so — unlike the sticky attempt — it can't affect
+                                    the column's own content height/ruled-lines either. The
+                                    scroll-to-hour effect above scrolls an empty day to the
+                                    very top so this is actually visible without the user
+                                    having to scroll up first. */}
                                 {tasksForCurrentDay.length === 0 && (
-                                    <div className="sticky top-0 h-0 z-30 pointer-events-none">
-                                        <div className="pointer-events-auto mt-10 p-6 sm:max-w-xl sm:ml-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center text-center bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-sm transition-colors duration-300">
-                                            <DayOffIllustration className="w-20 h-20 mb-2" />
-                                            <h3 className="text-gray-500 dark:text-gray-400 font-bold transition-colors duration-300">{t.dayOffTitle}</h3>
-                                            <p className="text-sm text-gray-500 dark:text-gray-500 mb-3 transition-colors duration-300">{t.dayOffDesc}</p>
-                                            {subjects.length > 0 && (
-                                                <button
-                                                    onClick={() => openCreateModal(currentDate)}
-                                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 rounded-lg transition-all"
-                                                >
-                                                    <Plus size={14} /> {t.btnAddTask}
-                                                </button>
-                                            )}
-                                        </div>
+                                    <div className="absolute inset-x-0 top-0 z-30 mt-10 p-6 sm:max-w-xl sm:ml-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center text-center bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-sm transition-colors duration-300">
+                                        <DayOffIllustration className="w-20 h-20 mb-2" />
+                                        <h3 className="text-gray-500 dark:text-gray-400 font-bold transition-colors duration-300">{t.dayOffTitle}</h3>
+                                        <p className="text-sm text-gray-500 dark:text-gray-500 mb-3 transition-colors duration-300">{t.dayOffDesc}</p>
+                                        {subjects.length > 0 && (
+                                            <button
+                                                onClick={() => openCreateModal(currentDate)}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 rounded-lg transition-all"
+                                            >
+                                                <Plus size={14} /> {t.btnAddTask}
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>
