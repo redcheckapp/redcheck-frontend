@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef, memo, lazy, Suspense, type TouchEvent, type KeyboardEvent, type DragEvent } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, memo, lazy, Suspense, type TouchEvent, type KeyboardEvent, type DragEvent, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
 import { ChevronLeft, ChevronRight, Clock, CalendarDays, Plus, Check, Palette } from "lucide-react";
@@ -166,8 +166,8 @@ const getHistoricalTasksForDate = (
         .sort((a, b) => (a.completed === b.completed) ? 0 : a.completed ? 1 : -1);
 };
 
-const DAY_VIEW_HOUR_START = 8;
-const DAY_VIEW_HOUR_END = 20;
+const DAY_VIEW_HOUR_START = 0;
+const DAY_VIEW_HOUR_END = 23;
 
 const VIEW_ORDER: ViewMode[] = ["day", "week", "month"];
 
@@ -685,6 +685,23 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
         [getMergedTasksForDate, currentDate]
     );
 
+    // Day view now spans the full 24h, so an empty midnight can't be the
+    // first thing shown on open — scroll the shared hour container to the
+    // current hour (today) or the old 8am default (any other day) whenever
+    // Day view becomes active or the visible date changes.
+    const dayScrollRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (view !== "day" || !dayScrollRef.current) return;
+        const isToday = currentDate.toDateString() === todayObj.toDateString();
+        const targetHour = isToday ? todayObj.getHours() : 8;
+        dayScrollRef.current.scrollTop = Math.max(0, (targetHour - 1) * 80);
+        // todayObj is a fresh `new Date()` every render, not a stable value to
+        // depend on — this should only re-run when the visible view/date
+        // changes, not on every unrelated re-render (which would fight the
+        // user's own manual scrolling).
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [view, currentDate]);
+
     // One list per day of the visible week, for the Week view's per-day
     // task chips — same underlying filter as Day view, just run 7 times.
     const tasksByWeekDay = useMemo(
@@ -693,12 +710,11 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
     );
 
     // Buckets currentDate's tasks so Day view can actually place them on
-    // the hourly grid instead of floating an unrelated list over it:
-    // tasks with no time (deadline at midnight) go in an "all day" strip
-    // above the grid, and timed tasks go in their hour's row — clamped to
-    // the visible 8-20 range so a very early/late deadline still shows
-    // (at the nearest edge row) rather than disappearing, with its real
-    // time still shown on the card itself.
+    // the hourly grid instead of floating an unrelated list over it: tasks
+    // with no time (deadline at midnight) go in an "all day" strip above
+    // the grid, and timed tasks go in their hour's row — the grid now
+    // covers the full 0-23 range, so every timed task lands in its own
+    // real hour row.
     const { allDayTasks, timedTasksByHour } = useMemo(() => {
         const allDay: typeof tasksForCurrentDay = [];
         const byHour: Record<number, typeof tasksForCurrentDay> = {};
@@ -709,8 +725,7 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                 allDay.push(task);
                 continue;
             }
-            const hour = Math.min(Math.max(d.getHours(), DAY_VIEW_HOUR_START), DAY_VIEW_HOUR_END);
-            (byHour[hour] ??= []).push(task);
+            (byHour[d.getHours()] ??= []).push(task);
         }
         return { allDayTasks: allDay, timedTasksByHour: byHour };
     }, [tasksForCurrentDay]);
@@ -768,7 +783,7 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
         return "bg-[#16a34a] dark:bg-green-500";                          
     };
 
-    const hours = Array.from({ length: 13 }, (_, i) => i + 8);
+    const hours = Array.from({ length: DAY_VIEW_HOUR_END - DAY_VIEW_HOUR_START + 1 }, (_, i) => i + DAY_VIEW_HOUR_START);
 
     // Shared between the "all day" strip and the hourly grid — one card
     // style, just placed in different containers.
@@ -991,7 +1006,10 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                 {/* --- VIEW: MONTH --- */}
                 {view === "month" && (
                     <>
-                        <div className="grid grid-cols-7 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 shrink-0 transition-colors duration-300">
+                        {/* gap-1.5 + px-1.5 mirror the body grid below (gap-1.5 p-1.5) so
+                            both grids compute identical column widths — see the same note
+                            on Week view's header for why this matters. */}
+                        <div className="grid grid-cols-7 gap-1.5 px-1.5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 shrink-0 transition-colors duration-300">
                             {t.weekDays.map(day => (
                                 <div key={day} className="py-3 text-center text-xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider">{day.substring(0,3)}</div>
                             ))}
@@ -1124,11 +1142,16 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                 {/* --- VIEW: WEEK --- */}
                 {view === "week" && (
                     <div className="flex-1 flex flex-col">
-                        <div className="grid grid-cols-7 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 shrink-0 transition-colors duration-300">
+                        {/* gap-1.5 + px-1.5 here deliberately mirror the body grid below
+                            (same gap-1.5 p-1.5) so both grids compute identical column
+                            widths — without this, the header's 7 columns (full width,
+                            no gap) and the body's 7 columns (narrowed by the gap+padding)
+                            drift out of alignment further at each column to the right. */}
+                        <div className="grid grid-cols-7 gap-1.5 px-1.5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 shrink-0 transition-colors duration-300">
                             {currentWeekDays.map((date, i) => {
                                 const isToday = date.toDateString() === todayObj.toDateString();
                                 return (
-                                    <div key={i} className={`py-2 sm:py-4 flex flex-col items-center justify-center gap-1 border-r border-gray-100 dark:border-gray-800 last:border-0 transition-colors duration-300 ${isToday ? "bg-red-50/50 dark:bg-red-900/20" : ""}`}>
+                                    <div key={i} className={`py-2 sm:py-4 flex flex-col items-center justify-center gap-1 transition-colors duration-300 ${isToday ? "bg-red-50/50 dark:bg-red-900/20" : ""}`}>
                                         <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${isToday ? "text-red-500 dark:text-red-400" : "text-gray-500 dark:text-gray-500"}`}>
                                             {t.weekDays[i].substring(0,3)}
                                         </span>
@@ -1255,8 +1278,8 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                             overflow-y-auto elements that are supposed to stay
                             row-aligned can drift out of sync (they did, visibly,
                             once tasks were actually placed per-hour-row). */}
-                        <div className="flex-1 flex overflow-y-auto">
-                            <div className="w-12 sm:w-20 border-r border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 pt-3 sm:pt-6 pb-6 flex flex-col shrink-0 transition-colors duration-300">
+                        <div ref={dayScrollRef} className="flex-1 flex overflow-y-auto">
+                            <div className="w-12 sm:w-20 border-r border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 pt-3 sm:pt-6 pb-3 sm:pb-6 flex flex-col shrink-0 transition-colors duration-300">
                                 {hours.map(hour => (
                                     <div key={hour} className="h-20 shrink-0 flex justify-end pr-1.5 sm:pr-4 text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-500 relative transition-colors duration-300">
                                         <span className="-mt-2">{hour.toString().padStart(2, '0')}:00</span>
@@ -1264,13 +1287,17 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                 ))}
                             </div>
 
-                            {/* Notebook-style ruled lines, adapted to #1f2937 (gray-800) in dark mode */}
-                            <div className="flex-1 relative bg-[linear-gradient(to_bottom,#f9fafb_1px,transparent_1px)] dark:bg-[linear-gradient(to_bottom,#1f2937_1px,transparent_1px)] bg-[size:100%_5rem] p-3 sm:p-6 transition-colors duration-300">
+                            {/* Notebook-style ruled lines, adapted to #1f2937 (gray-800) in dark mode.
+                                bg-origin-content anchors the tiled pattern to the content box (i.e.
+                                right after the p-3/sm:p-6 padding) instead of the default padding-box
+                                origin (the box's outer edge) — otherwise the ruled lines start above
+                                where the hour rows actually begin and drift out of sync with them. */}
+                            <div className="flex-1 relative bg-[linear-gradient(to_bottom,#f9fafb_1px,transparent_1px)] dark:bg-[linear-gradient(to_bottom,#1f2937_1px,transparent_1px)] bg-[size:100%_5rem] bg-origin-content p-3 sm:p-6 transition-colors duration-300">
 
                                 {currentDate.toDateString() === todayObj.toDateString() && (
                                     <div
-                                        className="absolute left-0 right-0 border-t-2 border-red-500 z-10 flex items-center pointer-events-none"
-                                        style={{ top: `${((todayObj.getHours() - 8) * 5) + (todayObj.getMinutes() / 12)}rem` }}
+                                        className="absolute left-0 right-0 top-[calc(0.75rem+var(--now-offset))] sm:top-[calc(1.5rem+var(--now-offset))] border-t-2 border-red-500 z-10 flex items-center pointer-events-none"
+                                        style={{ "--now-offset": `${((todayObj.getHours() - DAY_VIEW_HOUR_START) * 5) + (todayObj.getMinutes() / 12)}rem` } as CSSProperties}
                                     >
                                         <div className="relative w-3 h-3 -ml-1.5">
                                             <span className="absolute inset-0 rounded-full bg-red-400 opacity-75 animate-ping" />
@@ -1294,9 +1321,9 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                         )}
                                     </div>
                                 ) : (
-                                    // Tasks are placed in the row for their own hour — clamped
-                                    // to the visible 8-20 range — instead of floating in an
-                                    // unrelated list on top of the (previously decorative) grid.
+                                    // Tasks are placed in the row for their own hour (the full
+                                    // 0-23 range) instead of floating in an unrelated list on
+                                    // top of the (previously decorative) grid.
                                     <div className="relative z-20 sm:max-w-xl sm:ml-4">
                                         {hours.map(hour => {
                                             const hourDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), hour, 0);
