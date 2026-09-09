@@ -3,6 +3,7 @@ import { X, Trash2, Power, PowerOff, Pencil, Repeat } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { getRecurringTasks, toggleRecurringTaskActive, deleteRecurringTask, updateRecurringTask } from "../api/recurringTaskApi";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
+import { useConfirm } from "../context/ConfirmContext";
 import type { RecurringTaskResponse } from "../types";
 import { ModalOverlay } from "./ModalOverlay";
 
@@ -26,6 +27,7 @@ const translations = {
         optWeekly: "Semanalmente",
         optBiweekly: "Quincenalmente",
         optMonthly: "Mensualmente",
+        close: "Cerrar",
         btnCancel: "Cancelar",
         btnSave: "Guardar cambios",
         noDesc: "Sin descripción",
@@ -33,6 +35,7 @@ const translations = {
         ttPause: "Pausar rutina",
         ttResume: "Reactivar rutina",
         ttDelete: "Borrar rutina permanentemente",
+        confirmDeleteTitle: "¿Borrar rutina?",
         confirmDelete: "¿Seguro que quieres borrar esta rutina? No se generarán más tareas.",
         errUpdate: "Hubo un error al actualizar la rutina.",
         freqDaily: "Diaria",
@@ -51,6 +54,7 @@ const translations = {
         optWeekly: "Weekly",
         optBiweekly: "Biweekly",
         optMonthly: "Monthly",
+        close: "Close",
         btnCancel: "Cancel",
         btnSave: "Save changes",
         noDesc: "No description",
@@ -58,6 +62,7 @@ const translations = {
         ttPause: "Pause routine",
         ttResume: "Resume routine",
         ttDelete: "Delete routine permanently",
+        confirmDeleteTitle: "Delete routine?",
         confirmDelete: "Are you sure you want to delete this routine? No more tasks will be generated.",
         errUpdate: "There was an error updating the routine.",
         freqDaily: "Daily",
@@ -70,6 +75,7 @@ const translations = {
 export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }: RecurringTasksModalProps) => {
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
+    const confirm = useConfirm();
 
     const [recurringTasks, setRecurringTasks] = useState<RecurringTaskResponse[]>([]);
     const [loading, setLoading] = useState(true);
@@ -107,7 +113,7 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
     };
 
     const handleDelete = async (taskId: number) => {
-        if (!window.confirm(t.confirmDelete)) return;
+        if (!(await confirm({ title: t.confirmDeleteTitle, message: t.confirmDelete }))) return;
         try {
             await deleteRecurringTask(subjectId, taskId);
             setRecurringTasks(prev => prev.filter(t => t.id !== taskId));
@@ -165,9 +171,9 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
                     </div>
                     <div className="flex-1 min-w-0 pt-0.5">
                         <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 tracking-tight transition-colors duration-300">{t.title}</h2>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 transition-colors duration-300">{t.subject}: {subjectName}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5 transition-colors duration-300">{t.subject}: {subjectName}</p>
                     </div>
-                    <button onClick={onClose} className="shrink-0 p-2 -mr-1 -mt-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-xl transition-all duration-200">
+                    <button onClick={onClose} aria-label={t.close} title={t.close} className="shrink-0 p-2 -mr-1 -mt-1 text-gray-500 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-xl transition-all duration-200">
                         <X size={20} />
                     </button>
                 </div>
@@ -181,7 +187,7 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
                             ))}
                         </div>
                     ) : recurringTasks.length === 0 ? (
-                        <p className="text-center text-gray-400 dark:text-gray-500 py-8 text-sm bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 transition-colors duration-300">
+                        <p className="text-center text-gray-500 dark:text-gray-500 py-8 text-sm bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 transition-colors duration-300">
                             {t.empty}
                         </p>
                     ) : (
@@ -212,7 +218,7 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
                                     <div key={task.id} className={`flex items-center justify-between p-3.5 border rounded-xl transition-all duration-300 ${task.active ? 'border-red-100 dark:border-red-900/30 bg-white dark:bg-gray-800 shadow-sm' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 opacity-75'}`}>
                                         <div className="flex-1 min-w-0 pr-3">
                                             <p className={`text-sm font-semibold truncate transition-colors duration-300 ${task.active ? 'text-gray-800 dark:text-gray-200' : 'text-gray-500 dark:text-gray-500'}`}>{task.title}</p>
-                                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 flex items-center gap-1.5 transition-colors duration-300">
+                                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5 flex items-center gap-1.5 transition-colors duration-300">
                                                 <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 transition-colors duration-300">
                                                     {translateFrequency(task.frequency)}
                                                 </span>
@@ -224,14 +230,14 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
                                         <div className="flex items-center gap-1.5 shrink-0">
                                             <button
                                                 onClick={() => handleStartEdit(task)}
-                                                className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-90 rounded-lg transition-all duration-200"
+                                                className="p-2 text-gray-500 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 active:scale-90 rounded-lg transition-all duration-200"
                                                 title={t.ttEdit}
                                             >
                                                 <Pencil size={18} />
                                             </button>
                                             <button
                                                 onClick={() => handleToggle(task.id, task.active)}
-                                                className={`p-2 rounded-lg active:scale-90 transition-all duration-200 ${task.active ? 'text-green-600 dark:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                                                className={`p-2 rounded-lg active:scale-90 transition-all duration-200 ${task.active ? 'text-green-600 dark:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30' : 'text-gray-500 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                                                 title={task.active ? t.ttPause : t.ttResume}
                                             >
                                                 {task.active ? <Power size={18} /> : <PowerOff size={18} />}

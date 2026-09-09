@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { AlertCircle, Check, Pencil, X, Type, AlignLeft, Clock3 } from "lucide-react";
 import type { SubjectWithTasks } from "../types";
 import { AnimatedVisibility } from "./AnimatedVisibility";
@@ -25,6 +26,8 @@ const translations = {
         noDeadline: "Sin fecha límite",
         editTooltip: "Editar tarea atrasada",
         deleteTooltip: "Eliminar tarea atrasada",
+        ttMarkComplete: "Marcar como completada",
+        ttMarkIncomplete: "Marcar como pendiente",
         editFormTitle: "Editar tarea atrasada",
         taskTitleLabel: "Título de la tarea",
         descLabel: "Descripción",
@@ -38,6 +41,8 @@ const translations = {
         noDeadline: "No deadline",
         editTooltip: "Edit overdue task",
         deleteTooltip: "Delete overdue task",
+        ttMarkComplete: "Mark as complete",
+        ttMarkIncomplete: "Mark as pending",
         editFormTitle: "Edit overdue task",
         taskTitleLabel: "Task title",
         descLabel: "Description",
@@ -47,7 +52,7 @@ const translations = {
     }
 };
 
-export const OverdueSection = ({
+export const OverdueSection = memo(({
     subjects, 
     totalPendingOverdue, 
     handleToggleTask, 
@@ -121,9 +126,13 @@ export const OverdueSection = ({
                                                 }`}>
                                                     
                                                     {/* Animated Checkbox */}
-                                                    <button 
-                                                        onClick={() => handleToggleTask(subject.id, task.id)} 
-                                                        className={`w-6 h-6 squared-full border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 ${
+                                                    <button
+                                                        onClick={() => handleToggleTask(subject.id, task.id)}
+                                                        role="checkbox"
+                                                        aria-checked={task.completed}
+                                                        aria-label={task.completed ? t.ttMarkIncomplete : t.ttMarkComplete}
+                                                        title={task.completed ? t.ttMarkIncomplete : t.ttMarkComplete}
+                                                        className={`w-6 h-6 squared-full border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 ${
                                                             task.completed 
                                                                 ? 'bg-red-500 border-red-500' 
                                                                 : 'border-red-300 dark:border-red-500/50 hover:border-red-500 dark:hover:border-red-400 bg-white dark:bg-transparent'
@@ -139,13 +148,13 @@ export const OverdueSection = ({
                                                     {/* Texts with strikethrough effect */}
                                                     <div className="flex-1">
                                                         <p className={`text-sm font-medium transition-all ${
-                                                            task.completed ? "line-through text-gray-400 dark:text-gray-600" : "text-red-900 dark:text-red-200"
+                                                            task.completed ? "line-through text-gray-500 dark:text-gray-600" : "text-red-900 dark:text-red-200"
                                                         }`}>
                                                             {task.title}
                                                             {task.description && <span className={`ml-2 font-normal transition-colors duration-300 ${task.completed ? "text-gray-300 dark:text-gray-600" : "text-red-700 dark:text-red-300"}`}>— {task.description}</span>}
                                                         </p>
                                                         <p className={`text-xs mt-0.5 font-medium transition-all ${
-                                                            task.completed ? "text-gray-400 dark:text-gray-600" : "text-red-500 dark:text-red-400"
+                                                            task.completed ? "text-gray-500 dark:text-gray-600" : "text-red-500 dark:text-red-400"
                                                         }`}>
                                                             {task.deadline ? `${t.expiredOn} ${new Date(task.deadline).toLocaleString(language === 'es' ? "es-ES" : "en-US", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}` : t.noDeadline}
                                                         </p>
@@ -155,7 +164,7 @@ export const OverdueSection = ({
                                                     <div className="flex items-center gap-1 opacity-100 [@media(any-hover:hover)]:opacity-0 [@media(any-hover:hover)]:group-hover:opacity-100 transition-opacity duration-200">
                                                         <button 
                                                             type="button" 
-                                                            className="p-1.5 text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 rounded-lg transition-colors duration-200" 
+                                                            className="p-1.5 text-gray-500 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 rounded-lg transition-colors duration-200" 
                                                             onClick={() => { 
                                                                 setOpenFormSubjectIdTaskId({ subjectId: subject.id, taskId: task.id }); 
                                                                 let formattedDate = "";
@@ -172,7 +181,7 @@ export const OverdueSection = ({
                                                         </button>
                                                         <button 
                                                             type="button" 
-                                                            className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors duration-200" 
+                                                            className="p-1.5 text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors duration-200" 
                                                             onClick={() => { handleDeleteTask(subject.id, task.id); }}
                                                             title={t.deleteTooltip}
                                                         >
@@ -257,4 +266,4 @@ export const OverdueSection = ({
             </div>
         </div>
     );
-};
+});

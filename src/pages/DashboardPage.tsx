@@ -1,7 +1,7 @@
 import { Sidebar } from "../components/Sidebar";
 import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
-import { useState, useEffect, useMemo, useRef, Suspense, lazy } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, Suspense, lazy } from "react";
 import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2, Settings, Moon, Sun, Languages, Archive } from "lucide-react";
 import { ArchivedSubjectsPopover } from "../components/ArchivedSubjectsPopover";
 import type { CommandAction } from "../components/CommandPalette";
@@ -19,7 +19,9 @@ import { DashboardSkeleton } from "../components/DashboardSkeleton";
 import { Confetti } from "../components/Confetti";
 import { WelcomeIllustration } from "../components/illustrations/WelcomeIllustration";
 import { triggerHapticFeedback } from "../utils/feedback";
+import { getSubjectColor } from "../utils/subjectColors";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
+import { useConfirm } from "../context/ConfirmContext";
 import { useTheme } from "../context/ThemeContext";
 import { toast } from "react-hot-toast";
 
@@ -42,6 +44,7 @@ const translations = {
         errGeneric: "Error",
         errTrash: "No se pudo enviar la asignatura a la papelera.",
         errArchive: "No se pudo cambiar el estado de la asignatura.",
+        confirmDeleteAccountTitle: "¿Borrar cuenta?",
         confirmDeleteAccount: "¿Estás seguro de que quieres borrar tu cuenta permanentemente? Esta acción no se puede deshacer.",
         errDeleteAccount: "Hubo un problema al intentar borrar la cuenta. Inténtalo de nuevo.",
         errLoadData: "Error al cargar los datos",
@@ -91,6 +94,7 @@ const translations = {
         tasksSelectedMany: "tareas seleccionadas",
         bulkComplete: "Completar",
         bulkDelete: "Eliminar",
+        confirmBulkDeleteTitle: "¿Borrar tareas seleccionadas?",
         confirmBulkDelete: "¿Seguro que quieres eliminar las tareas seleccionadas?",
         bulkCompletedToast: "Tareas completadas.",
         bulkDeletedToast: "Tareas eliminadas.",
@@ -120,6 +124,7 @@ const translations = {
         errGeneric: "Error",
         errTrash: "Could not send the subject to the trash.",
         errArchive: "Could not change the subject's status.",
+        confirmDeleteAccountTitle: "Delete account?",
         confirmDeleteAccount: "Are you sure you want to permanently delete your account? This action cannot be undone.",
         errDeleteAccount: "There was a problem trying to delete the account. Please try again.",
         errLoadData: "Error loading data",
@@ -169,6 +174,7 @@ const translations = {
         tasksSelectedMany: "tasks selected",
         bulkComplete: "Complete",
         bulkDelete: "Delete",
+        confirmBulkDeleteTitle: "Delete selected tasks?",
         confirmBulkDelete: "Are you sure you want to delete the selected tasks?",
         bulkCompletedToast: "Tasks completed.",
         bulkDeletedToast: "Tasks deleted.",
@@ -191,6 +197,7 @@ const translations = {
 };
 
 type MobileView = "tasks" | "agenda" | "performance";
+const MOBILE_TAB_ORDER: MobileView[] = ["tasks", "agenda", "performance"];
 
 // Only used to label the Ctrl/Cmd+K search hint — doesn't need to be
 // reactive, so it's read once at module scope instead of in a component.
@@ -201,6 +208,7 @@ const DashboardPage = () => {
     const { language, toggleLanguage } = useLanguage();
     const { theme, toggleTheme } = useTheme();
     const t = translations[language as keyof typeof translations];
+    const confirm = useConfirm();
 
     const [subjects, setSubjects] = useState<SubjectWithTasks[]>([]);
     const [loading, setLoading] = useState(true);
@@ -292,7 +300,7 @@ const DashboardPage = () => {
     };
 
     const handleBulkDelete = async () => {
-        if (!window.confirm(t.confirmBulkDelete)) return;
+        if (!(await confirm({ title: t.confirmBulkDeleteTitle, message: t.confirmBulkDelete }))) return;
         const keys = Array.from(selectedTaskKeys);
         try {
             await Promise.all(keys.map(key => {
@@ -370,9 +378,22 @@ const DashboardPage = () => {
     const [updatedTask, setUpdatedTask] = useState({ title: "", description: "", deadline: "" });
     const [newSubject, setNewSubject] = useState({ name: "", description: "" });
 
-    const handleChangeTask = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { setNewTask({ ...newTask, [e.target.name]: e.target.value}); };
-    const handleChangeUpdateTask = (e: React.ChangeEvent<HTMLInputElement>) => { setUpdatedTask({ ...updatedTask, [e.target.name]: e.target.value}); };
-    const handleChangeUpdateSubject = (e: React.ChangeEvent<HTMLInputElement>) => { setUpdatedSubject({ ...updatedSubject, [e.target.name]: e.target.value}); };
+    // Functional-updater form (not `{ ...newTask, ... }` reading the outer
+    // closure directly) so these can be useCallback'd with an empty
+    // dependency array — a stable reference regardless of how often
+    // newTask/updatedTask/updatedSubject themselves change, which matters
+    // once they're passed into a React.memo'd child (SubjectSection/
+    // OverdueSection): a callback that changes identity on every keystroke
+    // would defeat the memoization.
+    const handleChangeTask = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setNewTask(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    }, []);
+    const handleChangeUpdateTask = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setUpdatedTask(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    }, []);
+    const handleChangeUpdateSubject = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setUpdatedSubject(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    }, []);
     const handleChangeSubject = (e: React.ChangeEvent<HTMLInputElement>) => { setNewSubject({ ...newSubject, [e.target.name]: e.target.value}); }
 
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -415,7 +436,7 @@ const DashboardPage = () => {
         }
     };
 
-    const handleSubmitTask = async (e: React.FormEvent, subjectId: number) => {
+    const handleSubmitTask = useCallback(async (e: React.FormEvent, subjectId: number) => {
         e.preventDefault();
         setError(null);
         try {
@@ -425,14 +446,14 @@ const DashboardPage = () => {
                     description: newTask.description,
                     deadline: newTask.deadline
                 });
-                
+
                 setAddingTasks(prev => [...prev, response.id]);
-                setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: [...subject.tasks, response] }));
+                setSubjects(prev => prev.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: [...subject.tasks, response] }));
                 setOpenFormSubjectId(null);
-                
+
                 setTimeout(() => {
                     setNewTask({title: "", description: "", deadline: "", recurrence: "NONE"});
-                }, 500); 
+                }, 500);
 
                 setTimeout(() => {
                     setAddingTasks(prev => prev.filter(id => id !== response.id));
@@ -445,7 +466,7 @@ const DashboardPage = () => {
                     periodicidad: newTask.recurrence
                 });
                 toast.success(t.alertRecurringCreated);
-                
+
                 setOpenFormSubjectId(null);
                 setTimeout(() => {
                     setNewTask({title: "", description: "", deadline: "", recurrence: "NONE"});
@@ -454,37 +475,37 @@ const DashboardPage = () => {
         } catch {
             setError(t.errCreateTask);
         }
-    };
+    }, [newTask, t.alertRecurringCreated, t.errCreateTask]);
 
-    const handleUpdateTask = async (e: React.FormEvent, subjectId: number, taskId: number) => {
+    const handleUpdateTask = useCallback(async (e: React.FormEvent, subjectId: number, taskId: number) => {
         e.preventDefault();
         setError(null);
         try {
             const response = await updateTask(subjectId, taskId, updatedTask);
-            setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: subject.tasks.map(task => task.id !== taskId ? task : response) }));
+            setSubjects(prev => prev.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: subject.tasks.map(task => task.id !== taskId ? task : response) }));
             setOpenFormSubjectIdTaskId(null);
             setUpdatedTask({title: "", description: "", deadline: ""});
         } catch { setError(t.errGeneric); }
-    };
+    }, [updatedTask, t.errGeneric]);
 
-    const handleDeleteTask = async (subjectId: number, taskId: number) => {
+    const handleDeleteTask = useCallback(async (subjectId: number, taskId: number) => {
         setError(null);
         try {
             setDeletingTasks(prev => [...prev, taskId]);
             await deleteTask(subjectId, taskId);
             setTimeout(() => {
-                setSubjects(current => current.map(subject => 
-                    subject.id !== subjectId 
-                        ? subject 
+                setSubjects(current => current.map(subject =>
+                    subject.id !== subjectId
+                        ? subject
                         : { ...subject, tasks: subject.tasks.filter(task => task.id !== taskId) }
                 ));
                 setDeletingTasks(prev => prev.filter(id => id !== taskId));
             }, 400);
-        } catch(err) { 
+        } catch(err) {
             console.error("Error deleting the task:", err);
             setDeletingTasks(prev => prev.filter(id => id !== taskId));
-        } 
-    };
+        }
+    }, []);
 
     // Task create/edit/delete triggered from AgendaView (calendar), kept
     // separate from the inline-form handlers above since the calendar has
@@ -492,23 +513,23 @@ const DashboardPage = () => {
     // per-subject inline form state (newTask/updatedTask) — it needs to
     // work standalone even when the Tasks panel isn't on screen (mobile's
     // Agenda tab). Both paths converge on the same `subjects` state.
-    const handleCalendarCreateTask = async (subjectId: number, data: TaskRequest) => {
+    const handleCalendarCreateTask = useCallback(async (subjectId: number, data: TaskRequest) => {
         const response = await addNewTask(subjectId, data);
         setSubjects(prev => prev.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: [...subject.tasks, response] }));
-    };
+    }, []);
 
-    const handleCalendarUpdateTask = async (subjectId: number, taskId: number, data: TaskRequest) => {
+    const handleCalendarUpdateTask = useCallback(async (subjectId: number, taskId: number, data: TaskRequest) => {
         const response = await updateTask(subjectId, taskId, data);
         setSubjects(prev => prev.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: subject.tasks.map(task => task.id !== taskId ? task : response) }));
-    };
+    }, []);
 
-    const handleCalendarDeleteTask = async (subjectId: number, taskId: number) => {
+    const handleCalendarDeleteTask = useCallback(async (subjectId: number, taskId: number) => {
         await deleteTask(subjectId, taskId);
         setSubjects(prev => prev.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: subject.tasks.filter(task => task.id !== taskId) }));
-    };
+    }, []);
 
-    const handleDeleteSubject = async (subjectId: number) => {
-        setError(null); 
+    const handleDeleteSubject = useCallback(async (subjectId: number) => {
+        setError(null);
         try {
             setDeletingSubjects(prev => [...prev, subjectId]);
             await deleteSubject(subjectId);
@@ -516,45 +537,43 @@ const DashboardPage = () => {
                 setSubjects(current => current.filter(subject => subject.id !== subjectId));
                 setDeletingSubjects(prev => prev.filter(id => id !== subjectId));
             }, 400);
-            
-        } catch(err) { 
-            console.error("Error sending to trash:", err);
-            setError(t.errTrash); 
-            setDeletingSubjects(prev => prev.filter(id => id !== subjectId));
-        } 
-    };
 
-    const handleUpdateSubject = async (e: React.FormEvent, subjectId: number) => {
+        } catch(err) {
+            console.error("Error sending to trash:", err);
+            setError(t.errTrash);
+            setDeletingSubjects(prev => prev.filter(id => id !== subjectId));
+        }
+    }, [t.errTrash]);
+
+    const handleUpdateSubject = useCallback(async (e: React.FormEvent, subjectId: number) => {
         e.preventDefault();
         setError(null);
         try {
             const response = await updateSubject(subjectId, updatedSubject);
-            setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, ...response, tasks: subject.tasks }));
+            setSubjects(prev => prev.map(subject => subject.id !== subjectId ? subject : { ...subject, ...response, tasks: subject.tasks }));
             setOpenFormUpdateSubject(null);
             setUpdatedSubject({ name: "", description: "" });
         } catch { setError(t.errGeneric); }
-    };
+    }, [updatedSubject, t.errGeneric]);
 
-    const handleArchiveSubject = async (subjectId: number) => {
+    const handleArchiveSubject = useCallback(async (subjectId: number) => {
         try {
             const subject = subjects.find(s => s.id === subjectId);
             const isCurrentlyArchived = subject?.archived || false;
             const response = await archiveSubject(subjectId, !isCurrentlyArchived);
-            setSubjects(subjects.map(subject => 
-                subject.id !== subjectId 
-                    ? subject 
-                    : { ...subject, ...response, tasks: subject.tasks } 
+            setSubjects(prev => prev.map(s =>
+                s.id !== subjectId ? s : { ...s, ...response, tasks: s.tasks }
             ));
-        } catch (err) { 
+        } catch (err) {
             console.error("Error archiving/unarchiving:", err);
             toast.error(t.errArchive);
         }
-    };
+    }, [subjects, t.errArchive]);
 
     const handleDeleteAccount = async () => {
-        if (window.confirm(t.confirmDeleteAccount)) {
+        if (await confirm({ title: t.confirmDeleteAccountTitle, message: t.confirmDeleteAccount })) {
             try {
-                await deleteUser(); 
+                await deleteUser();
                 localStorage.removeItem("token");
                 navigate("/login");
             } catch {
@@ -763,21 +782,18 @@ const DashboardPage = () => {
             .sort((a, b) => b.percent - a.percent)
             .slice(0, 3);
 
-        const colorPalette = [
-            { colorClass: "bg-red-500", hoverTextClass: "group-hover:text-red-600" },
-            { colorClass: "bg-blue-500", hoverTextClass: "group-hover:text-blue-600" },
-            { colorClass: "bg-amber-500", hoverTextClass: "group-hover:text-amber-500" },
-        ];
+        return top3Stats.map((stat) => {
+            const color = getSubjectColor(stat.id);
+            return {
+                ...stat,
+                colorClass: color.dot,
+                hoverTextClass: color.hoverText
+            };
+        });
 
-        return top3Stats.map((stat, index) => ({
-            ...stat,
-            colorClass: colorPalette[index].colorClass,
-            hoverTextClass: colorPalette[index].hoverTextClass
-        }));
-        
-    }, [subjects]); 
+    }, [subjects]);
 
-    const handleToggleTask = async (subjectId: number, taskId: number) => {
+    const handleToggleTask = useCallback(async (subjectId: number, taskId: number) => {
         const subject = subjects.find(s => s.id === subjectId);
         const task = subject?.tasks.find(t => t.id === taskId);
         if (!task) return;
@@ -790,9 +806,9 @@ const DashboardPage = () => {
         }
         try {
             await toggleTask(subjectId, taskId, willBeCompleted);
-            setSubjects(subjects.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: subject.tasks.map(task => task.id !== taskId ? task : { ...task, completed: willBeCompleted }) }));
+            setSubjects(prev => prev.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: subject.tasks.map(task => task.id !== taskId ? task : { ...task, completed: willBeCompleted }) }));
         } catch { console.error("Error updating the task"); }
-    };
+    }, [subjects, taskFeedbackEnabled]);
 
     const handleSubmitSubject = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault(); 
@@ -819,8 +835,14 @@ const DashboardPage = () => {
         } 
     };
 
-    const totalPending = subjects.reduce((acc, subject) => acc + subject.tasks.filter(t => !t.completed).length, 0);
-    const totalPendingOverdue = subjects.reduce((acc, subject) => acc + subject.tasks.filter(t => !t.completed && t.overdue).length, 0);
+    const totalPending = useMemo(
+        () => subjects.reduce((acc, subject) => acc + subject.tasks.filter(t => !t.completed).length, 0),
+        [subjects]
+    );
+    const totalPendingOverdue = useMemo(
+        () => subjects.reduce((acc, subject) => acc + subject.tasks.filter(t => !t.completed && t.overdue).length, 0),
+        [subjects]
+    );
 
     // Fires a confetti burst the moment totalPending drops to 0 — but only
     // when that's an actual transition from >0 (i.e. the user just cleared
@@ -934,6 +956,7 @@ const DashboardPage = () => {
                         }
                     }}
                     onGoHome={() => setShowTrash(false)}
+                    onMarkNotificationsRead={() => setAiNotificationReady(false)}
                 />
 
                 {/* --- MOBILE TOP BAR (hamburger + logo) --- */}
@@ -964,7 +987,17 @@ const DashboardPage = () => {
                     )}
                 </div>
 
-                <div key={showTrash ? 'view-trash' : 'view-dashboard'} className="flex-1 flex h-full min-h-0 animate-soft-fade">
+                {/* overflow-x-auto is the safety net for the same tablet-width
+                    squeeze the lg:min-w change above addresses — the outer
+                    app shell (h-dvh ... overflow-hidden) would otherwise
+                    silently clip BLOCK 2/3 out of reach entirely (not just
+                    visually crowd them) at any width where the row's
+                    combined min-content width still exceeds the viewport,
+                    since none of these three columns has a min-width low
+                    enough to always avoid that. A scrollbar appearing on a
+                    cramped tablet width is a far better failure mode than
+                    silently losing access to the tasks panel. */}
+                <div key={showTrash ? 'view-trash' : 'view-dashboard'} className="flex-1 flex h-full min-h-0 overflow-x-auto animate-soft-fade">
 
                     {showTrash ? (
                         <div className="flex-1 sm:ml-4">
@@ -980,21 +1013,28 @@ const DashboardPage = () => {
                     ) : (
                         <>
                             {/* --- BLOCK 1: AGENDA (LEFT) --- */}
-                            {/* sm:min-w-[700px] here matches the <main> below —
-                                without it, this flex item's own box stays
-                                pinned at exactly 55% even when that's narrower
-                                than its min-width-700 child needs, and the
-                                child silently overflows past this box's right
-                                edge (no overflow-hidden here) and under BLOCK 2.
-                                Harmless at typical desktop widths where 55% is
-                                already >700px, but became visible at the
-                                app's compact (80%-equivalent) root font-size,
-                                which doesn't shrink these two hard px values. */}
+                            {/* lg:min-w-[600px] here matches the <main> below —
+                                without a matching min-width, this flex item's
+                                own box stays pinned at exactly 55% even when
+                                that's narrower than its min-width child needs,
+                                and the child silently overflows past this
+                                box's right edge (no overflow-hidden here) and
+                                under BLOCK 2 (see the compact-root-font-size
+                                overflow this exact pairing caused before).
+                                Gated to `lg` (1024px) rather than `sm` (640px)
+                                — at tablet widths (~640-1024px) Sidebar(280px)
+                                + a 700px-or-more floor left BLOCK 2 almost no
+                                room at all, which the `sm` version still let
+                                happen. Below `lg`, the column just uses its
+                                55% share with no hard floor and the calendar
+                                renders more compactly — its own cells already
+                                scale down at the `sm` breakpoint, so this
+                                isn't a cliff, just less spacious. */}
                             <div className={`${mobileView === "agenda" ? "flex" : "hidden"} sm:flex
                                 w-full h-full sm:h-auto sm:transition-all sm:duration-500 sm:ease-in-out flex-col overflow-hidden shrink-0 ${
-                                showCalendar ? "sm:w-[55%] sm:min-w-[700px] sm:opacity-100 sm:ml-4" : "sm:w-0 sm:min-w-0 sm:opacity-0 sm:ml-0"
+                                showCalendar ? "sm:w-[55%] lg:min-w-[600px] sm:opacity-100 sm:ml-4" : "sm:w-0 sm:min-w-0 sm:opacity-0 sm:ml-0"
                             }`}>
-                                <main className="w-full h-full relative flex flex-col min-w-0 sm:min-w-[700px]">
+                                <main className="w-full h-full relative flex flex-col min-w-0 lg:min-w-[600px]">
                                     <AgendaView
                                         subjects={subjects}
                                         onCreateTask={handleCalendarCreateTask}
@@ -1013,7 +1053,7 @@ const DashboardPage = () => {
                                 <div className="mb-6 flex justify-between items-start">
                                     <div>
                                         <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100">{ getGreeting(username) }</h1>
-                                        <p className="text-gray-400 dark:text-gray-500 mt-1 capitalize">{today}</p>
+                                        <p className="text-gray-500 dark:text-gray-500 mt-1 capitalize">{today}</p>
                                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
                                             {totalPending === 0 ? (
                                                 <>
@@ -1049,7 +1089,7 @@ const DashboardPage = () => {
                                             onClick={() => setShowCalendar(!showCalendar)}
                                             className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-all border shrink-0 ${
                                                 showCalendar
-                                                    ? "bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700"
+                                                    ? "bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700"
                                                     : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 shadow-sm"
                                             }`}
                                             title={showCalendar ? t.hideAgendaTitle : t.showAgendaTitle}
@@ -1066,7 +1106,7 @@ const DashboardPage = () => {
                                     filters the list below and OverdueSection together via
                                     filteredSubjects, computed once above. */}
                                 <div className="relative mb-6">
-                                    <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                                    <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500 pointer-events-none" />
                                     <input
                                         ref={searchInputRef}
                                         type="text"
@@ -1078,7 +1118,7 @@ const DashboardPage = () => {
                                     {searchQuery ? (
                                         <button
                                             onClick={() => setSearchQuery("")}
-                                            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
                                             title={t.searchClear}
                                             aria-label={t.searchClear}
                                         >
@@ -1087,7 +1127,7 @@ const DashboardPage = () => {
                                     ) : (
                                         <button
                                             onClick={() => setPaletteOpen(true)}
-                                            className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 items-center gap-0.5 px-1.5 py-0.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-[10px] font-semibold text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+                                            className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 items-center gap-0.5 px-1.5 py-0.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-[10px] font-semibold text-gray-500 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
                                             title={t.palettePlaceholder}
                                         >
                                             {isMac ? "⌘" : "Ctrl"}K
@@ -1164,7 +1204,7 @@ const DashboardPage = () => {
                                 )}
 
                                 {searchQuery && filteredSubjects.filter(subject => !subject.archived).length === 0 && (
-                                    <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">
+                                    <p className="text-sm text-gray-500 dark:text-gray-500 text-center py-8">
                                         {t.searchNoResults} "{searchQuery}"
                                     </p>
                                 )}
@@ -1265,7 +1305,7 @@ const DashboardPage = () => {
                                                 </div>
                                                 
                                                 <div className="flex flex-col">
-                                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.formDesc} <span className="text-gray-400 dark:text-gray-500 font-normal lowercase">{t.formOptional}</span></label>
+                                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.formDesc} <span className="text-gray-500 dark:text-gray-500 font-normal lowercase">{t.formOptional}</span></label>
                                                     <input 
                                                         type="text" 
                                                         name="description" 
@@ -1327,7 +1367,7 @@ const DashboardPage = () => {
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">{t.perfTitle}</h3>
-                                        <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">{t.perfSubtitle}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-500 font-medium">{t.perfSubtitle}</p>
                                     </div>
                                 </div>
                                 
@@ -1405,7 +1445,19 @@ const DashboardPage = () => {
 
             {/* --- MOBILE BOTTOM TAB BAR --- */}
             {!showTrash && (
-                <div className="sm:hidden shrink-0 mt-2 grid grid-cols-3 gap-1 p-1.5 rounded-2xl bg-white dark:bg-gray-900 shadow-md">
+                <div className="sm:hidden relative shrink-0 mt-2 grid grid-cols-3 gap-1 p-1.5 rounded-2xl bg-white dark:bg-gray-900 shadow-md">
+                    {/* Sliding pill background, same pattern as AgendaView's
+                        Day/Week/Month selector — one animated layer that
+                        glides in multiples of 1/3 instead of each button
+                        toggling its own background. */}
+                    <div
+                        aria-hidden="true"
+                        className="absolute top-1.5 bottom-1.5 left-1.5 rounded-xl bg-red-50 dark:bg-red-900/30 transition-transform duration-300 ease-out"
+                        style={{
+                            width: "calc((100% - 0.75rem) / 3)",
+                            transform: `translateX(${MOBILE_TAB_ORDER.indexOf(mobileView) * 100}%)`,
+                        }}
+                    />
                     {([
                         { id: "tasks", label: t.tabTasks, icon: ListChecks },
                         { id: "agenda", label: t.tabAgenda, icon: Calendar },
@@ -1414,10 +1466,10 @@ const DashboardPage = () => {
                         <button
                             key={id}
                             onClick={() => setMobileView(id)}
-                            className={`flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl text-xs font-bold transition-colors ${
+                            className={`relative z-10 flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl text-xs font-bold active:scale-95 transition-[color,transform] ${
                                 mobileView === id
-                                    ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400"
-                                    : "text-gray-400 dark:text-gray-500"
+                                    ? "text-red-600 dark:text-red-400"
+                                    : "text-gray-500 dark:text-gray-500"
                             }`}
                         >
                             <Icon size={20} strokeWidth={2.5} />

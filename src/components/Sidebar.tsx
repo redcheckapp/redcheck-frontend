@@ -1,6 +1,6 @@
 import { LogOut, Settings, Bell, Check, Sparkles, Trash2, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState, useRef, type TouchEvent } from "react";
+import { useState, useRef, useEffect, type TouchEvent } from "react";
 import type { SubjectStat, SubjectWithTasks } from "../types";
 import { SmartCheckButton } from "./SmartCheckButton";
 import { SubjectBalance } from "./SubjectBalance";
@@ -23,6 +23,7 @@ interface SidebarProps {
     onGoHome: () => void;
     mobileOpen: boolean;
     onCloseMobile: () => void;
+    onMarkNotificationsRead: () => void;
 }
 
 // Feature flags for sections hidden per product decision — not deleted so
@@ -95,10 +96,33 @@ export const Sidebar = ({
     onOpenTrash,
     onGoHome,
     mobileOpen,
-    onCloseMobile
+    onCloseMobile,
+    onMarkNotificationsRead
 }: SidebarProps) => {
     const navigate = useNavigate();
     const [showNotifications, setShowNotifications] = useState(false);
+    const notificationsRef = useRef<HTMLDivElement>(null);
+
+    // Click-outside/Escape dismissal — same pattern as AgendaView's
+    // DatePickerPopover/the calendar's other popovers, which this dropdown
+    // previously lacked (it only closed via the bell button itself).
+    useEffect(() => {
+        if (!showNotifications) return;
+        const handleClickOutside = (e: MouseEvent) => {
+            if (notificationsRef.current && !notificationsRef.current.contains(e.target as Node)) {
+                setShowNotifications(false);
+            }
+        };
+        const handleEscKeyDown = (e: globalThis.KeyboardEvent) => {
+            if (e.key === "Escape") setShowNotifications(false);
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        document.addEventListener("keydown", handleEscKeyDown);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("keydown", handleEscKeyDown);
+        };
+    }, [showNotifications]);
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
 
@@ -216,10 +240,10 @@ export const Sidebar = ({
                     </span>
                 </div>
 
-                <div className={`relative flex items-center justify-end transition-all duration-300 ease-in-out ${expanded ? "w-10 opacity-100" : "w-0 opacity-0 pointer-events-none"}`}>
-                    <button 
+                <div ref={notificationsRef} className={`relative flex items-center justify-end transition-all duration-300 ease-in-out ${expanded ? "w-10 opacity-100" : "w-0 opacity-0 pointer-events-none"}`}>
+                    <button
                         onClick={() => setShowNotifications(!showNotifications)}
-                        className="relative p-2 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 active:scale-90 shrink-0" 
+                        className="relative p-2 text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 active:scale-90 shrink-0"
                         title={t.notifications}
                     >
                         <Bell size={20} />
@@ -229,30 +253,38 @@ export const Sidebar = ({
                     </button>
 
                     {showNotifications && (
-                        <div className="absolute right-0 left-auto sm:left-0 sm:right-auto top-12 w-64 sm:w-80 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 origin-top-right sm:origin-top-left z-[60]">
+                        <div className="absolute right-0 left-auto sm:left-0 sm:right-auto top-12 w-64 sm:w-80 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 origin-top-right sm:origin-top-left z-[60] animate-soft-fade">
                             <div className="p-4 border-b border-gray-50 dark:border-gray-800 flex justify-between items-center">
                                 <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">{t.notifications}</h3>
-                                <span className="text-xs text-gray-400 dark:text-gray-500 cursor-pointer hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t.markRead}</span>
+                                {aiNotificationReady && (
+                                    <button
+                                        type="button"
+                                        onClick={() => { onMarkNotificationsRead(); setShowNotifications(false); }}
+                                        className="text-xs text-gray-500 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 active:scale-95 transition-all"
+                                    >
+                                        {t.markRead}
+                                    </button>
+                                )}
                             </div>
 
                             <div className="max-h-64 overflow-y-auto">
                                 {aiNotificationReady ? (
-                                    <div 
+                                    <div
                                         onClick={() => {
                                             onOpenAiModal();
                                             setShowNotifications(false);
                                         }}
-                                        className="p-4 hover:bg-zinc-50 dark:hover:bg-gray-800/50 cursor-pointer border-b border-zinc-100 dark:border-gray-800 flex flex-col gap-1 transition-all"
+                                        className="p-4 hover:bg-zinc-50 dark:hover:bg-gray-800/50 active:scale-[0.98] cursor-pointer border-b border-zinc-100 dark:border-gray-800 flex flex-col gap-1 transition-all"
                                     >
                                         <div className="flex items-center gap-2">
                                             <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>
                                             <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider italic">{t.aiReadyTitle}</span>
                                         </div>
                                         <p className="text-sm text-gray-700 dark:text-gray-200 font-semibold">{t.aiReadyDesc}</p>
-                                        <p className="text-[11px] text-gray-400 dark:text-gray-500">{t.aiReadySub}</p>
+                                        <p className="text-[11px] text-gray-500 dark:text-gray-500">{t.aiReadySub}</p>
                                     </div>
                                 ) : (
-                                    <div className="p-8 text-center text-sm text-gray-400 dark:text-gray-500">
+                                    <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-500">
                                         <Bell size={24} className="mx-auto mb-2 text-gray-300 dark:text-gray-600" />
                                         {t.noNotifications}
                                     </div>
@@ -295,7 +327,7 @@ export const Sidebar = ({
                     drawer has no collapsed state to hint at). */}
                 <div
                     onClick={() => setSidebarOpen(true)}
-                    className={`hidden sm:flex items-center justify-center w-11 mx-auto rounded-2xl cursor-pointer text-gray-400 dark:text-gray-500 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 hover:shadow-sm transition-all duration-300 ease-in-out overflow-hidden ${
+                    className={`hidden sm:flex items-center justify-center w-11 mx-auto rounded-2xl cursor-pointer text-gray-500 dark:text-gray-500 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 hover:shadow-sm transition-all duration-300 ease-in-out overflow-hidden ${
                         sidebarOpen ? "opacity-0 pointer-events-none max-h-0 mt-0 mb-0" : "opacity-100 max-h-11 mt-4 mb-2"
                     }`}
                     title="SmartCheck AI"
@@ -309,7 +341,7 @@ export const Sidebar = ({
                             <Sparkles size={14} strokeWidth={2} className="text-red-500 dark:text-red-400" />
                             SmartCheck AI
                         </h3>
-                        <p className="text-[11px] text-gray-400 dark:text-gray-500 font-medium mt-0.5 tracking-wide uppercase">
+                        <p className="text-[11px] text-gray-500 dark:text-gray-500 font-medium mt-0.5 tracking-wide uppercase">
                             {t.analysisEngine}
                         </p>
                     </div>
@@ -357,7 +389,7 @@ export const Sidebar = ({
                             icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
                             title={t.riskAnalysisTitle}
                             subtitle={t.riskAnalysisSub}
-                            onClick={() => console.log("Risk analysis clicked")}
+                            onClick={() => {}}
                             comingSoon={true}
                         />
                     )}
@@ -393,7 +425,7 @@ export const Sidebar = ({
                     </div>
                 </button>
 
-                <button onClick={() => { localStorage.removeItem("token"); sessionStorage.removeItem("focusTipDismissed"); navigate("/login"); }} className="flex items-center p-2 rounded-xl text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:bg-transparent dark:hover:bg-red-900/30 transition-all active:scale-95 w-full" title={t.logout}>
+                <button onClick={() => { localStorage.removeItem("token"); sessionStorage.removeItem("focusTipDismissed"); navigate("/login"); }} className="flex items-center p-2 rounded-xl text-gray-500 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:bg-transparent dark:hover:bg-red-900/30 transition-all active:scale-95 w-full" title={t.logout}>
                     <div className="flex items-center justify-center shrink-0 w-6 h-6">
                         <LogOut size={20} />
                     </div>

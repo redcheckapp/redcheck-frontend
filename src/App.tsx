@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 import { Check } from "lucide-react";
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
+import { ConfirmProvider } from './context/ConfirmContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Route-level code splitting: each page becomes its own chunk, loaded on
@@ -66,7 +67,7 @@ const AppShell = () => {
     }
 
     return (
-        <>
+        <ConfirmProvider>
             {showParticles && (
                 <Suspense fallback={null}>
                     <BackgroundParticles />
@@ -91,7 +92,7 @@ const AppShell = () => {
                         : { background: "#ffffff", color: "#18181b", border: "1px solid #f4f4f5" },
                 }}
             />
-        </>
+        </ConfirmProvider>
     );
 };
 

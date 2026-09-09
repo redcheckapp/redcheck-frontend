@@ -31,8 +31,8 @@ export const SmartCheckButton = ({ icon, title, subtitle, onClick, comingSoon, i
     <button 
       onClick={comingSoon || isLoading ? undefined : onClick}
       disabled={comingSoon || isLoading}
-      className={`w-full flex flex-col items-center justify-center p-4 mb-4 rounded-xl transition-all duration-300 text-center focus:outline-none 
-        ${isLoading 
+      className={`w-full flex flex-col items-center justify-center p-4 mb-4 rounded-xl transition-all duration-300 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500
+        ${isLoading
             ? 'bg-red-50/50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 shadow-inner cursor-wait' 
             : 'bg-zinc-50 dark:bg-gray-800 border border-zinc-200 dark:border-gray-700 hover:bg-zinc-100 dark:hover:bg-gray-700 shadow-sm hover:shadow-md'
         }

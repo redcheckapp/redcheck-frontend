@@ -20,6 +20,7 @@ interface SettingsModalProps {
 const translations = {
     es: {
         title: "Ajustes",
+        close: "Cerrar",
         appearance: "Apariencia",
         darkMode: "Modo Oscuro",
         themeDesc: "Ajustar el tema visual",
@@ -44,6 +45,7 @@ const translations = {
     },
     en: {
         title: "Settings",
+        close: "Close",
         appearance: "Appearance",
         darkMode: "Dark Mode",
         themeDesc: "Adjust visual theme",
@@ -116,7 +118,7 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                 {/* Header */}
                 <div className="flex justify-between items-center p-5 border-b border-gray-100 dark:border-gray-800 transition-colors">
                     <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t.title}</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition rounded-lg p-1 hover:bg-gray-100 dark:hover:bg-gray-800">
+                    <button onClick={onClose} aria-label={t.close} title={t.close} className="text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition rounded-lg p-1 hover:bg-gray-100 dark:hover:bg-gray-800">
                         <X size={20} />
                     </button>
                 </div>
@@ -134,7 +136,7 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                                 <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
                                     {t.language}
                                 </p>
-                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
                                     {t.langDesc}
                                 </p>
                             </div>
@@ -154,7 +156,7 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                                 <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
                                     {t.darkMode}
                                 </p>
-                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
                                     {t.themeDesc}
                                 </p>
                             </div>
@@ -174,7 +176,7 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                                 <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
                                     {t.reminders}
                                 </p>
-                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
                                     {t.remindersDesc}
                                 </p>
                             </div>
@@ -188,7 +190,7 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                                 <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
                                     {t.taskFeedback}
                                 </p>
-                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
                                     {t.taskFeedbackDesc}
                                 </p>
                                 <button
@@ -214,7 +216,7 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                                 </p>
                                 <button 
                                     disabled
-                                    className="flex justify-center items-center gap-2 w-full p-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed font-medium text-sm transition-colors"
+                                    className="flex justify-center items-center gap-2 w-full p-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500 cursor-not-allowed font-medium text-sm transition-colors"
                                 >
                                     <Trash2 size={16} />
                                     {t.btnDeleteDemo}

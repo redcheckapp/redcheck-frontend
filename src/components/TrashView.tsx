@@ -6,11 +6,20 @@ import { getTrashSubjects, restoreSubject, hardDeleteSubject, getSubjects } from
 import { getTrashTasks, restoreTask, hardDeleteTask } from "../api/taskApi";
 import type { SubjectResponse, TaskResponse } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
+import { useConfirm } from "../context/ConfirmContext";
 
 // --- Translation dictionary for TrashView ---
 const translations = {
     es: {
         title: "Papelera",
+        confirmDeleteSubjectTitle: "¿Borrar asignatura?",
+        confirmDeleteTaskTitle: "¿Borrar tarea?",
+        confirmEmptyTrashTitle: "¿Vaciar papelera?",
+        backTitle: "Volver",
+        restoreSubject: "Restaurar asignatura",
+        deleteSubjectForever: "Borrar asignatura definitivamente",
+        restoreTask: "Restaurar tarea",
+        deleteTaskForever: "Borrar tarea definitivamente",
         emptyTrashBtn: "Vaciar papelera",
         loading: "Cargando...",
         emptyStateTitle: "La papelera está vacía",
@@ -27,6 +36,14 @@ const translations = {
     },
     en: {
         title: "Trash",
+        confirmDeleteSubjectTitle: "Delete subject?",
+        confirmDeleteTaskTitle: "Delete task?",
+        confirmEmptyTrashTitle: "Empty trash?",
+        backTitle: "Back",
+        restoreSubject: "Restore subject",
+        deleteSubjectForever: "Delete subject permanently",
+        restoreTask: "Restore task",
+        deleteTaskForever: "Delete task permanently",
         emptyTrashBtn: "Empty trash",
         loading: "Loading...",
         emptyStateTitle: "Trash is empty",
@@ -46,6 +63,7 @@ const translations = {
 export const TrashView = ({ onClose }: { onClose: () => void }) => {
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
+    const confirm = useConfirm();
 
     const [subjects, setSubjects] = useState<SubjectResponse[]>([]);
     const [tasks, setTasks] = useState<TaskResponse[]>([]);
@@ -94,7 +112,7 @@ export const TrashView = ({ onClose }: { onClose: () => void }) => {
     };
 
     const handleHardDeleteSubject = async (id: number) => {
-        if (!window.confirm(t.confirmDeleteSubject)) return;
+        if (!(await confirm({ title: t.confirmDeleteSubjectTitle, message: t.confirmDeleteSubject }))) return;
         setRemovingSubjects(prev => [...prev, id]);
         await hardDeleteSubject(id);
         setTimeout(() => {
@@ -114,7 +132,7 @@ export const TrashView = ({ onClose }: { onClose: () => void }) => {
     };
 
     const handleHardDeleteTask = async (subjectId: number, taskId: number) => {
-        if (!window.confirm(t.confirmDeleteTask)) return;
+        if (!(await confirm({ title: t.confirmDeleteTaskTitle, message: t.confirmDeleteTask }))) return;
         setRemovingTasks(prev => [...prev, taskId]);
         await hardDeleteTask(subjectId, taskId);
         setTimeout(() => {
@@ -124,7 +142,7 @@ export const TrashView = ({ onClose }: { onClose: () => void }) => {
     };
 
     const handleEmptyTrash = async () => {
-        if (!window.confirm(t.confirmEmptyTrash)) return;
+        if (!(await confirm({ title: t.confirmEmptyTrashTitle, message: t.confirmEmptyTrash }))) return;
         
         setLoading(true);
         try {
@@ -153,7 +171,7 @@ export const TrashView = ({ onClose }: { onClose: () => void }) => {
             {/* Header with the Empty Trash button */}
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
-                    <button onClick={onClose} className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-300">
+                    <button onClick={onClose} aria-label={t.backTitle} title={t.backTitle} className="p-2 text-gray-500 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-300">
                         <ArrowLeft size={24} />
                     </button>
                     <div className="flex items-center gap-3 text-red-600 dark:text-red-500 transition-colors duration-300">
@@ -210,8 +228,8 @@ export const TrashView = ({ onClose }: { onClose: () => void }) => {
                                             >
                                                 <span className="font-semibold text-gray-700 dark:text-gray-200 transition-colors duration-300">{s.name}</span>
                                                 <div className="flex gap-2">
-                                                    <button onClick={() => handleRestoreSubject(s.id)} className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors duration-200"><RotateCcw size={18}/></button>
-                                                    <button onClick={() => handleHardDeleteSubject(s.id)} className="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors duration-200"><X size={18}/></button>
+                                                    <button onClick={() => handleRestoreSubject(s.id)} aria-label={t.restoreSubject} title={t.restoreSubject} className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors duration-200"><RotateCcw size={18}/></button>
+                                                    <button onClick={() => handleHardDeleteSubject(s.id)} aria-label={t.deleteSubjectForever} title={t.deleteSubjectForever} className="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors duration-200"><X size={18}/></button>
                                                 </div>
                                             </div>
                                         );
@@ -225,21 +243,27 @@ export const TrashView = ({ onClose }: { onClose: () => void }) => {
                             <div>
                                 <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-6 transition-colors duration-300">{t.tasksTitle}</h2>
                                 <div className="flex flex-col gap-3">
-                                    {tasks.map(t => {
-                                        const isRemoving = removingTasks.includes(t.id);
+                                    {tasks.map(task => {
+                                        // Renamed from the original `t` — that shadowed the
+                                        // outer `t` (translations), which happened to still
+                                        // work only because `t.title` coincidentally matched
+                                        // both a task's own title and had no translations
+                                        // collision; renaming makes the outer `t` usable here
+                                        // for the new aria-label/title strings below.
+                                        const isRemoving = removingTasks.includes(task.id);
                                         return (
-                                            <div 
-                                                key={t.id} 
+                                            <div
+                                                key={task.id}
                                                 className={`transition-all duration-400 ease-in-out flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden ${
                                                     isRemoving ? "opacity-0 scale-95 max-h-0 p-0 border-transparent dark:border-transparent mb-[-0.75rem]" : "opacity-100 scale-100 max-h-[100px] p-4"
                                                 }`}
                                             >
-                                                <span className="text-gray-700 dark:text-gray-200 transition-colors duration-300">{t.title}</span>
+                                                <span className="text-gray-700 dark:text-gray-200 transition-colors duration-300">{task.title}</span>
                                                 <div className="flex gap-2">
-                                                    <button onClick={() => handleRestoreTask(t.subjectId, t.id)} className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors duration-200">
+                                                    <button onClick={() => handleRestoreTask(task.subjectId, task.id)} aria-label={t.restoreTask} title={t.restoreTask} className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors duration-200">
                                                         <RotateCcw size={18}/>
                                                     </button>
-                                                    <button onClick={() => handleHardDeleteTask(t.subjectId, t.id)} className="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors duration-200">
+                                                    <button onClick={() => handleHardDeleteTask(task.subjectId, task.id)} aria-label={t.deleteTaskForever} title={t.deleteTaskForever} className="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors duration-200">
                                                         <X size={18}/>
                                                     </button>
                                                 </div>

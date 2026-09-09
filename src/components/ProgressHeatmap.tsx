@@ -113,7 +113,7 @@ export const ProgressHeatmap = () => {
                 
                 {/* Days of the week (L X V / M W F) */}
                 <div className="pt-[18px]">
-                    <div className="grid grid-rows-7 gap-1 text-[9px] text-gray-400 dark:text-gray-500 font-medium pr-1 transition-colors duration-300">
+                    <div className="grid grid-rows-7 gap-1 text-[9px] text-gray-500 dark:text-gray-500 font-medium pr-1 transition-colors duration-300">
                         <div className="h-3 flex items-center leading-none">{t.day1}</div>
                         <div className="h-3"></div>
                         <div className="h-3 flex items-center leading-none">{t.day3}</div>
@@ -128,7 +128,7 @@ export const ProgressHeatmap = () => {
                 <div className="flex flex-col gap-1.5">
                     
                     {/* --- MONTHS HEADER --- */}
-                    <div className="flex gap-1 text-[10px] text-gray-400 dark:text-gray-500 font-medium h-3 transition-colors duration-300">
+                    <div className="flex gap-1 text-[10px] text-gray-500 dark:text-gray-500 font-medium h-3 transition-colors duration-300">
                         {weeks.map((week, idx) => {
                             const currentMonth = week[0].getMonth();
                             let showMonth = false;

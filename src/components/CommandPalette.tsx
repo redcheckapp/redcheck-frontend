@@ -143,13 +143,13 @@ export const CommandPalette = ({
                     onKeyDown={handleKeyDown}
                 >
                     <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-                        <Search size={18} className="text-gray-400 dark:text-gray-500 shrink-0" />
+                        <Search size={18} className="text-gray-500 dark:text-gray-500 shrink-0" />
                         <input
                             type="text"
                             value={query}
                             onChange={(e) => { setQuery(e.target.value); setHighlightedIndex(0); }}
                             placeholder={placeholder}
-                            className="flex-1 bg-transparent text-gray-800 dark:text-gray-100 text-sm outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                            className="flex-1 bg-transparent text-gray-800 dark:text-gray-100 text-sm outline-none placeholder:text-gray-500 dark:placeholder:text-gray-500"
                         />
                     </div>
 
@@ -160,12 +160,12 @@ export const CommandPalette = ({
                         />
 
                         {flatItems.length === 0 && (
-                            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">{emptyLabel}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-500 text-center py-8">{emptyLabel}</p>
                         )}
 
                         {taskResults.length > 0 && (
                             <div className="px-2 pb-1">
-                                <p className="px-2 pb-1 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{tasksGroupLabel}</p>
+                                <p className="px-2 pb-1 text-[11px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider">{tasksGroupLabel}</p>
                                 {taskResults.map((task, i) => (
                                     <button
                                         key={`task-${task.subjectId}-${task.taskId}`}
@@ -179,7 +179,7 @@ export const CommandPalette = ({
                                         }`}
                                     >
                                         <span className="truncate">{task.title}</span>
-                                        <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">{task.subjectName}</span>
+                                        <span className="text-xs text-gray-500 dark:text-gray-500 shrink-0">{task.subjectName}</span>
                                     </button>
                                 ))}
                             </div>
@@ -187,7 +187,7 @@ export const CommandPalette = ({
 
                         {filteredActions.length > 0 && (
                             <div className="px-2 pb-1">
-                                <p className="px-2 pb-1 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{actionsGroupLabel}</p>
+                                <p className="px-2 pb-1 text-[11px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider">{actionsGroupLabel}</p>
                                 {filteredActions.map((action, i) => {
                                     const flatIndex = taskResults.length + i;
                                     const Icon = action.icon;
@@ -203,7 +203,7 @@ export const CommandPalette = ({
                                                     : "text-gray-700 dark:text-gray-200"
                                             }`}
                                         >
-                                            <Icon size={16} className="text-gray-400 dark:text-gray-500 shrink-0" />
+                                            <Icon size={16} className="text-gray-500 dark:text-gray-500 shrink-0" />
                                             {action.label}
                                         </button>
                                     );
@@ -212,7 +212,7 @@ export const CommandPalette = ({
                         )}
                     </div>
 
-                    <div className="flex items-center gap-1.5 px-4 py-2 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-400 dark:text-gray-500">
+                    <div className="flex items-center gap-1.5 px-4 py-2 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-500 dark:text-gray-500">
                         <CornerDownLeft size={12} />
                         <span>Enter</span>
                         <span className="mx-1">·</span>

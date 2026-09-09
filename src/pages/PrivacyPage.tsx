@@ -140,7 +140,7 @@ const PrivacyPage = () => {
 
                             {/* --- COPYRIGHT DENTRO DE LA TARJETA --- */}
                             <div className="mt-10 pt-6 border-t border-gray-100/50 dark:border-gray-800/50 flex justify-center transition-colors duration-300">
-                                <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center font-medium">
+                                <p className="text-[11px] text-gray-500 dark:text-gray-500 text-center font-medium">
                                     {t.copyright}
                                 </p>
                             </div>

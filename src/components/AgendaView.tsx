@@ -1,13 +1,17 @@
-import { useState, useEffect, useMemo, useRef, type TouchEvent, type KeyboardEvent, type DragEvent } from "react";
+import { useState, useEffect, useMemo, useRef, memo, lazy, Suspense, type TouchEvent, type KeyboardEvent, type DragEvent } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
 import { ChevronLeft, ChevronRight, Clock, CalendarDays, Plus, Check } from "lucide-react";
 import { getProgressHeatmap } from "../api/progressRecordApi";
 import type { ProgressRecord, SubjectWithTasks, TaskRequest, TaskResponse } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
-import { CalendarTaskModal } from "./CalendarTaskModal";
 import { getSubjectColor } from "../utils/subjectColors";
 import { DayOffIllustration } from "./illustrations/DayOffIllustration";
+
+// Only needed once the user opens the create/edit task modal from the
+// calendar — split out of the main AgendaView chunk, same pattern as the
+// dashboard's own on-demand modals (SettingsModal, TrashView, etc.).
+const CalendarTaskModal = lazy(() => import("./CalendarTaskModal").then(m => ({ default: m.CalendarTaskModal })));
 
 type ViewMode = "day" | "week" | "month";
 
@@ -38,6 +42,10 @@ const translations = {
         lblAllDay: "Todo el día",
         moreTasks: "más",
         jumpToDate: "Ir a una fecha",
+        prevPeriod: "Periodo anterior",
+        nextPeriod: "Periodo siguiente",
+        prevMonth: "Mes anterior",
+        nextMonth: "Mes siguiente",
         addTaskTitle: "Añadir tarea",
         btnAddTask: "Añadir tarea",
         dayOffTitle: "¡Día libre!",
@@ -58,6 +66,10 @@ const translations = {
         lblAllDay: "All day",
         moreTasks: "more",
         jumpToDate: "Jump to a date",
+        prevPeriod: "Previous period",
+        nextPeriod: "Next period",
+        prevMonth: "Previous month",
+        nextMonth: "Next month",
         addTaskTitle: "Add task",
         btnAddTask: "Add task",
         dayOffTitle: "Day off!",
@@ -71,6 +83,24 @@ const translations = {
 };
 
 type CalendarTask = TaskResponse & { subjectName: string };
+
+// Day cells and task chips across Month/Week/Day are plain onClick divs
+// (not <button>s, since they sit inside CSS grids/flex rows with very
+// specific sizing that a <button>'s default styling would fight) — this
+// is the keyboard-equivalent half of making them operable: paired with
+// `role="button" tabIndex={0}` on the element itself, Enter/Space now
+// triggers the same action a click would. Every cell/chip becomes its own
+// Tab stop rather than a roving-tabindex grid (the ARIA-grid pattern a
+// calendar like this would ideally use) — a real UX tradeoff (Month view
+// alone can be 35-42 stops), but the correct minimum bar (WCAG 2.1.1,
+// nothing keyboard-unreachable) without the much larger scope of building
+// full arrow-key-driven intra-grid roving focus.
+const handleActivateKeyDown = (e: KeyboardEvent<HTMLDivElement>, action: () => void) => {
+    if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        action();
+    }
+};
 
 // Tasks due on a given calendar day, across all subjects — pulled out to
 // module scope (rather than a closure inside the component) so it can be
@@ -110,6 +140,8 @@ interface DatePickerPopoverProps {
     onClose: () => void;
     weekDays: string[];
     months: string[];
+    prevMonthLabel: string;
+    nextMonthLabel: string;
 }
 
 // A small in-house month picker for the header's "jump to date" button —
@@ -118,7 +150,7 @@ interface DatePickerPopoverProps {
 // modal (no backdrop/focus-trap via ModalOverlay): it's a lightweight,
 // click-outside-to-dismiss popover, the same tier of UI as a native
 // <select> dropdown, not a dialog.
-const DatePickerPopover = ({ selectedDate, onSelect, onClose, weekDays, months }: DatePickerPopoverProps) => {
+const DatePickerPopover = ({ selectedDate, onSelect, onClose, weekDays, months, prevMonthLabel, nextMonthLabel }: DatePickerPopoverProps) => {
     const [viewDate, setViewDate] = useState(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -154,7 +186,9 @@ const DatePickerPopover = ({ selectedDate, onSelect, onClose, weekDays, months }
                 <button
                     type="button"
                     onClick={() => setViewDate(new Date(year, month - 1, 1))}
-                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-md text-gray-500 dark:text-gray-400 transition-all"
+                    aria-label={prevMonthLabel}
+                    title={prevMonthLabel}
+                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-md text-gray-500 dark:text-gray-400 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500"
                 >
                     <ChevronLeft size={16} />
                 </button>
@@ -164,14 +198,16 @@ const DatePickerPopover = ({ selectedDate, onSelect, onClose, weekDays, months }
                 <button
                     type="button"
                     onClick={() => setViewDate(new Date(year, month + 1, 1))}
-                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-md text-gray-500 dark:text-gray-400 transition-all"
+                    aria-label={nextMonthLabel}
+                    title={nextMonthLabel}
+                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-md text-gray-500 dark:text-gray-400 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500"
                 >
                     <ChevronRight size={16} />
                 </button>
             </div>
             <div className="grid grid-cols-7 mb-1">
                 {weekDays.map(d => (
-                    <div key={d} className="text-center text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase">
+                    <div key={d} className="text-center text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase">
                         {d.substring(0, 2)}
                     </div>
                 ))}
@@ -205,7 +241,7 @@ const DatePickerPopover = ({ selectedDate, onSelect, onClose, weekDays, months }
     );
 };
 
-export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDeleteTask, onToggleTask }: AgendaViewProps) => {
+export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onDeleteTask, onToggleTask }: AgendaViewProps) => {
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
 
@@ -618,15 +654,19 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                 onDragEnd={handleChipDragEnd}
                 title={task.title}
                 onClick={() => openEditModal(task)}
+                role="button"
+                tabIndex={0}
+                aria-label={`${task.subjectName} — ${task.title}`}
+                onKeyDown={(e) => handleActivateKeyDown(e, () => openEditModal(task))}
                 style={{ animationDelay: `${taskIdx * 40}ms` }}
-                className={`animate-chip-in bg-white dark:bg-gray-800 border p-2 sm:p-3 rounded-xl shadow-sm flex items-start gap-2 sm:gap-3 transition-all hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] cursor-grab active:cursor-grabbing ${
+                className={`animate-chip-in bg-white dark:bg-gray-800 border p-2 sm:p-3 rounded-xl shadow-sm flex items-start gap-2 sm:gap-3 transition-all hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] cursor-grab active:cursor-grabbing outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 ${
                     draggedTask?.id === task.id ? "opacity-30" : ""
                 } ${task.completed ? 'opacity-60 bg-gray-50 dark:bg-gray-900/50 dark:border-gray-800' : subjectColor.border}`}
             >
                 <div className="mt-1">{renderCompleteToggle(task, "sm")}</div>
                 <div className="flex flex-col flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-0.5">
-                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider truncate transition-colors duration-300">
+                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider truncate transition-colors duration-300">
                             {task.subjectName}
                         </span>
                         <div className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 sm:px-2 py-0.5 rounded-md shrink-0 transition-colors duration-300">
@@ -658,17 +698,21 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                 onDragEnd={handleChipDragEnd}
                 title={`${task.subjectName} — ${task.title}`}
                 onClick={() => openEditModal(task)}
+                role="button"
+                tabIndex={0}
+                aria-label={`${task.subjectName} — ${task.title}`}
+                onKeyDown={(e) => handleActivateKeyDown(e, () => openEditModal(task))}
                 style={{ animationDelay: `${taskIdx * 40}ms` }}
-                className={`animate-chip-in flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs shrink-0 cursor-grab active:cursor-grabbing transition-all hover:shadow-sm hover:-translate-y-px active:translate-y-0 active:scale-95 ${
+                className={`animate-chip-in flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs shrink-0 cursor-grab active:cursor-grabbing transition-all hover:shadow-sm hover:-translate-y-px active:translate-y-0 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 ${
                     draggedTask?.id === task.id ? "opacity-30" : ""
                 } ${
                     task.completed
-                        ? 'bg-gray-50 dark:bg-gray-900/50 border-gray-100 dark:border-gray-800 text-gray-400 dark:text-gray-500 line-through'
+                        ? 'bg-gray-50 dark:bg-gray-900/50 border-gray-100 dark:border-gray-800 text-gray-500 dark:text-gray-500 line-through'
                         : `${subjectColor.bg} ${subjectColor.border} text-gray-700 dark:text-gray-200`
                 }`}
             >
                 {renderCompleteToggle(task, "xs")}
-                <span className="shrink-0 font-semibold text-gray-400 dark:text-gray-500">{timeString}</span>
+                <span className="shrink-0 font-semibold text-gray-500 dark:text-gray-500">{timeString}</span>
                 <span className="truncate font-medium">{task.title}</span>
             </div>
         );
@@ -686,13 +730,13 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                     </h1>
 
                     <div className="flex items-center gap-1 bg-white dark:bg-gray-900 p-1 rounded-lg shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300">
-                        <button onClick={handlePrev} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-md text-gray-500 dark:text-gray-400 transition-all">
+                        <button onClick={handlePrev} aria-label={t.prevPeriod} title={t.prevPeriod} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-md text-gray-500 dark:text-gray-400 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500">
                             <ChevronLeft size={20} />
                         </button>
                         <button onClick={handleToday} className="px-2 sm:px-3 py-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 rounded-md transition-all">
                             {t.btnToday}
                         </button>
-                        <button onClick={handleNext} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-md text-gray-500 dark:text-gray-400 transition-all">
+                        <button onClick={handleNext} aria-label={t.nextPeriod} title={t.nextPeriod} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-md text-gray-500 dark:text-gray-400 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500">
                             <ChevronRight size={20} />
                         </button>
                         <div className="relative w-px self-stretch bg-gray-100 dark:bg-gray-800 mx-0.5" />
@@ -712,6 +756,8 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                     onClose={() => setDatePickerOpen(false)}
                                     weekDays={t.weekDays}
                                     months={t.months}
+                                    prevMonthLabel={t.prevMonth}
+                                    nextMonthLabel={t.nextMonth}
                                 />
                             )}
                         </div>
@@ -770,7 +816,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                     <>
                         <div className="grid grid-cols-7 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 shrink-0 transition-colors duration-300">
                             {t.weekDays.map(day => (
-                                <div key={day} className="py-3 text-center text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{day.substring(0,3)}</div>
+                                <div key={day} className="py-3 text-center text-xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider">{day.substring(0,3)}</div>
                             ))}
                         </div>
                         {/* A soft gutter + rounded tiles instead of hairline grid rules —
@@ -828,7 +874,11 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                         onDragOver={(e) => handleDropZoneDragOver(e, monthCellKey)}
                                         onDragLeave={() => handleDropZoneDragLeave(monthCellKey)}
                                         onDrop={(e) => handleDayCellDrop(e, cellDateObj)}
-                                        className={`${bgColorClass} rounded-lg p-1 sm:p-2 flex flex-col transition-all hover:brightness-95 dark:hover:brightness-110 hover:shadow-md hover:z-20 cursor-pointer relative group ${isToday ? "z-10" : ""} ${
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-label={cellDateObj.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+                                        onKeyDown={(e) => handleActivateKeyDown(e, () => jumpToDay(cellDateObj))}
+                                        className={`${bgColorClass} rounded-lg p-1 sm:p-2 flex flex-col transition-all hover:brightness-95 dark:hover:brightness-110 hover:shadow-md hover:z-20 cursor-pointer relative group outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 ${isToday ? "z-10" : ""} ${
                                             dragOverKey === monthCellKey ? "z-20 ring-2 ring-inset ring-red-400 dark:ring-red-500" : ""
                                         }`}
                                     >
@@ -859,12 +909,16 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                                             onDragEnd={handleChipDragEnd}
                                                             title={`${task.subjectName} — ${task.title}`}
                                                             onClick={(e) => { e.stopPropagation(); openEditModal(task); }}
+                                                            role="button"
+                                                            tabIndex={0}
+                                                            aria-label={`${task.subjectName} — ${task.title}`}
+                                                            onKeyDown={(e) => { e.stopPropagation(); handleActivateKeyDown(e, () => openEditModal(task)); }}
                                                             style={{ animationDelay: `${taskIdx * 40}ms` }}
-                                                            className={`animate-chip-in text-[8px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded truncate cursor-grab active:cursor-grabbing transition-all hover:brightness-95 active:scale-95 ${
+                                                            className={`animate-chip-in text-[8px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded truncate cursor-grab active:cursor-grabbing transition-all hover:brightness-95 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 ${
                                                                 draggedTask?.id === task.id ? "opacity-30" : ""
                                                             } ${
                                                                 task.completed
-                                                                    ? "bg-white/60 dark:bg-gray-900/60 text-gray-400 dark:text-gray-500 line-through"
+                                                                    ? "bg-white/60 dark:bg-gray-900/60 text-gray-500 dark:text-gray-500 line-through"
                                                                     : `${subjectColor.bg} ${subjectColor.text}`
                                                             }`}
                                                         >
@@ -876,7 +930,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                                     <span
                                                         onMouseEnter={(e) => { e.stopPropagation(); setMorePopover({ tasks: dayTasks, rect: e.currentTarget.getBoundingClientRect() }); }}
                                                         onMouseLeave={() => setMorePopover(null)}
-                                                        className="hidden sm:inline text-[9px] text-gray-400 dark:text-gray-500 font-bold px-1 hover:text-gray-600 dark:hover:text-gray-300 cursor-default"
+                                                        className="hidden sm:inline text-[9px] text-gray-500 dark:text-gray-500 font-bold px-1 hover:text-gray-600 dark:hover:text-gray-300 cursor-default"
                                                     >
                                                         +{dayTasks.length - 2} {t.moreTasks}
                                                     </span>
@@ -905,7 +959,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                 const isToday = date.toDateString() === todayObj.toDateString();
                                 return (
                                     <div key={i} className={`py-2 sm:py-4 flex flex-col items-center justify-center gap-1 border-r border-gray-100 dark:border-gray-800 last:border-0 transition-colors duration-300 ${isToday ? "bg-red-50/50 dark:bg-red-900/20" : ""}`}>
-                                        <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${isToday ? "text-red-500 dark:text-red-400" : "text-gray-400 dark:text-gray-500"}`}>
+                                        <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${isToday ? "text-red-500 dark:text-red-400" : "text-gray-500 dark:text-gray-500"}`}>
                                             {t.weekDays[i].substring(0,3)}
                                         </span>
                                         <span className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full text-base sm:text-xl font-black transition-colors duration-300 ${isToday ? "bg-red-600 text-white shadow-sm mt-0.5" : "text-gray-800 dark:text-gray-200"}`}>
@@ -940,7 +994,11 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                         onDragOver={(e) => handleDropZoneDragOver(e, weekCellKey)}
                                         onDragLeave={() => handleDropZoneDragLeave(weekCellKey)}
                                         onDrop={(e) => handleDayCellDrop(e, date)}
-                                        className={`${bgColorClass} rounded-lg p-1 sm:p-2 flex flex-col gap-1 overflow-y-auto no-scrollbar cursor-pointer transition-all hover:brightness-95 dark:hover:brightness-110 hover:shadow-md hover:z-20 relative group ${
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-label={date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+                                        onKeyDown={(e) => handleActivateKeyDown(e, () => jumpToDay(date))}
+                                        className={`${bgColorClass} rounded-lg p-1 sm:p-2 flex flex-col gap-1 overflow-y-auto no-scrollbar cursor-pointer transition-all hover:brightness-95 dark:hover:brightness-110 hover:shadow-md hover:z-20 outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 relative group ${
                                             dragOverKey === weekCellKey ? "z-20 ring-2 ring-inset ring-red-400 dark:ring-red-500" : ""
                                         }`}
                                     >
@@ -970,12 +1028,16 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                                             onDragEnd={handleChipDragEnd}
                                                             title={`${task.subjectName} — ${task.title}`}
                                                             onClick={(e) => { e.stopPropagation(); openEditModal(task); }}
+                                                            role="button"
+                                                            tabIndex={0}
+                                                            aria-label={`${task.subjectName} — ${task.title}`}
+                                                            onKeyDown={(e) => { e.stopPropagation(); handleActivateKeyDown(e, () => openEditModal(task)); }}
                                                             style={{ animationDelay: `${taskIdx * 40}ms` }}
-                                                            className={`animate-chip-in text-[9px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 sm:py-1 rounded-md truncate cursor-grab active:cursor-grabbing transition-all hover:brightness-95 active:scale-95 ${
+                                                            className={`animate-chip-in text-[9px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 sm:py-1 rounded-md truncate cursor-grab active:cursor-grabbing transition-all hover:brightness-95 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 ${
                                                                 draggedTask?.id === task.id ? "opacity-30" : ""
                                                             } ${
                                                                 task.completed
-                                                                    ? "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 line-through"
+                                                                    ? "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500 line-through"
                                                                     : `${subjectColor.bg} ${subjectColor.text}`
                                                             }`}
                                                         >
@@ -984,7 +1046,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                                     );
                                                 })}
                                                 {dayTasks.length > 4 && (
-                                                    <span className="text-[9px] sm:text-[10px] text-gray-400 dark:text-gray-500 font-bold px-1">
+                                                    <span className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-500 font-bold px-1">
                                                         +{dayTasks.length - 4} {t.moreTasks}
                                                     </span>
                                                 )}
@@ -1013,7 +1075,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                     dragOverKey === "allday" ? "ring-2 ring-inset ring-red-400 dark:ring-red-500" : ""
                                 }`}
                             >
-                                <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">{t.lblAllDay}</span>
+                                <span className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider px-1">{t.lblAllDay}</span>
                                 {allDayTasks.map((task, taskIdx) => renderDayTaskCard(task, taskIdx))}
                             </div>
                         )}
@@ -1026,7 +1088,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                         <div className="flex-1 flex overflow-y-auto">
                             <div className="w-12 sm:w-20 border-r border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 pt-3 sm:pt-6 pb-6 flex flex-col shrink-0 transition-colors duration-300">
                                 {hours.map(hour => (
-                                    <div key={hour} className="h-20 shrink-0 flex justify-end pr-1.5 sm:pr-4 text-[10px] sm:text-xs font-bold text-gray-400 dark:text-gray-500 relative transition-colors duration-300">
+                                    <div key={hour} className="h-20 shrink-0 flex justify-end pr-1.5 sm:pr-4 text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-500 relative transition-colors duration-300">
                                         <span className="-mt-2">{hour.toString().padStart(2, '0')}:00</span>
                                     </div>
                                 ))}
@@ -1051,7 +1113,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                     <div className="relative z-20 mt-10 p-6 sm:max-w-xl sm:ml-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center text-center bg-white/50 dark:bg-gray-800/50 transition-colors duration-300">
                                         <DayOffIllustration className="w-20 h-20 mb-2" />
                                         <h3 className="text-gray-500 dark:text-gray-400 font-bold transition-colors duration-300">{t.dayOffTitle}</h3>
-                                        <p className="text-sm text-gray-400 dark:text-gray-500 mb-3 transition-colors duration-300">{t.dayOffDesc}</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-500 mb-3 transition-colors duration-300">{t.dayOffDesc}</p>
                                         {subjects.length > 0 && (
                                             <button
                                                 onClick={() => openCreateModal(currentDate)}
@@ -1087,7 +1149,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                                             onClick={() => openCreateModal(hourDate)}
                                                             title={t.addTaskTitle}
                                                             aria-label={t.addTaskTitle}
-                                                            className="can-hover:opacity-0 can-hover:group-hover:opacity-100 focus:opacity-100 no-hover:opacity-100 p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-110 active:scale-90 shrink-0 transition-all"
+                                                            className="can-hover:opacity-0 can-hover:group-hover:opacity-100 focus:opacity-100 no-hover:opacity-100 p-1 rounded-md text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-110 active:scale-90 shrink-0 transition-all"
                                                         >
                                                             <Plus size={14} />
                                                         </button>
@@ -1126,7 +1188,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                 key={task.id}
                                 className={`text-xs font-semibold px-2 py-1.5 rounded-lg truncate ${
                                     task.completed
-                                        ? "bg-gray-50 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500 line-through"
+                                        ? "bg-gray-50 dark:bg-gray-800/60 text-gray-500 dark:text-gray-500 line-through"
                                         : `${subjectColor.bg} ${subjectColor.text}`
                                 }`}
                             >
@@ -1138,18 +1200,20 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                 document.body
             )}
 
-            <CalendarTaskModal
-                isOpen={taskModalState !== null}
-                onClose={() => setTaskModalState(null)}
-                subjects={subjects}
-                mode={taskModalState?.mode ?? "create"}
-                initialDate={taskModalState?.mode === "create" ? taskModalState.date : undefined}
-                defaultSubjectId={taskModalState?.mode === "create" ? taskModalState.defaultSubjectId : undefined}
-                task={taskModalState?.mode === "edit" ? taskModalState.task : undefined}
-                onCreate={onCreateTask}
-                onUpdate={onUpdateTask}
-                onDelete={onDeleteTask}
-            />
+            <Suspense fallback={null}>
+                <CalendarTaskModal
+                    isOpen={taskModalState !== null}
+                    onClose={() => setTaskModalState(null)}
+                    subjects={subjects}
+                    mode={taskModalState?.mode ?? "create"}
+                    initialDate={taskModalState?.mode === "create" ? taskModalState.date : undefined}
+                    defaultSubjectId={taskModalState?.mode === "create" ? taskModalState.defaultSubjectId : undefined}
+                    task={taskModalState?.mode === "edit" ? taskModalState.task : undefined}
+                    onCreate={onCreateTask}
+                    onUpdate={onUpdateTask}
+                    onDelete={onDeleteTask}
+                />
+            </Suspense>
         </div>
     );
-};
+});

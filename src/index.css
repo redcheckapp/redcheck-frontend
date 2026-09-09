@@ -21,6 +21,22 @@
   }
 }
 
+/* 4. Respect the OS-level "reduce motion" preference app-wide. The app has
+   no per-component check for this (every animate-*/transition-* class is
+   unconditional), so this is a single catch-all override instead of
+   threading a check through every component: it collapses every CSS
+   transition and @keyframes animation to effectively instant rather than
+   disabling them outright, which keeps end-state styling (e.g. a modal's
+   opacity-100/scale-100 on open) correct without a flash of missing state. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 
 /* --- ANIMATIONS --- */
 @keyframes slideDown {

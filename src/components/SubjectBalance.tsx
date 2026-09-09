@@ -36,7 +36,7 @@ export const SubjectBalance = ({ sidebarOpen, setSidebarOpen, stats }: SubjectBa
             <div className={`transition-all duration-300 ease-in-out flex justify-center overflow-hidden w-full ${!sidebarOpen ? "max-h-[50px] opacity-100" : "max-h-0 opacity-0 hidden"}`}>
                 <div 
                     onClick={() => setSidebarOpen(true)} 
-                    className="w-10 h-10 rounded-xl text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:shadow-sm transition-all cursor-pointer flex items-center justify-center shrink-0" 
+                    className="w-10 h-10 rounded-xl text-gray-500 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:shadow-sm transition-all cursor-pointer flex items-center justify-center shrink-0" 
                     title={t.tooltip}
                 >
                     <PieChart size={22} strokeWidth={1.5} />
@@ -47,7 +47,7 @@ export const SubjectBalance = ({ sidebarOpen, setSidebarOpen, stats }: SubjectBa
             <div className={`w-full transition-all duration-500 ease-in-out overflow-hidden flex flex-col ${sidebarOpen ? "max-h-[250px] opacity-100" : "max-h-0 opacity-0"}`}>
                 
                 <div className="flex items-center justify-between mb-4 px-5">
-                    <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider transition-colors duration-300">
+                    <h3 className="text-xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider transition-colors duration-300">
                         {t.header}
                     </h3>
                     <PieChart size={14} className="text-gray-300 dark:text-gray-600 transition-colors duration-300" />
@@ -56,7 +56,7 @@ export const SubjectBalance = ({ sidebarOpen, setSidebarOpen, stats }: SubjectBa
                 <div className="flex flex-col gap-3 px-5 w-full">
                     {isEmpty ? (
                         <div className="text-center py-4">
-                            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium italic transition-colors duration-300">{t.emptyState}</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-500 font-medium italic transition-colors duration-300">{t.emptyState}</span>
                         </div>
                     ) : (
                         stats.map((item) => (

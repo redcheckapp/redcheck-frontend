@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { login } from "../api/authApi";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { PageTransition } from "../components/PageTransition";
 import { AuthFloatingNav } from "../components/AuthFloatingNav";
 import { useLanguage } from "../context/LanguageContext"; // <-- New context
@@ -162,8 +162,9 @@ const LoginPage = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 py-3 rounded-xl font-medium hover:bg-black dark:hover:bg-white transition-all duration-300 shadow-sm hover:shadow disabled:opacity-50 mt-2"
+                        className="w-full flex items-center justify-center gap-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 py-3 rounded-xl font-medium hover:bg-black dark:hover:bg-white transition-all duration-300 shadow-sm hover:shadow disabled:opacity-50 mt-2"
                     >
+                        {loading && <Loader2 size={16} className="animate-spin" />}
                         {loading ? t.loading : t.loginBtn}
                     </button>
 
@@ -173,6 +174,7 @@ const LoginPage = () => {
                         disabled={loading}
                         className="w-full bg-emerald-600 dark:bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-700 dark:hover:bg-emerald-400 transition-all duration-300 shadow-sm hover:shadow disabled:opacity-50 flex items-center justify-center gap-2"
                     >
+                        {loading && <Loader2 size={16} className="animate-spin" />}
                         {t.demoBtn}
                     </button>
                 </form>
@@ -186,12 +188,12 @@ const LoginPage = () => {
 
                 {/* --- GDPR LEGAL LINKS AND COPYRIGHT --- */}
                 <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col items-center gap-3 transition-colors duration-300">
-                    <div className="flex justify-center gap-4 text-[11px] text-gray-400 dark:text-gray-500">
+                    <div className="flex justify-center gap-4 text-[11px] text-gray-500 dark:text-gray-500">
                         <a href="/terms" target="_blank" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t.legal}</a>
                         <span>•</span>
                         <a href="/privacy" target="_blank" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t.privacy}</a>
                     </div>
-                    <p className="text-[10px] text-gray-400/80 dark:text-gray-500/70 text-center">
+                    <p className="text-[10px] text-gray-500/80 dark:text-gray-500/70 text-center">
                         {t.copyright}
                     </p>
                 </div>

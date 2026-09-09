@@ -75,12 +75,12 @@ export const ArchivedSubjectsPopover = ({ subjects, onRestore, onClose }: Archiv
             className="absolute top-full left-0 mt-2 z-50 w-72 max-h-80 overflow-y-auto bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-xl p-2 animate-soft-fade"
         >
             <div className="flex items-center gap-2 px-2 py-2 mb-1 border-b border-gray-50 dark:border-gray-800">
-                <Archive size={14} className="text-gray-400 dark:text-gray-500" />
-                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">{t.title}</span>
+                <Archive size={14} className="text-gray-500 dark:text-gray-500" />
+                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-500">{t.title}</span>
             </div>
 
             {localSubjects.length === 0 ? (
-                <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-6">{t.empty}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-500 text-center py-6">{t.empty}</p>
             ) : (
                 <div className="flex flex-col gap-1">
                     {localSubjects.map(subject => {

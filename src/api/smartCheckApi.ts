@@ -24,14 +24,11 @@ export const pollForAnalysis = async (intervalMs = 3000, maxAttempts = 60): Prom
 
             // Now can read planDeHoy (Gemini's prompt is written in spanish)
             if (data && data.planDeHoy && data.planDeHoy.length > 0) {
-                console.log(`Success! Gemini has finished in ${attempt} attemps`);
                 return data;
             }
-            console.log(`Attemp ${attempt}/${maxAttempts}: Backend still thinking...`);
 
         } catch (error) {
             if (axios.isAxiosError(error) && error.response?.status === 404) {
-                console.log(`Attemp ${attempt}/${maxAttempts}: Plan still does not exist (404).`);
                 continue;
             }
             throw error;

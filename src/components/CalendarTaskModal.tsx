@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { X, Trash2, BookOpen, Type, AlignLeft, Clock3, ChevronDown, CalendarPlus, CalendarClock, Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
+import { useConfirm } from "../context/ConfirmContext";
 import type { SubjectWithTasks, TaskRequest, TaskResponse } from "../types";
 import { ModalOverlay } from "./ModalOverlay";
 import { getSubjectColor } from "../utils/subjectColors";
@@ -35,10 +36,12 @@ const translations = {
         phDesc: "Añade detalles o notas...",
         lblDeadline: "Fecha y hora",
         noSubjects: "Crea primero una asignatura para poder añadir tareas.",
+        close: "Cerrar",
         btnCancel: "Cancelar",
         btnCreate: "Crear tarea",
         btnSave: "Guardar cambios",
         btnDelete: "Eliminar",
+        confirmDeleteTitle: "¿Borrar tarea?",
         confirmDelete: "¿Seguro que quieres borrar esta tarea?",
         errSave: "No se pudo guardar la tarea.",
         errDelete: "No se pudo borrar la tarea."
@@ -56,10 +59,12 @@ const translations = {
         phDesc: "Add details or notes...",
         lblDeadline: "Date and time",
         noSubjects: "Create a subject first so you can add tasks.",
+        close: "Close",
         btnCancel: "Cancel",
         btnCreate: "Create task",
         btnSave: "Save changes",
         btnDelete: "Delete",
+        confirmDeleteTitle: "Delete task?",
         confirmDelete: "Are you sure you want to delete this task?",
         errSave: "Couldn't save the task.",
         errDelete: "Couldn't delete the task."
@@ -81,6 +86,7 @@ export const CalendarTaskModal = ({
 }: CalendarTaskModalProps) => {
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
+    const confirm = useConfirm();
 
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
@@ -139,7 +145,7 @@ export const CalendarTaskModal = ({
 
     const handleDelete = async () => {
         if (mode !== "edit" || !task) return;
-        if (!window.confirm(t.confirmDelete)) return;
+        if (!(await confirm({ title: t.confirmDeleteTitle, message: t.confirmDelete }))) return;
         setSubmitting(true);
         try {
             await onDelete(task.subjectId, task.id);
@@ -162,7 +168,7 @@ export const CalendarTaskModal = ({
     // native control glyphs (the datetime-local field's calendar icon, here)
     // in their light-mode color, which is nearly invisible against this
     // field's dark background in dark mode.
-    const fieldClass = "w-full bg-gray-50 dark:bg-gray-800/60 border border-transparent text-gray-800 dark:text-gray-100 rounded-xl pl-10 py-2.5 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 [color-scheme:light] dark:[color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-red-300/70 dark:focus:ring-red-500/40 focus:bg-white dark:focus:bg-gray-900 focus:border-red-200 dark:focus:border-red-900/50 transition-all duration-200";
+    const fieldClass = "w-full bg-gray-50 dark:bg-gray-800/60 border border-transparent text-gray-800 dark:text-gray-100 rounded-xl pl-10 py-2.5 text-sm placeholder:text-gray-500 dark:placeholder:text-gray-500 [color-scheme:light] dark:[color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-red-300/70 dark:focus:ring-red-500/40 focus:bg-white dark:focus:bg-gray-900 focus:border-red-200 dark:focus:border-red-900/50 transition-all duration-200";
 
     return (
         <ModalOverlay isOpen={isOpen} onClose={onClose}>
@@ -176,22 +182,22 @@ export const CalendarTaskModal = ({
                             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 tracking-tight transition-colors duration-300">
                                 {mode === "edit" ? t.titleEdit : t.titleCreate}
                             </h2>
-                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 transition-colors duration-300">
+                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5 transition-colors duration-300">
                                 {mode === "edit" ? t.subtitleEdit : t.subtitleCreate}
                             </p>
                         </div>
-                        <button onClick={onClose} className="shrink-0 p-2 -mr-1 -mt-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-xl transition-all duration-200">
+                        <button onClick={onClose} aria-label={t.close} title={t.close} className="shrink-0 p-2 -mr-1 -mt-1 text-gray-500 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-xl transition-all duration-200">
                             <X size={20} />
                         </button>
                     </div>
 
                     {mode === "create" && subjects.length === 0 ? (
-                        <p className="p-6 text-sm text-center text-gray-400 dark:text-gray-500">{t.noSubjects}</p>
+                        <p className="p-6 text-sm text-center text-gray-500 dark:text-gray-500">{t.noSubjects}</p>
                     ) : (
                         <form onSubmit={handleSubmit} className="p-5 sm:p-6 flex flex-col gap-4">
                             {mode === "create" ? (
                                 <div className="relative">
-                                    <BookOpen size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                                    <BookOpen size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500 pointer-events-none" />
                                     <select
                                         value={subjectId ?? ""}
                                         onChange={(e) => setSubjectId(Number(e.target.value))}
@@ -202,7 +208,7 @@ export const CalendarTaskModal = ({
                                             <option key={s.id} value={s.id}>{s.name}</option>
                                         ))}
                                     </select>
-                                    <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                                    <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500 pointer-events-none" />
                                 </div>
                             ) : (
                                 <span className={`self-start flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${accentColor ? `${accentColor.bg} ${accentColor.text}` : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"}`}>
@@ -212,9 +218,9 @@ export const CalendarTaskModal = ({
                             )}
 
                             <label className="flex flex-col gap-1.5">
-                                <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-0.5">{t.lblTitle}</span>
+                                <span className="text-[11px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider px-0.5">{t.lblTitle}</span>
                                 <div className="relative">
-                                    <Type size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                                    <Type size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500 pointer-events-none" />
                                     <input
                                         type="text"
                                         value={title}
@@ -228,11 +234,11 @@ export const CalendarTaskModal = ({
                             </label>
 
                             <label className="flex flex-col gap-1.5">
-                                <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-0.5">
+                                <span className="text-[11px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider px-0.5">
                                     {t.lblDescription} <span className="font-medium normal-case text-gray-300 dark:text-gray-600">({t.optional})</span>
                                 </span>
                                 <div className="relative">
-                                    <AlignLeft size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                                    <AlignLeft size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500 pointer-events-none" />
                                     <input
                                         type="text"
                                         value={description}
@@ -244,9 +250,9 @@ export const CalendarTaskModal = ({
                             </label>
 
                             <label className="flex flex-col gap-1.5">
-                                <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-0.5">{t.lblDeadline}</span>
+                                <span className="text-[11px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider px-0.5">{t.lblDeadline}</span>
                                 <div className="relative">
-                                    <Clock3 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                                    <Clock3 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500 pointer-events-none" />
                                     <input
                                         type="datetime-local"
                                         value={deadline}

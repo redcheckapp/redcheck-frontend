@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Check, Pencil, X, Type, AlignLeft, Clock3 } from "lucide-react";
 import type { SubjectWithTasks } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
@@ -36,6 +37,9 @@ const translations = {
         dayAfter: "Pasado mañana",
         ttEdit: "Editar tarea",
         ttDelete: "Eliminar tarea",
+        ttMarkComplete: "Marcar como completada",
+        ttMarkIncomplete: "Marcar como pendiente",
+        ttSelectTask: "Seleccionar tarea",
         editTitle: "Editar tarea",
         lblTitle: "Título de la tarea",
         lblDesc: "Descripción",
@@ -50,6 +54,9 @@ const translations = {
         dayAfter: "Day after tomorrow",
         ttEdit: "Edit task",
         ttDelete: "Delete task",
+        ttMarkComplete: "Mark as complete",
+        ttMarkIncomplete: "Mark as pending",
+        ttSelectTask: "Select task",
         editTitle: "Edit task",
         lblTitle: "Task title",
         lblDesc: "Description",
@@ -123,7 +130,7 @@ const renderDeadline = (deadlineStr: string | null, isCompleted: boolean, t: typ
     );
 };
 
-export const TaskItem = ({
+export const TaskItem = memo(({
     subjectId, task, handleToggleTask, handleDeleteTask, setOpenFormSubjectIdTaskId,
     openFormSubjectIdTaskId, handleUpdateTask, updatedTask, handleChangeUpdateTask, setUpdatedTask, loading, error, isAdding, isDeleting,
     selectionMode, isSelected, onToggleSelect,
@@ -149,7 +156,11 @@ export const TaskItem = ({
                 {/* Checkbox — doubles as the selection toggle in selection mode */}
                 <button
                     onClick={() => selectionMode ? onToggleSelect?.(subjectId, task.id) : handleToggleTask(subjectId, task.id)}
-                    className={`w-6 h-6 squared-full border-2 flex items-center justify-center transition-all duration-200 hover:scale-110
+                    role="checkbox"
+                    aria-checked={selectionMode ? isSelected : task.completed}
+                    aria-label={selectionMode ? t.ttSelectTask : (task.completed ? t.ttMarkIncomplete : t.ttMarkComplete)}
+                    title={selectionMode ? t.ttSelectTask : (task.completed ? t.ttMarkIncomplete : t.ttMarkComplete)}
+                    className={`w-6 h-6 squared-full border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500
                         ${selectionMode
                             ? (isSelected
                                 ? "bg-blue-500 border-blue-500"
@@ -176,12 +187,12 @@ export const TaskItem = ({
                                                             
                         {task.description && (
                             <span className={`ml-2 font-normal transition 
-                                ${task.completed ? "text-gray-300 dark:text-gray-600" : "text-gray-400 dark:text-gray-500"}`}>
+                                ${task.completed ? "text-gray-300 dark:text-gray-600" : "text-gray-500 dark:text-gray-500"}`}>
                                 — {task.description}
                             </span>
                         )}
                     </p>
-                    <p className={`text-xs mt-0.5 font-medium transition-all ${task.completed ? "text-gray-400 dark:text-gray-600" : "text-gray-500 dark:text-gray-400"}`}>
+                    <p className={`text-xs mt-0.5 font-medium transition-all ${task.completed ? "text-gray-500 dark:text-gray-600" : "text-gray-500 dark:text-gray-400"}`}>
                         {renderDeadline(task.deadline, task.completed, t, locale)}
                     </p>
                 </div>
@@ -191,7 +202,7 @@ export const TaskItem = ({
                 {!selectionMode && (
                     <div className="flex items-center gap-1 opacity-100 [@media(any-hover:hover)]:opacity-0 [@media(any-hover:hover)]:group-hover:opacity-100 transition-opacity duration-200">
                         <button type="button"
-                            className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 dark:hover:text-yellow-400 dark:hover:bg-yellow-900/30 rounded-lg transition"
+                            className="p-1.5 text-gray-500 hover:text-yellow-600 hover:bg-yellow-50 dark:hover:text-yellow-400 dark:hover:bg-yellow-900/30 rounded-lg transition"
                             onClick={() => {
                                 setOpenFormSubjectIdTaskId({subjectId: subjectId, taskId: task.id});
 
@@ -214,7 +225,7 @@ export const TaskItem = ({
                         </button>
 
                         <button type="button"
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition"
+                            className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition"
                             onClick={() => { handleDeleteTask(subjectId, task.id); }}
                             title={t.ttDelete}
                         >
@@ -239,7 +250,7 @@ export const TaskItem = ({
                         <div className="flex flex-col">
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblTitle}</label>
                             <div className="relative">
-                                <Type size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                                <Type size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500 pointer-events-none" />
                                 <input
                                     type="text"
                                     name="title"
@@ -255,7 +266,7 @@ export const TaskItem = ({
                             <div className="flex-1 flex flex-col">
                                 <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblDesc}</label>
                                 <div className="relative">
-                                    <AlignLeft size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                                    <AlignLeft size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500 pointer-events-none" />
                                     <input
                                         type="text"
                                         name="description"
@@ -269,7 +280,7 @@ export const TaskItem = ({
                             <div className="flex-1 flex flex-col">
                                 <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblDeadline}</label>
                                 <div className="relative">
-                                    <Clock3 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                                    <Clock3 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500 pointer-events-none" />
                                     <input
                                         type="datetime-local"
                                         name="deadline"
@@ -306,4 +317,4 @@ export const TaskItem = ({
             </div>
         </div>
     );
-};
+});
