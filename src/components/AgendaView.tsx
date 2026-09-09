@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, type TouchEvent } from "react";
 import { ChevronLeft, ChevronRight, Clock, CheckCircle2, CalendarDays, Plus } from "lucide-react";
 import { getProgressHeatmap } from "../api/progressRecordApi";
 import type { ProgressRecord, SubjectWithTasks, TaskRequest, TaskResponse } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import { CalendarTaskModal } from "./CalendarTaskModal";
+import { getSubjectColor } from "../utils/subjectColors";
 
 type ViewMode = "day" | "week" | "month";
 
@@ -84,25 +85,14 @@ const getTasksForDate = (subjects: SubjectWithTasks[], date: Date) => {
 const DAY_VIEW_HOUR_START = 8;
 const DAY_VIEW_HOUR_END = 20;
 
-// A stable per-subject color across the whole calendar (Day/Week/Month),
-// so the same subject always reads the same color regardless of view or
-// current filter/sort order. Keyed by `subjectId % length`, not array
-// position, so it stays stable even if the subjects list gets reordered,
-// filtered, or a subject is deleted. Full literal class strings (not
-// template-built) so Tailwind's build-time scanner picks them all up.
-const SUBJECT_COLOR_PALETTE = [
-    { bg: "bg-red-50 dark:bg-red-900/20", border: "border-red-200 dark:border-red-900/30", text: "text-red-700 dark:text-red-400", dot: "bg-red-500" },
-    { bg: "bg-blue-50 dark:bg-blue-900/20", border: "border-blue-200 dark:border-blue-900/30", text: "text-blue-700 dark:text-blue-400", dot: "bg-blue-500" },
-    { bg: "bg-amber-50 dark:bg-amber-900/20", border: "border-amber-200 dark:border-amber-900/30", text: "text-amber-700 dark:text-amber-400", dot: "bg-amber-500" },
-    { bg: "bg-emerald-50 dark:bg-emerald-900/20", border: "border-emerald-200 dark:border-emerald-900/30", text: "text-emerald-700 dark:text-emerald-400", dot: "bg-emerald-500" },
-    { bg: "bg-purple-50 dark:bg-purple-900/20", border: "border-purple-200 dark:border-purple-900/30", text: "text-purple-700 dark:text-purple-400", dot: "bg-purple-500" },
-    { bg: "bg-pink-50 dark:bg-pink-900/20", border: "border-pink-200 dark:border-pink-900/30", text: "text-pink-700 dark:text-pink-400", dot: "bg-pink-500" },
-    { bg: "bg-teal-50 dark:bg-teal-900/20", border: "border-teal-200 dark:border-teal-900/30", text: "text-teal-700 dark:text-teal-400", dot: "bg-teal-500" },
-    { bg: "bg-indigo-50 dark:bg-indigo-900/20", border: "border-indigo-200 dark:border-indigo-900/30", text: "text-indigo-700 dark:text-indigo-400", dot: "bg-indigo-500" },
-];
+const VIEW_ORDER: ViewMode[] = ["day", "week", "month"];
 
-const getSubjectColor = (subjectId: number) =>
-    SUBJECT_COLOR_PALETTE[subjectId % SUBJECT_COLOR_PALETTE.length];
+// Which direction the grid content should slide in from. Set directly in
+// event handlers (prev/next vs. everything else), not derived during
+// render — plain setState in a click handler, so this doesn't need the
+// render-phase-update pattern used elsewhere in this file for props-driven
+// state (e.g. Confetti's lastTrigger comparison).
+type TransitionVariant = "next" | "prev" | "fade";
 
 export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDeleteTask }: AgendaViewProps) => {
     const { language } = useLanguage();
@@ -115,6 +105,18 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
     const [loadingRecords, setLoadingRecords] = useState(true);
     const jumpDateInputRef = useRef<HTMLInputElement>(null);
     const [taskModalState, setTaskModalState] = useState<TaskModalState | null>(null);
+    const [transitionVariant, setTransitionVariant] = useState<TransitionVariant>("fade");
+
+    const changeView = (nextView: ViewMode) => {
+        setTransitionVariant("fade");
+        setView(nextView);
+    };
+
+    const jumpToDay = (date: Date) => {
+        setTransitionVariant("fade");
+        setCurrentDate(date);
+        setView("day");
+    };
 
     const openCreateModal = (date: Date) => {
         setTaskModalState({ mode: "create", date, defaultSubjectId: subjects[0]?.id ?? null });
@@ -148,22 +150,61 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
     }, []);
 
     const handlePrev = () => {
+        setTransitionVariant("prev");
         if (view === "month") setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
         if (view === "week") setCurrentDate(new Date(currentYear, currentMonth, currentDate.getDate() - 7));
         if (view === "day") setCurrentDate(new Date(currentYear, currentMonth, currentDate.getDate() - 1));
     };
 
     const handleNext = () => {
+        setTransitionVariant("next");
         if (view === "month") setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
         if (view === "week") setCurrentDate(new Date(currentYear, currentMonth, currentDate.getDate() + 7));
         if (view === "day") setCurrentDate(new Date(currentYear, currentMonth, currentDate.getDate() + 1));
+    };
+
+    const handleToday = () => {
+        setTransitionVariant("fade");
+        setCurrentDate(new Date());
     };
 
     const handleJumpDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         if (!value) return;
         const [year, month, day] = value.split("-").map(Number);
+        setTransitionVariant("fade");
         setCurrentDate(new Date(year, month - 1, day));
+    };
+
+    // --- Mobile swipe to navigate prev/next --------------------------
+    // A flick left/right over the calendar surface steps to the next/prev
+    // day/week/month, same as native calendar apps. Unlike Sidebar.tsx's
+    // drawer swipe (which drags the panel live under the finger), this
+    // only measures start->end on touchend — the directional slide-in
+    // animation from handlePrev/handleNext already provides the visual
+    // feedback, so there's no need to track every touchmove or transform
+    // anything by hand. No preventDefault anywhere, so vertical scrolling
+    // (e.g. Day view's hour grid) is never interfered with.
+    const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+    const SWIPE_THRESHOLD_PX = 60;
+
+    const handleGridTouchStart = (e: TouchEvent<HTMLDivElement>) => {
+        const touch = e.touches[0];
+        swipeStartRef.current = { x: touch.clientX, y: touch.clientY };
+    };
+
+    const handleGridTouchEnd = (e: TouchEvent<HTMLDivElement>) => {
+        const start = swipeStartRef.current;
+        swipeStartRef.current = null;
+        if (!start) return;
+        const touch = e.changedTouches[0];
+        const deltaX = touch.clientX - start.x;
+        const deltaY = touch.clientY - start.y;
+        // Require a clearly horizontal, deliberate gesture so a vertical
+        // scroll or a plain tap never gets mistaken for a swipe.
+        if (Math.abs(deltaX) < SWIPE_THRESHOLD_PX || Math.abs(deltaX) < Math.abs(deltaY) * 1.5) return;
+        if (deltaX < 0) handleNext();
+        else handlePrev();
     };
 
     const currentWeekDays = useMemo(() => {
@@ -270,7 +311,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                 key={task.id}
                 title={task.title}
                 onClick={() => openEditModal(task)}
-                className={`bg-white dark:bg-gray-800 border p-2 sm:p-3 rounded-xl shadow-sm flex items-start gap-2 sm:gap-3 transition-all hover:shadow-md cursor-pointer ${task.completed ? 'opacity-60 bg-gray-50 dark:bg-gray-900/50 dark:border-gray-800' : subjectColor.border}`}
+                className={`bg-white dark:bg-gray-800 border p-2 sm:p-3 rounded-xl shadow-sm flex items-start gap-2 sm:gap-3 transition-all hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] cursor-pointer ${task.completed ? 'opacity-60 bg-gray-50 dark:bg-gray-900/50 dark:border-gray-800' : subjectColor.border}`}
             >
                 <div className={`mt-1 w-3 h-3 rounded-full border-2 shrink-0 transition-colors duration-300 ${task.completed ? 'border-green-500 bg-green-100 dark:bg-green-900/30' : `border-transparent ${subjectColor.dot}`}`} />
                 <div className="flex flex-col flex-1 min-w-0">
@@ -304,7 +345,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                 key={task.id}
                 title={`${task.subjectName} — ${task.title}`}
                 onClick={() => openEditModal(task)}
-                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs shrink-0 cursor-pointer transition-colors ${
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs shrink-0 cursor-pointer transition-all hover:shadow-sm hover:-translate-y-px active:translate-y-0 active:scale-95 ${
                     task.completed
                         ? 'bg-gray-50 dark:bg-gray-900/50 border-gray-100 dark:border-gray-800 text-gray-400 dark:text-gray-500 line-through'
                         : `${subjectColor.bg} ${subjectColor.border} text-gray-700 dark:text-gray-200`
@@ -327,13 +368,13 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                     </h1>
 
                     <div className="flex items-center gap-1 bg-white dark:bg-gray-900 p-1 rounded-lg shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300">
-                        <button onClick={handlePrev} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md text-gray-500 dark:text-gray-400 transition-colors">
+                        <button onClick={handlePrev} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-md text-gray-500 dark:text-gray-400 transition-all">
                             <ChevronLeft size={20} />
                         </button>
-                        <button onClick={() => setCurrentDate(new Date())} className="px-2 sm:px-3 py-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors">
+                        <button onClick={handleToday} className="px-2 sm:px-3 py-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 rounded-md transition-all">
                             {t.btnToday}
                         </button>
-                        <button onClick={handleNext} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md text-gray-500 dark:text-gray-400 transition-colors">
+                        <button onClick={handleNext} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-md text-gray-500 dark:text-gray-400 transition-all">
                             <ChevronRight size={20} />
                         </button>
                         <div className="relative w-px self-stretch bg-gray-100 dark:bg-gray-800 mx-0.5" />
@@ -342,7 +383,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                 onClick={() => jumpDateInputRef.current?.showPicker?.() ?? jumpDateInputRef.current?.click()}
                                 title={t.jumpToDate}
                                 aria-label={t.jumpToDate}
-                                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md text-gray-500 dark:text-gray-400 transition-colors"
+                                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-md text-gray-500 dark:text-gray-400 transition-all"
                             >
                                 <CalendarDays size={18} />
                             </button>
@@ -359,21 +400,55 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                     </div>
                 </div>
 
-                <div className="flex w-full sm:w-auto bg-white dark:bg-gray-900 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300">
-                    <button onClick={() => setView("day")} className={`flex-1 sm:flex-initial px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg transition-all ${view === "day" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>{t.btnDay}</button>
-                    <button onClick={() => setView("week")} className={`flex-1 sm:flex-initial px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg transition-all ${view === "week" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>{t.btnWeek}</button>
-                    <button onClick={() => setView("month")} className={`flex-1 sm:flex-initial px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg transition-all ${view === "month" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>{t.btnMonth}</button>
+                {/* Sliding pill: one animated background layer that glides between
+                    the three buttons (translateX in multiples of its own width,
+                    since it's sized to exactly 1/3 of the row) instead of each
+                    button getting its own background flipped on/off — reads as
+                    a single continuous selection rather than a state swap. */}
+                <div className="relative flex w-full sm:w-auto bg-white dark:bg-gray-900 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300">
+                    <div
+                        aria-hidden="true"
+                        className="absolute top-1 bottom-1 left-1 rounded-lg bg-red-50 dark:bg-red-900/30 shadow-sm transition-transform duration-300 ease-out"
+                        style={{
+                            width: "calc((100% - 0.5rem) / 3)",
+                            transform: `translateX(${VIEW_ORDER.indexOf(view) * 100}%)`,
+                        }}
+                    />
+                    {VIEW_ORDER.map((v) => (
+                        <button
+                            key={v}
+                            onClick={() => changeView(v)}
+                            className={`relative z-10 flex-1 sm:flex-initial px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg transition-colors ${view === v ? "text-red-700 dark:text-red-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}
+                        >
+                            {v === "day" ? t.btnDay : v === "week" ? t.btnWeek : t.btnMonth}
+                        </button>
+                    ))}
                 </div>
             </div>
 
             {/* --- GRID AREA --- */}
-            <div className="flex-1 bg-white dark:bg-gray-900 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col relative transition-colors duration-300">
-                
+            <div
+                onTouchStart={handleGridTouchStart}
+                onTouchEnd={handleGridTouchEnd}
+                onTouchCancel={() => { swipeStartRef.current = null; }}
+                className="flex-1 bg-white dark:bg-gray-900 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col relative transition-colors duration-300"
+            >
                 {loadingRecords && (
                     <div className="absolute inset-0 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center transition-colors duration-300">
                         <span className="text-gray-500 dark:text-gray-400 font-bold animate-pulse">{t.loadingHistory}</span>
                     </div>
                 )}
+
+                {/* Remounted (via `key`) on every view switch, prev/next, jump,
+                    or drill-down click — the CSS keyframe on the matching
+                    animate-* class auto-plays on mount, same trick as
+                    animate-soft-fade elsewhere, no isVisible toggle needed. */}
+                <div
+                    key={`${view}-${currentDate.getTime()}`}
+                    className={`flex-1 flex flex-col overflow-hidden ${
+                        transitionVariant === "next" ? "animate-slide-in-right" : transitionVariant === "prev" ? "animate-slide-in-left" : "animate-soft-fade"
+                    }`}
+                >
 
                 {/* --- VIEW: MONTH --- */}
                 {view === "month" && (
@@ -408,7 +483,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                 const dayTasks = getTasksForDate(subjects, cellDateObj);
 
                                 return (
-                                    <div key={i} onClick={() => { setCurrentDate(cellDateObj); setView("day"); }} className={`${bgColorClass} p-1 sm:p-2 flex flex-col transition-colors hover:brightness-95 dark:hover:brightness-110 cursor-pointer relative group ${isToday ? "z-10" : ""}`}>
+                                    <div key={i} onClick={() => jumpToDay(cellDateObj)} className={`${bgColorClass} p-1 sm:p-2 flex flex-col transition-colors hover:brightness-95 dark:hover:brightness-110 cursor-pointer relative group ${isToday ? "z-10" : ""}`}>
                                         <div className="flex justify-between items-start mb-1">
                                             <span className={`text-xs sm:text-sm font-bold w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full transition-colors duration-300 ${isToday ? "bg-red-600 text-white shadow-sm" : bgColorClass.includes("bg-[#4ade80]") || bgColorClass.includes("bg-[#16a34a]") ? "text-white drop-shadow-md" : "text-gray-500 dark:text-gray-400"}`}>
                                                 {dayNum}
@@ -418,7 +493,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                                     onClick={(e) => { e.stopPropagation(); openCreateModal(cellDateObj); }}
                                                     title={t.addTaskTitle}
                                                     aria-label={t.addTaskTitle}
-                                                    className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 sm:p-1 rounded-md bg-white/80 dark:bg-gray-900/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 shadow-sm transition-opacity"
+                                                    className="can-hover:opacity-0 can-hover:group-hover:opacity-100 focus:opacity-100 no-hover:opacity-100 p-0.5 sm:p-1 rounded-md bg-white/80 dark:bg-gray-900/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:scale-110 active:scale-90 shadow-sm transition-all"
                                                 >
                                                     <Plus size={12} />
                                                 </button>
@@ -433,7 +508,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                                             key={task.id}
                                                             title={`${task.subjectName} — ${task.title}`}
                                                             onClick={(e) => { e.stopPropagation(); openEditModal(task); }}
-                                                            className={`text-[8px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded truncate cursor-pointer transition-colors ${
+                                                            className={`text-[8px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded truncate cursor-pointer transition-all hover:brightness-95 active:scale-95 ${
                                                                 task.completed
                                                                     ? "bg-white/60 dark:bg-gray-900/60 text-gray-400 dark:text-gray-500 line-through"
                                                                     : `${subjectColor.bg} ${subjectColor.text}`
@@ -497,7 +572,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                 return (
                                     <div
                                         key={i}
-                                        onClick={() => { setCurrentDate(date); setView("day"); }}
+                                        onClick={() => jumpToDay(date)}
                                         className={`${bgColorClass} p-1 sm:p-2 flex flex-col gap-1 overflow-y-auto no-scrollbar cursor-pointer transition-colors hover:brightness-95 dark:hover:brightness-110 relative group`}
                                     >
                                         {subjects.length > 0 && (
@@ -505,7 +580,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                                 onClick={(e) => { e.stopPropagation(); openCreateModal(date); }}
                                                 title={t.addTaskTitle}
                                                 aria-label={t.addTaskTitle}
-                                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 sm:p-1 rounded-md bg-white/80 dark:bg-gray-900/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 shadow-sm transition-opacity z-10"
+                                                className="absolute top-1 right-1 can-hover:opacity-0 can-hover:group-hover:opacity-100 focus:opacity-100 no-hover:opacity-100 p-0.5 sm:p-1 rounded-md bg-white/80 dark:bg-gray-900/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:scale-110 active:scale-90 shadow-sm transition-all z-10"
                                             >
                                                 <Plus size={12} />
                                             </button>
@@ -523,7 +598,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                                             key={task.id}
                                                             title={`${task.subjectName} — ${task.title}`}
                                                             onClick={(e) => { e.stopPropagation(); openEditModal(task); }}
-                                                            className={`text-[9px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 sm:py-1 rounded-md truncate cursor-pointer transition-colors ${
+                                                            className={`text-[9px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 sm:py-1 rounded-md truncate cursor-pointer transition-all hover:brightness-95 active:scale-95 ${
                                                                 task.completed
                                                                     ? "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 line-through"
                                                                     : `${subjectColor.bg} ${subjectColor.text}`
@@ -595,7 +670,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                         {subjects.length > 0 && (
                                             <button
                                                 onClick={() => openCreateModal(currentDate)}
-                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 rounded-lg transition-all"
                                             >
                                                 <Plus size={14} /> {t.btnAddTask}
                                             </button>
@@ -618,7 +693,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                                                             onClick={() => openCreateModal(hourDate)}
                                                             title={t.addTaskTitle}
                                                             aria-label={t.addTaskTitle}
-                                                            className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0 transition-opacity"
+                                                            className="can-hover:opacity-0 can-hover:group-hover:opacity-100 focus:opacity-100 no-hover:opacity-100 p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-110 active:scale-90 shrink-0 transition-all"
                                                         >
                                                             <Plus size={14} />
                                                         </button>
@@ -632,6 +707,7 @@ export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDelete
                         </div>
                     </div>
                 )}
+                </div>
             </div>
 
             <CalendarTaskModal
