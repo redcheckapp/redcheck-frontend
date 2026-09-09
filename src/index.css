@@ -106,3 +106,22 @@
 .animate-slide-in-left {
   animation: slideInFromLeft 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* Sidebar's daily-progress count, replayed on every value change via a
+   remount key (see Sidebar.tsx) — keeps the count visually in sync with
+   the progress ring's own smooth stroke transition next to it. */
+@keyframes countPop {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-count-pop {
+  animation: countPop 0.4s ease-out;
+}

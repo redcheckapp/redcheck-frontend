@@ -1,4 +1,4 @@
-import { Check, Pencil, X } from "lucide-react";
+import { Check, Pencil, X, Type, AlignLeft, Clock3 } from "lucide-react";
 import type { SubjectWithTasks } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 
@@ -158,7 +158,11 @@ export const TaskItem = ({
                                 ? "bg-red-500 border-red-500"
                                 : "border-gray-300 dark:border-gray-600 hover:border-red-400 dark:hover:border-red-500")
                         }`}>
-                    {(selectionMode ? isSelected : task.completed) && <Check size={12} color="white" />}
+                    <Check
+                        size={12}
+                        color="white"
+                        className={`transition-all duration-200 ${(selectionMode ? isSelected : task.completed) ? "scale-100 opacity-100" : "scale-0 opacity-0"}`}
+                    />
                 </button>
 
                 {/* Title and deadline */}
@@ -227,44 +231,53 @@ export const TaskItem = ({
                     : "opacity-0 scale-95 max-h-0 !mt-0 !mb-0"
             }`}>
                 <form onSubmit={(e) => handleUpdateTask(e, subjectId, task.id)}
-                    className="flex flex-col gap-4 ml-10 p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-[0_2px_10px_-3px_rgba(234,179,8,0.1)] dark:shadow-none transition-colors duration-300">
+                    className="flex flex-col gap-4 ml-10 p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-[0_2px_10px_-3px_rgba(220,38,38,0.1)] dark:shadow-none transition-colors duration-300">
                                                         
                     <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 border-b border-gray-50 dark:border-gray-800 pb-2">{t.editTitle}</h3>
 
                     <div className="flex flex-col gap-3">
                         <div className="flex flex-col">
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblTitle}</label>
-                            <input
-                                type="text"
-                                name="title"
-                                value={updatedTask.title}
-                                onChange={handleChangeUpdateTask}
-                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-yellow-500 outline-none"
-                                required
-                            />
+                            <div className="relative">
+                                <Type size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                                <input
+                                    type="text"
+                                    name="title"
+                                    value={updatedTask.title}
+                                    onChange={handleChangeUpdateTask}
+                                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500 outline-none"
+                                    required
+                                />
+                            </div>
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-3">
                             <div className="flex-1 flex flex-col">
                                 <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblDesc}</label>
-                                <input
-                                    type="text"
-                                    name="description"
-                                    value={updatedTask.description}
-                                    onChange={handleChangeUpdateTask}
-                                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-yellow-500 outline-none"
-                                />
+                                <div className="relative">
+                                    <AlignLeft size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                                    <input
+                                        type="text"
+                                        name="description"
+                                        value={updatedTask.description}
+                                        onChange={handleChangeUpdateTask}
+                                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500 outline-none"
+                                    />
+                                </div>
                             </div>
-                            
+
                             <div className="flex-1 flex flex-col">
                                 <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblDeadline}</label>
-                                <input
-                                    type="datetime-local"
-                                    name="deadline"
-                                    value={updatedTask.deadline}
-                                    onChange={handleChangeUpdateTask}
-                                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-yellow-500 outline-none"
-                                />
+                                <div className="relative">
+                                    <Clock3 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                                    <input
+                                        type="datetime-local"
+                                        name="deadline"
+                                        value={updatedTask.deadline}
+                                        onChange={handleChangeUpdateTask}
+                                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 [color-scheme:light] dark:[color-scheme:dark] transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500 outline-none"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -284,7 +297,7 @@ export const TaskItem = ({
                         <button
                             type="submit"
                             disabled={loading}
-                            className="px-5 py-2.5 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 dark:hover:bg-yellow-500 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50"
+                            className="px-5 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50"
                         >
                             {t.btnSave}
                         </button>

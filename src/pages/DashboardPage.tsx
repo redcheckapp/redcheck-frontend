@@ -1181,7 +1181,7 @@ const DashboardPage = () => {
                                     })}
 
                                     <button 
-                                        className="w-full mt-4 flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400 bg-transparent border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 rounded-xl py-4 text-sm font-medium transition-all group" 
+                                        className="w-full mt-4 flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400 bg-transparent border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-red-400 dark:hover:border-red-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50/50 dark:hover:bg-red-900/20 rounded-xl py-4 text-sm font-medium transition-all group"
                                         onClick={() => { setOpenFormNewSubject(true); }}
                                     >
                                         <Plus size={18} className="transition-transform group-hover:scale-110" />
@@ -1196,7 +1196,7 @@ const DashboardPage = () => {
                                                 : "opacity-0 scale-95 max-h-0 !mt-0 !mb-0" 
                                         }`}
                                     >
-                                        <form onSubmit={handleSubmitSubject} className="flex flex-col gap-4 p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] dark:shadow-none transition-colors duration-300">
+                                        <form onSubmit={handleSubmitSubject} className="flex flex-col gap-4 p-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-[0_2px_10px_-3px_rgba(220,38,38,0.1)] dark:shadow-none transition-colors duration-300">
                                             <div>
                                                 <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t.newSubjectTitle}</h3>
                                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t.newSubjectDesc}</p>
@@ -1210,7 +1210,7 @@ const DashboardPage = () => {
                                                         name="name" 
                                                         value={newSubject.name} 
                                                         onChange={handleChangeSubject} 
-                                                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" 
+                                                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
                                                         required 
                                                     />
                                                 </div>
@@ -1222,7 +1222,7 @@ const DashboardPage = () => {
                                                         name="description" 
                                                         value={newSubject.description} 
                                                         onChange={handleChangeSubject} 
-                                                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" 
+                                                        className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
                                                     />
                                                 </div>
                                             </div>
@@ -1240,7 +1240,7 @@ const DashboardPage = () => {
                                                 <button 
                                                     type="submit" 
                                                     disabled={loading} 
-                                                    className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
+                                                    className="px-5 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
                                                 >
                                                     {t.btnSaveSubject}
                                                 </button>

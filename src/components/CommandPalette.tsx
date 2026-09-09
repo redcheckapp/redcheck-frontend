@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Search, CornerDownLeft } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { SubjectWithTasks } from "../types";
@@ -86,6 +86,31 @@ export const CommandPalette = ({
     // narrows the results) without needing an effect + extra setState.
     const clampedIndex = flatItems.length === 0 ? 0 : Math.min(highlightedIndex, flatItems.length - 1);
 
+    // A single highlight bar that slides/fades between rows (measured via
+    // offsetTop/offsetHeight against the scrollable results container)
+    // instead of each row toggling its own background — same "one moving
+    // indicator, not N per-item toggles" shape as the calendar's Day/Week/
+    // Month sliding pill. Positioned by writing directly to the bar's own
+    // style from a ref, not via setState — this only ever needs to push a
+    // measured DOM value onto another DOM node (an "update an external
+    // system" effect, not state synchronization), so there's no re-render
+    // to trigger and nothing for the set-state-in-effect lint rule to flag.
+    const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+    const highlightBarRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const el = itemRefs.current[clampedIndex];
+        const bar = highlightBarRef.current;
+        if (!bar) return;
+        if (el) {
+            bar.style.top = `${el.offsetTop}px`;
+            bar.style.height = `${el.offsetHeight}px`;
+            bar.style.opacity = "1";
+        } else {
+            bar.style.opacity = "0";
+        }
+    }, [clampedIndex, query, taskResults.length, filteredActions.length]);
+
     const runItem = (index: number) => {
         const item = flatItems[index];
         if (!item) return;
@@ -128,7 +153,12 @@ export const CommandPalette = ({
                         />
                     </div>
 
-                    <div className="max-h-80 overflow-y-auto py-2">
+                    <div className="relative max-h-80 overflow-y-auto py-2">
+                        <div
+                            ref={highlightBarRef}
+                            className="absolute left-2 right-2 rounded-lg bg-red-50 dark:bg-red-900/20 opacity-0 transition-all duration-150 ease-out pointer-events-none"
+                        />
+
                         {flatItems.length === 0 && (
                             <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">{emptyLabel}</p>
                         )}
@@ -139,11 +169,12 @@ export const CommandPalette = ({
                                 {taskResults.map((task, i) => (
                                     <button
                                         key={`task-${task.subjectId}-${task.taskId}`}
+                                        ref={(el) => { itemRefs.current[i] = el; }}
                                         onClick={() => runItem(i)}
                                         onMouseEnter={() => setHighlightedIndex(i)}
-                                        className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left text-sm transition-colors ${
+                                        className={`relative w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left text-sm transition-colors ${
                                             clampedIndex === i
-                                                ? "bg-red-50 dark:bg-red-900/20 text-gray-900 dark:text-gray-100"
+                                                ? "text-gray-900 dark:text-gray-100"
                                                 : "text-gray-700 dark:text-gray-200"
                                         }`}
                                     >
@@ -163,11 +194,12 @@ export const CommandPalette = ({
                                     return (
                                         <button
                                             key={action.id}
+                                            ref={(el) => { itemRefs.current[flatIndex] = el; }}
                                             onClick={() => runItem(flatIndex)}
                                             onMouseEnter={() => setHighlightedIndex(flatIndex)}
-                                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm transition-colors ${
+                                            className={`relative w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm transition-colors ${
                                                 clampedIndex === flatIndex
-                                                    ? "bg-red-50 dark:bg-red-900/20 text-gray-900 dark:text-gray-100"
+                                                    ? "text-gray-900 dark:text-gray-100"
                                                     : "text-gray-700 dark:text-gray-200"
                                             }`}
                                         >

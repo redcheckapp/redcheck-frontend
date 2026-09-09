@@ -1,4 +1,4 @@
-import { X, ArchiveRestore, Trash2, Moon, Sun, Bell, BellOff, Vibrate, VibrateOff } from "lucide-react";
+import { X, ArchiveRestore, Trash2, Moon, Sun } from "lucide-react";
 import { toast } from "react-hot-toast";
 import type { SubjectWithTasks } from "../types";
 import { useTheme } from "../context/ThemeContext";
@@ -76,6 +76,25 @@ const translations = {
         btnDelete: "Delete account"
     }
 };
+
+// A classic sliding-knob switch for true on/off settings (reminders, haptic
+// feedback) — the language and theme toggles above stay as icon buttons
+// since those pick between two distinct states/icons rather than a plain
+// boolean, which is what a switch specifically communicates.
+const ToggleSwitch = ({ enabled, onToggle, title }: { enabled: boolean; onToggle: () => void; title: string }) => (
+    <button
+        type="button"
+        role="switch"
+        aria-checked={enabled}
+        onClick={onToggle}
+        title={title}
+        className={`relative w-11 h-6 rounded-full shrink-0 transition-colors duration-200 ${enabled ? "bg-red-500" : "bg-gray-300 dark:bg-gray-600"}`}
+    >
+        <span
+            className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${enabled ? "translate-x-5" : "translate-x-0"}`}
+        />
+    </button>
+);
 
 export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject, handleDeleteAccount, userEmail, remindersEnabled, onToggleReminders, taskFeedbackEnabled, onToggleTaskFeedback }: SettingsModalProps) => {
     const { theme, toggleTheme } = useTheme();
@@ -171,17 +190,7 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
                                     {t.remindersDesc}
                                 </p>
                             </div>
-                            <button
-                                onClick={onToggleReminders}
-                                className={`p-2 w-[38px] h-[38px] flex items-center justify-center rounded-lg transition-all duration-200 border shadow-sm ${
-                                    remindersEnabled
-                                        ? "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400"
-                                        : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
-                                }`}
-                                title={t.ttReminders}
-                            >
-                                {remindersEnabled ? <Bell size={18} /> : <BellOff size={18} />}
-                            </button>
+                            <ToggleSwitch enabled={remindersEnabled} onToggle={onToggleReminders} title={t.ttReminders} />
                         </div>
 
                         {/* Haptic feedback on task completion — opt-out,
@@ -202,17 +211,7 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
                                     {t.testHaptic}
                                 </button>
                             </div>
-                            <button
-                                onClick={onToggleTaskFeedback}
-                                className={`p-2 w-[38px] h-[38px] flex items-center justify-center rounded-lg transition-all duration-200 border shadow-sm ${
-                                    taskFeedbackEnabled
-                                        ? "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400"
-                                        : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
-                                }`}
-                                title={t.ttTaskFeedback}
-                            >
-                                {taskFeedbackEnabled ? <Vibrate size={18} /> : <VibrateOff size={18} />}
-                            </button>
+                            <ToggleSwitch enabled={taskFeedbackEnabled} onToggle={onToggleTaskFeedback} title={t.ttTaskFeedback} />
                         </div>
                     </div>
 

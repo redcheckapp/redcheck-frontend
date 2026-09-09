@@ -1,4 +1,5 @@
 import React from 'react';
+import { Sparkles } from 'lucide-react';
 import type { SmartCheckAiData, SubjectWithTasks } from '../types';
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import { ModalOverlay } from "./ModalOverlay";
@@ -75,7 +76,10 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
         </div>
 
         {/* ── CENTERED TITLE ── */}
-        <div className="text-center px-6 pb-4">
+        <div className="text-center px-6 pb-4 flex flex-col items-center gap-2">
+          <div className="w-11 h-11 rounded-2xl flex items-center justify-center bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400">
+            <Sparkles size={22} />
+          </div>
           <h2 className="text-2xl font-bold text-zinc-900 dark:text-gray-100 tracking-tight transition-colors duration-300">
             {t.modalTitle}
           </h2>
@@ -85,7 +89,7 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
         <div className="overflow-y-auto flex-1 px-6 pb-6 flex flex-col gap-5">
 
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50 rounded-xl px-4 py-3 flex gap-3 items-start transition-colors duration-300">
-            <span className="text-lg leading-none mt-0.5"></span>
+            <Sparkles size={18} className="shrink-0 mt-0.5 text-blue-500 dark:text-blue-400" />
             <p className="text-sm text-blue-800 dark:text-blue-300 font-medium leading-relaxed m-0 transition-colors duration-300">
               {aiData.mensajeApoyo}
             </p>

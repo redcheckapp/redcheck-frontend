@@ -1,4 +1,4 @@
-import { AlertCircle, Check, Pencil, X } from "lucide-react";
+import { AlertCircle, Check, Pencil, X, Type, AlignLeft, Clock3 } from "lucide-react";
 import type { SubjectWithTasks } from "../types";
 import { AnimatedVisibility } from "./AnimatedVisibility";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
@@ -129,7 +129,11 @@ export const OverdueSection = ({
                                                                 : 'border-red-300 dark:border-red-500/50 hover:border-red-500 dark:hover:border-red-400 bg-white dark:bg-transparent'
                                                         }`}
                                                     >
-                                                        {task.completed && <Check size={12} color="white" />}
+                                                        <Check
+                                                            size={12}
+                                                            color="white"
+                                                            className={`transition-all duration-200 ${task.completed ? "scale-100 opacity-100" : "scale-0 opacity-0"}`}
+                                                        />
                                                     </button>
                                                     
                                                     {/* Texts with strikethrough effect */}
@@ -188,31 +192,40 @@ export const OverdueSection = ({
                                                         <div className="flex flex-col gap-3">
                                                             <div className="flex flex-col gap-1.5">
                                                                 <label className="text-xs font-bold text-red-400 uppercase tracking-wider">{t.taskTitleLabel}</label>
-                                                                <input 
-                                                                    type="text" name="title" 
-                                                                    value={updatedTask.title} onChange={handleChangeUpdateTask}
-                                                                    className="w-full bg-red-50/30 dark:bg-gray-800 border border-red-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-2.5 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all"
-                                                                    required
-                                                                />
+                                                                <div className="relative">
+                                                                    <Type size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-red-300 dark:text-gray-500 pointer-events-none" />
+                                                                    <input
+                                                                        type="text" name="title"
+                                                                        value={updatedTask.title} onChange={handleChangeUpdateTask}
+                                                                        className="w-full pl-10 pr-4 bg-red-50/30 dark:bg-gray-800 border border-red-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl py-2.5 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all"
+                                                                        required
+                                                                    />
+                                                                </div>
                                                             </div>
-                                                            
+
                                                             <div className="flex flex-col sm:flex-row gap-3">
                                                                 <div className="flex-1 flex flex-col gap-1.5">
                                                                     <label className="text-xs font-bold text-red-400 uppercase tracking-wider">{t.descLabel}</label>
-                                                                    <input 
-                                                                        type="text" name="description" 
-                                                                        value={updatedTask.description} onChange={handleChangeUpdateTask}
-                                                                        className="w-full bg-red-50/30 dark:bg-gray-800 border border-red-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-2.5 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all"
-                                                                    />
+                                                                    <div className="relative">
+                                                                        <AlignLeft size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-red-300 dark:text-gray-500 pointer-events-none" />
+                                                                        <input
+                                                                            type="text" name="description"
+                                                                            value={updatedTask.description} onChange={handleChangeUpdateTask}
+                                                                            className="w-full pl-10 pr-4 bg-red-50/30 dark:bg-gray-800 border border-red-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl py-2.5 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all"
+                                                                        />
+                                                                    </div>
                                                                 </div>
 
                                                                 <div className="flex-1 flex flex-col gap-1.5">
                                                                     <label className="text-xs font-bold text-red-400 uppercase tracking-wider">{t.deadlineLabel}</label>
-                                                                    <input 
-                                                                        type="datetime-local" name="deadline" 
-                                                                        value={updatedTask.deadline} onChange={handleChangeUpdateTask}
-                                                                        className="w-full bg-red-50/30 dark:bg-gray-800 border border-red-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl px-4 py-2.5 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all"
-                                                                    />
+                                                                    <div className="relative">
+                                                                        <Clock3 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-red-300 dark:text-gray-500 pointer-events-none" />
+                                                                        <input
+                                                                            type="datetime-local" name="deadline"
+                                                                            value={updatedTask.deadline} onChange={handleChangeUpdateTask}
+                                                                            className="w-full pl-10 pr-4 bg-red-50/30 dark:bg-gray-800 border border-red-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl py-2.5 text-sm [color-scheme:light] dark:[color-scheme:dark] focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all"
+                                                                        />
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>

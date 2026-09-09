@@ -104,6 +104,19 @@ export const Sidebar = ({
     const progress = totalTasks === 0 ? 0 : completedTasks / totalTasks;
     const strokeDashoffset = 226 - (226 * progress);
 
+    // The ring's stroke already eases smoothly (transition-all duration-500
+    // above), but the count next to it used to just snap to its new value —
+    // a short scale-pop on the count, replayed via a remount-on-change key,
+    // keeps it visually in sync with the ring's motion. Render-phase
+    // comparison (not a bare effect + setState), same pattern as Confetti's
+    // lastTrigger — see CLAUDE.md's note on that component.
+    const [lastCompletedTasks, setLastCompletedTasks] = useState(completedTasks);
+    const [countPulseKey, setCountPulseKey] = useState(0);
+    if (completedTasks !== lastCompletedTasks) {
+        setLastCompletedTasks(completedTasks);
+        setCountPulseKey(k => k + 1);
+    }
+
     // On mobile the drawer always shows the full content when open — there's
     // no point collapsing it to icon-only inside an overlay panel.
     const expanded = sidebarOpen || mobileOpen;
@@ -259,7 +272,7 @@ export const Sidebar = ({
                         />
                     </svg>
                     <div className={`absolute inset-0 flex items-center justify-center font-bold text-green-700 dark:text-white transition-all duration-300 ease-in-out ${expanded ? "text-xl tracking-tight" : "text-xs"}`}>
-                        {completedTasks}/{totalTasks}
+                        <span key={countPulseKey} className="animate-count-pop inline-block">{completedTasks}/{totalTasks}</span>
                     </div>
                 </div>
 
@@ -351,7 +364,7 @@ export const Sidebar = ({
 
                 <button
                     onClick={() => { onOpenTrash(); onCloseMobile(); }}
-                    className={`flex items-center p-2 rounded-xl transition-colors w-full ${showTrash ? "bg-gray-800 dark:bg-gray-800 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800"}`}
+                    className={`flex items-center p-2 rounded-xl transition-all active:scale-95 w-full ${showTrash ? "bg-gray-800 dark:bg-gray-800 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800"}`}
                     title={t.trash}
                 >
                     <div className="flex items-center justify-center shrink-0 w-6 h-6">
@@ -364,7 +377,7 @@ export const Sidebar = ({
                     </div>
                 </button>
 
-                <button onClick={() => { onOpenSettings(); onCloseMobile(); }} className="flex items-center p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors w-full" title={t.settings}>
+                <button onClick={() => { onOpenSettings(); onCloseMobile(); }} className="flex items-center p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 transition-all active:scale-95 w-full" title={t.settings}>
                     <div className="flex items-center justify-center shrink-0 w-6 h-6">
                         <Settings size={20} />
                     </div>
@@ -375,7 +388,7 @@ export const Sidebar = ({
                     </div>
                 </button>
 
-                <button onClick={() => { localStorage.removeItem("token"); sessionStorage.removeItem("focusTipDismissed"); navigate("/login"); }} className="flex items-center p-2 rounded-xl text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:bg-transparent dark:hover:bg-red-900/30 transition-colors w-full" title={t.logout}>
+                <button onClick={() => { localStorage.removeItem("token"); sessionStorage.removeItem("focusTipDismissed"); navigate("/login"); }} className="flex items-center p-2 rounded-xl text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:bg-transparent dark:hover:bg-red-900/30 transition-all active:scale-95 w-full" title={t.logout}>
                     <div className="flex items-center justify-center shrink-0 w-6 h-6">
                         <LogOut size={20} />
                     </div>
