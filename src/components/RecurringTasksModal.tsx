@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { X, Trash2, Power, PowerOff, Pencil, Repeat } from "lucide-react";
+import { X, Trash2, Power, PowerOff, Pencil, Repeat, Clock, CalendarX2, CalendarClock } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { getRecurringTasks, toggleRecurringTaskActive, deleteRecurringTask, updateRecurringTask } from "../api/recurringTaskApi";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
@@ -7,6 +7,7 @@ import { useConfirm } from "../context/ConfirmContext";
 import type { RecurringTaskResponse } from "../types";
 import { ModalOverlay } from "./ModalOverlay";
 import { WeekdayPicker } from "./WeekdayPicker";
+import { RecurrencePreview } from "./RecurrencePreview";
 import { buildCustomFrequency, formatCustomFrequencyLabel, parseCustomFrequencyDays } from "../utils/recurrenceUtils";
 
 interface RecurringTasksModalProps {
@@ -47,7 +48,13 @@ const translations = {
         optCustom: "Personalizada",
         lblCustomDays: "Se repite los días",
         weekDaysShort: ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"],
-        errCustomDaysRequired: "Selecciona al menos un día de la semana"
+        errCustomDaysRequired: "Selecciona al menos un día de la semana",
+        lblRecurrenceTime: "Hora (opcional)",
+        lblEndDate: "Termina el (opcional)",
+        lblUpcoming: "Próximas fechas:",
+        lblUntil: "hasta",
+        lblNext: "Próxima:",
+        lblPaused: "En pausa"
     },
     en: {
         title: "Recurring Routines",
@@ -78,7 +85,13 @@ const translations = {
         optCustom: "Custom",
         lblCustomDays: "Repeats on",
         weekDaysShort: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
-        errCustomDaysRequired: "Select at least one day of the week"
+        errCustomDaysRequired: "Select at least one day of the week",
+        lblRecurrenceTime: "Time (optional)",
+        lblEndDate: "Ends on (optional)",
+        lblUpcoming: "Upcoming dates:",
+        lblUntil: "until",
+        lblNext: "Next:",
+        lblPaused: "Paused"
     }
 };
 
@@ -92,7 +105,7 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
 
     // States for editing
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-    const [editForm, setEditForm] = useState({ title: "", description: "", frequency: "DAILY", customDays: [] as number[] });
+    const [editForm, setEditForm] = useState({ title: "", description: "", frequency: "DAILY", customDays: [] as number[], time: "", endDate: "" });
 
     const fetchTasks = useCallback(async () => {
         setLoading(true);
@@ -139,7 +152,9 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
             title: task.title,
             description: task.description || "",
             frequency: customDays ? "CUSTOM" : task.frequency,
-            customDays: customDays ?? []
+            customDays: customDays ?? [],
+            time: task.time ? task.time.slice(0, 5) : "",
+            endDate: task.endDate || ""
         });
     };
 
@@ -161,6 +176,8 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
                 title: editForm.title,
                 description: editForm.description,
                 frequency: editForm.frequency === "CUSTOM" ? buildCustomFrequency(editForm.customDays) : editForm.frequency,
+                time: editForm.time,
+                endDate: editForm.endDate,
                 subjectId: subjectId
             });
             // We update visually
@@ -240,6 +257,18 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
                                                 <WeekdayPicker selectedDays={editForm.customDays} onToggleDay={handleToggleEditCustomDay} dayLabels={t.weekDaysShort} />
                                             </div>
                                         )}
+                                        <div className="flex flex-col sm:flex-row gap-2">
+                                            <input type="time" value={editForm.time} onChange={e => setEditForm({...editForm, time: e.target.value})} title={t.lblRecurrenceTime} className="flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-500/50 transition-colors duration-300" />
+                                            <input type="date" value={editForm.endDate} onChange={e => setEditForm({...editForm, endDate: e.target.value})} min={new Date().toISOString().slice(0, 10)} title={t.lblEndDate} className="flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-500/50 transition-colors duration-300" />
+                                        </div>
+                                        {(editForm.frequency !== "CUSTOM" || editForm.customDays.length > 0) && (
+                                            <RecurrencePreview
+                                                frequency={editForm.frequency === "CUSTOM" ? buildCustomFrequency(editForm.customDays) : editForm.frequency}
+                                                endDate={editForm.endDate}
+                                                locale={language}
+                                                label={t.lblUpcoming}
+                                            />
+                                        )}
                                         <div className="flex justify-end gap-2 mt-1 transition-colors duration-300">
                                             <button type="button" onClick={() => setEditingTaskId(null)} className="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg transition-all duration-300">{t.btnCancel}</button>
                                             <button type="submit" className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 rounded-lg shadow-sm transition-all duration-300">{t.btnSave}</button>
@@ -256,6 +285,29 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
                                                 </span>
                                                 <span className="truncate">{task.description || t.noDesc}</span>
                                             </p>
+                                            {(task.time || task.endDate || task.nextOccurrence || !task.active) && (
+                                                <p className="flex items-center gap-2.5 flex-wrap mt-1 text-[10px] font-medium text-gray-400 dark:text-gray-500 transition-colors duration-300">
+                                                    {task.time && (
+                                                        <span className="flex items-center gap-1">
+                                                            <Clock size={11} />{task.time.slice(0, 5)}
+                                                        </span>
+                                                    )}
+                                                    {task.endDate && (
+                                                        <span className="flex items-center gap-1">
+                                                            <CalendarX2 size={11} />{t.lblUntil} {new Date(`${task.endDate}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
+                                                        </span>
+                                                    )}
+                                                    {task.active ? (
+                                                        task.nextOccurrence && (
+                                                            <span className="flex items-center gap-1 text-red-500 dark:text-red-400 font-semibold">
+                                                                <CalendarClock size={11} />{t.lblNext} {new Date(task.nextOccurrence).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
+                                                            </span>
+                                                        )
+                                                    ) : (
+                                                        <span className="italic">{t.lblPaused}</span>
+                                                    )}
+                                                </p>
+                                            )}
                                         </div>
                                         
                                         {/* Action buttons */}

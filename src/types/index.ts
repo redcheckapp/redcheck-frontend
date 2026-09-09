@@ -73,9 +73,12 @@ export interface RecurringTaskResponse {
     title: string,
     description: string | null,
     frequency: string,
+    time: string | null, // "HH:mm:ss", applied to every generated task's deadline
+    endDate: string | null, // "YYYY-MM-DD", routine auto-deactivates once reached
     active: boolean,
     createdDate: string,
     latestGeneratedDate: string,
+    nextOccurrence: string | null, // server-computed preview, ISO datetime
     subjectId: number
 }
 

@@ -2,13 +2,15 @@ import api from "./axiosConfig";
 import type { RecurringTaskResponse } from "../types";
 
 export const addRecurringTask = async (
-    subjectId: number, 
-    taskData: { title: string; description?: string; periodicidad: string }
+    subjectId: number,
+    taskData: { title: string; description?: string; periodicidad: string; time?: string; endDate?: string }
 ): Promise<RecurringTaskResponse> => {
     const response = await api.post(`/subjects/${subjectId}/recurring-tasks`, {
         title: taskData.title,
         description: taskData.description,
         frequency: taskData.periodicidad,
+        time: taskData.time || null,
+        endDate: taskData.endDate || null,
         subjectId: subjectId
     });
     return response.data;
@@ -29,10 +31,14 @@ export const deleteRecurringTask = async (subjectId: number, recurringTaskId: nu
 };
 
 export const updateRecurringTask = async (
-    subjectId: number, 
-    recurringTaskId: number, 
-    taskData: { title: string; description?: string; frequency: string; subjectId: number }
+    subjectId: number,
+    recurringTaskId: number,
+    taskData: { title: string; description?: string; frequency: string; time?: string; endDate?: string; subjectId: number }
 ): Promise<RecurringTaskResponse> => {
-    const response = await api.put(`/subjects/${subjectId}/recurring-tasks/${recurringTaskId}`, taskData);
+    const response = await api.put(`/subjects/${subjectId}/recurring-tasks/${recurringTaskId}`, {
+        ...taskData,
+        time: taskData.time || null,
+        endDate: taskData.endDate || null
+    });
     return response.data;
 };

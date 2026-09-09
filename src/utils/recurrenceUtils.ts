@@ -40,3 +40,51 @@ export const formatCustomFrequencyLabel = (frequency: string, mondayFirstLabels:
         .map(cronDay => mondayFirstLabels[MONDAY_FIRST_CRON_DAYS.indexOf(cronDay)])
         .join(", ");
 };
+
+const stepPreset = (frequency: string, from: Date): Date => {
+    const next = new Date(from);
+    switch (frequency) {
+        case "DAILY": next.setDate(next.getDate() + 1); break;
+        case "WEEKLY": next.setDate(next.getDate() + 7); break;
+        case "BIWEEKLY": next.setDate(next.getDate() + 14); break;
+        case "MONTHLY": next.setMonth(next.getMonth() + 1); break;
+    }
+    return next;
+};
+
+const stepCustomDay = (days: number[], from: Date): Date => {
+    const next = new Date(from);
+    do {
+        next.setDate(next.getDate() + 1);
+    } while (!days.includes(next.getDay()));
+    return next;
+};
+
+// Client-side, not-yet-saved preview of the next `count` occurrence dates
+// for a frequency the user is currently composing in the create/edit form —
+// mirrors RecurringTaskService#computeNextOccurrence on the backend (the
+// authoritative source once a routine actually exists) closely enough to
+// use for a live "next dates" preview: the first occurrence always lands on
+// the scheduler's very next tick (tomorrow) regardless of frequency, since
+// that's how RecurringTaskSchedulerService#shouldGenerate treats a routine
+// that's never generated before; every occurrence after that steps forward
+// from the previous one via the frequency pattern. Stops early once a date
+// would fall after `endDateStr`, if given.
+export const getUpcomingOccurrences = (frequency: string, count: number, endDateStr?: string | null): Date[] => {
+    const customDays = parseCustomFrequencyDays(frequency);
+    const end = endDateStr ? new Date(`${endDateStr}T23:59:59`) : null;
+
+    const occurrences: Date[] = [];
+    let current = new Date();
+    current.setHours(0, 0, 0, 0);
+    current.setDate(current.getDate() + 1);
+
+    for (let i = 0; i < count; i++) {
+        if (i > 0) {
+            current = customDays ? stepCustomDay(customDays, current) : stepPreset(frequency, current);
+        }
+        if (end && current > end) break;
+        occurrences.push(new Date(current));
+    }
+    return occurrences;
+};

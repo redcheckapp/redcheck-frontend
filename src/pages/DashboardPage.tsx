@@ -467,7 +467,7 @@ const DashboardPage = () => {
     const [username, setUsername] = useState("");
     const [userEmail, setUserEmail] = useState("");
     const [updatedSubject, setUpdatedSubject] = useState({ name: "", description: "" });
-    const [newTask, setNewTask] = useState<{ title: string; description: string; deadline: string; recurrence: string; priority: TaskPriority; customDays: number[] }>({ title: "", description: "", deadline: "", recurrence: "NONE", priority: "MEDIUM", customDays: [] });
+    const [newTask, setNewTask] = useState<{ title: string; description: string; deadline: string; recurrence: string; priority: TaskPriority; customDays: number[]; recurrenceTime: string; recurrenceEndDate: string }>({ title: "", description: "", deadline: "", recurrence: "NONE", priority: "MEDIUM", customDays: [], recurrenceTime: "", recurrenceEndDate: "" });
     const [updatedTask, setUpdatedTask] = useState<{ title: string; description: string; deadline: string; priority: TaskPriority }>({ title: "", description: "", deadline: "", priority: "MEDIUM" });
     const [newSubject, setNewSubject] = useState({ name: "", description: "" });
     // Mutually exclusive: these are two alternative orderings for the same
@@ -570,7 +570,7 @@ const DashboardPage = () => {
                 setOpenFormSubjectId(null);
 
                 setTimeout(() => {
-                    setNewTask({title: "", description: "", deadline: "", recurrence: "NONE", priority: "MEDIUM", customDays: []});
+                    setNewTask({title: "", description: "", deadline: "", recurrence: "NONE", priority: "MEDIUM", customDays: [], recurrenceTime: "", recurrenceEndDate: ""});
                 }, 500);
 
                 setTimeout(() => {
@@ -581,13 +581,15 @@ const DashboardPage = () => {
                 await addRecurringTask(subjectId, {
                     title: newTask.title,
                     description: newTask.description,
-                    periodicidad: newTask.recurrence === "CUSTOM" ? buildCustomFrequency(newTask.customDays) : newTask.recurrence
+                    periodicidad: newTask.recurrence === "CUSTOM" ? buildCustomFrequency(newTask.customDays) : newTask.recurrence,
+                    time: newTask.recurrenceTime,
+                    endDate: newTask.recurrenceEndDate
                 });
                 toast.success(t.alertRecurringCreated);
 
                 setOpenFormSubjectId(null);
                 setTimeout(() => {
-                    setNewTask({title: "", description: "", deadline: "", recurrence: "NONE", priority: "MEDIUM", customDays: []});
+                    setNewTask({title: "", description: "", deadline: "", recurrence: "NONE", priority: "MEDIUM", customDays: [], recurrenceTime: "", recurrenceEndDate: ""});
                 }, 500);
             }
         } catch {

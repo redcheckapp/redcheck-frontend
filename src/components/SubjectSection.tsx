@@ -1,9 +1,11 @@
 import { Pencil, Archive, X, Plus, Repeat } from "lucide-react";
 import { TaskItem } from "./TaskItem";
 import { WeekdayPicker } from "./WeekdayPicker";
+import { RecurrencePreview } from "./RecurrencePreview";
 import { Suspense, lazy, useState, memo } from "react";
 import type { SubjectWithTasks, TaskPriority } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
+import { buildCustomFrequency } from "../utils/recurrenceUtils";
 
 // Only needed once the user opens the recurring-routines modal for a subject.
 const RecurringTasksModal = lazy(() => import("./RecurringTasksModal").then(m => ({ default: m.RecurringTasksModal })));
@@ -27,7 +29,7 @@ interface SubjectSectionProps {
     setOpenFormSubjectId: (id: number | null) => void;
     openFormSubjectId: number | null;
     handleSubmitTask: (e: React.FormEvent, subjectId: number) => void;
-    newTask: { title: string; description: string; deadline: string; recurrence: string; priority: TaskPriority; customDays: number[] };
+    newTask: { title: string; description: string; deadline: string; recurrence: string; priority: TaskPriority; customDays: number[]; recurrenceTime: string; recurrenceEndDate: string };
     handleChangeTask: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
     onToggleNewTaskCustomDay: (day: number) => void;
     error: string | null;
@@ -69,6 +71,9 @@ const translations = {
         optCustom: "Personalizada",
         lblCustomDays: "Se repite los días",
         weekDaysShort: ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"],
+        lblRecurrenceTime: "Hora (opcional)",
+        lblEndDate: "Termina el (opcional)",
+        lblUpcoming: "Próximas fechas:",
         lblPriority: "Prioridad",
         priorityLow: "Baja",
         priorityMedium: "Media",
@@ -100,6 +105,9 @@ const translations = {
         optCustom: "Custom",
         lblCustomDays: "Repeats on",
         weekDaysShort: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
+        lblRecurrenceTime: "Time (optional)",
+        lblEndDate: "Ends on (optional)",
+        lblUpcoming: "Upcoming dates:",
         lblPriority: "Priority",
         priorityLow: "Low",
         priorityMedium: "Medium",
@@ -290,6 +298,28 @@ export const SubjectSection = memo(({
                                     <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblCustomDays}</label>
                                     <WeekdayPicker selectedDays={newTask.customDays} onToggleDay={onToggleNewTaskCustomDay} dayLabels={t.weekDaysShort} />
                                 </div>
+                            )}
+                            {newTask.recurrence !== "NONE" && (
+                                <>
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <div className="flex-1 flex flex-col">
+                                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblRecurrenceTime}</label>
+                                            <input type="time" name="recurrenceTime" value={newTask.recurrenceTime} onChange={handleChangeTask} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500 outline-none" />
+                                        </div>
+                                        <div className="flex-1 flex flex-col">
+                                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblEndDate}</label>
+                                            <input type="date" name="recurrenceEndDate" value={newTask.recurrenceEndDate} onChange={handleChangeTask} min={new Date().toISOString().slice(0, 10)} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500 outline-none" />
+                                        </div>
+                                    </div>
+                                    {(newTask.recurrence !== "CUSTOM" || newTask.customDays.length > 0) && (
+                                        <RecurrencePreview
+                                            frequency={newTask.recurrence === "CUSTOM" ? buildCustomFrequency(newTask.customDays) : newTask.recurrence}
+                                            endDate={newTask.recurrenceEndDate}
+                                            locale={language}
+                                            label={t.lblUpcoming}
+                                        />
+                                    )}
+                                </>
                             )}
                             <div className="flex flex-col">
                                 <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblPriority}</label>
