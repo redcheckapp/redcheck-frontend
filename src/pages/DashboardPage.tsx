@@ -280,6 +280,12 @@ const DashboardPage = () => {
         const task = subject?.tasks.find(t => t.id === taskId);
         if (!task) return;
 
+        // Clears any search filter left over from a previous palette search
+        // (e.g. a subject search from earlier in the session) that might
+        // not match this task's subject — otherwise the edit form opens via
+        // state but the task stays hidden behind the stale filter, since
+        // filteredSubjects/displaySubjects would exclude it.
+        setSearchQuery("");
         setOpenFormSubjectIdTaskId({ subjectId, taskId });
 
         let formattedDate = "";
