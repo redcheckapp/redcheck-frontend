@@ -1,4 +1,4 @@
-import { X, Trash2, Moon, Sun } from "lucide-react";
+import { X, Trash2, Moon, Sun, MessageSquarePlus, ChevronRight } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -14,6 +14,7 @@ interface SettingsModalProps {
     onToggleReminders: () => void;
     taskFeedbackEnabled: boolean;
     onToggleTaskFeedback: () => void;
+    onOpenFeedback: () => void;
 }
 
 // --- Translation dictionary for SettingsModal ---
@@ -37,6 +38,9 @@ const translations = {
         testHaptic: "Probar vibración",
         testHapticAccepted: "El navegador ha aceptado la vibración. Si no la has notado, puede que tu móvil no tenga motor de vibración activo para el navegador, o que la duración sea demasiado corta para notarla.",
         testHapticRejected: "Tu navegador ha rechazado la vibración (no soportada en este dispositivo/navegador).",
+        support: "Soporte",
+        sendFeedback: "¿Tienes feedback?",
+        sendFeedbackDesc: "Cuéntanoslo — bugs, ideas, o lo que sea",
         dangerZone: "Zona de peligro",
         demoWarning: "Por motivos de seguridad, la eliminación de cuenta está desactivada en el entorno de demostración.",
         btnDeleteDemo: "Borrar cuenta (Deshabilitado)",
@@ -62,6 +66,9 @@ const translations = {
         testHaptic: "Test vibration",
         testHapticAccepted: "The browser accepted the vibration request. If you didn't feel anything, your phone's vibration motor might not respond to browser requests, or the duration may be too short to notice.",
         testHapticRejected: "Your browser rejected the vibration request (not supported on this device/browser).",
+        support: "Support",
+        sendFeedback: "Got feedback?",
+        sendFeedbackDesc: "Tell us — bugs, ideas, anything",
         dangerZone: "Danger Zone",
         demoWarning: "For security reasons, account deletion is disabled in the demo environment.",
         btnDeleteDemo: "Delete account (Disabled)",
@@ -89,7 +96,7 @@ const ToggleSwitch = ({ enabled, onToggle, title }: { enabled: boolean; onToggle
     </button>
 );
 
-export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail, remindersEnabled, onToggleReminders, taskFeedbackEnabled, onToggleTaskFeedback }: SettingsModalProps) => {
+export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail, remindersEnabled, onToggleReminders, taskFeedbackEnabled, onToggleTaskFeedback, onOpenFeedback }: SettingsModalProps) => {
     const { theme, toggleTheme } = useTheme();
     const { language, toggleLanguage } = useLanguage(); // We extract the language and the toggle function
     const t = translations[language as keyof typeof translations];
@@ -205,7 +212,31 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                         </div>
                     </div>
 
-                    {/* Section 2: Danger Zone */}
+                    {/* Section 2: Support — a single discreet row, not a
+                        prominent CTA, opening FeedbackModal (DashboardPage
+                        closes this modal and opens that one, rather than
+                        stacking two ModalOverlays). */}
+                    <div className="flex flex-col gap-3 pt-4 border-t border-gray-100 dark:border-gray-800 transition-colors">
+                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.support}</h3>
+                        <button
+                            type="button"
+                            onClick={onOpenFeedback}
+                            className="flex justify-between items-center p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-red-500 dark:text-red-400">
+                                    <MessageSquarePlus size={16} />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{t.sendFeedback}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">{t.sendFeedbackDesc}</p>
+                                </div>
+                            </div>
+                            <ChevronRight size={16} className="text-gray-400 dark:text-gray-500 shrink-0" />
+                        </button>
+                    </div>
+
+                    {/* Section 3: Danger Zone */}
                     <div className="flex flex-col gap-3 pt-4 border-t border-gray-100 dark:border-gray-800 transition-colors">
                         <h3 className="text-sm font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">{t.dangerZone}</h3>
                         

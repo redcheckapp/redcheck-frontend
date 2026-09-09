@@ -99,3 +99,17 @@ export interface SmartCheckAiData {
     mensajeApoyo: string;
     planDeHoy: SmartCheckPlanItem[];
 }
+
+export type FeedbackCategory = "BUG" | "SUGGESTION" | "PRAISE" | "OTHER";
+
+export interface FeedbackRequest {
+    category: FeedbackCategory;
+    message: string;
+}
+
+export interface FeedbackResponse {
+    id: number;
+    category: FeedbackCategory;
+    message: string;
+    createdDate: string;
+}

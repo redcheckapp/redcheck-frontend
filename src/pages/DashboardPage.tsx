@@ -2,7 +2,7 @@ import { Sidebar } from "../components/Sidebar";
 import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
 import { useState, useEffect, useMemo, useRef, useCallback, Suspense, lazy } from "react";
-import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2, Settings, Moon, Sun, Languages, Archive, HelpCircle, ArrowUpDown } from "lucide-react";
+import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2, Settings, Moon, Sun, Languages, Archive, HelpCircle, ArrowUpDown, MessageSquarePlus } from "lucide-react";
 import { ArchivedSubjectsPopover } from "../components/ArchivedSubjectsPopover";
 import type { CommandAction } from "../components/CommandPalette";
 import { ProgressHeatmap } from "../components/ProgressHeatmap";
@@ -33,6 +33,7 @@ const SmartCheckModal = lazy(() => import("../components/SmartCheckModal"));
 const TrashView = lazy(() => import("../components/TrashView").then(m => ({ default: m.TrashView })));
 const CommandPalette = lazy(() => import("../components/CommandPalette").then(m => ({ default: m.CommandPalette })));
 const OnboardingTour = lazy(() => import("../components/OnboardingTour").then(m => ({ default: m.OnboardingTour })));
+const FeedbackModal = lazy(() => import("../components/FeedbackModal").then(m => ({ default: m.FeedbackModal })));
 
 // --- Translation dictionary for the Dashboard ---
 const translations = {
@@ -120,7 +121,8 @@ const translations = {
         actionAddSubject: "Añadir nueva asignatura",
         actionShowAgenda: "Mostrar agenda",
         actionFocusMode: "Activar Modo Foco",
-        actionShowTour: "Ver el tour de bienvenida"
+        actionShowTour: "Ver el tour de bienvenida",
+        actionSendFeedback: "Enviar feedback"
     },
     en: {
         alertAiAnalyzing: "🧠 SmartCheck is analyzing your tasks...",
@@ -206,7 +208,8 @@ const translations = {
         actionAddSubject: "Add new subject",
         actionShowAgenda: "Show agenda",
         actionFocusMode: "Turn on Focus Mode",
-        actionShowTour: "Show welcome tour"
+        actionShowTour: "Show welcome tour",
+        actionSendFeedback: "Send feedback"
     }
 };
 
@@ -236,7 +239,8 @@ const DashboardPage = () => {
     const [openFormUpdateSubject, setOpenFormUpdateSubject] = useState<number | null>(null);
     const [openFormNewSubject, setOpenFormNewSubject] = useState<boolean>(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+
     const [showCalendar, setShowCalendar] = useState(true);
     const [showTrash, setShowTrash] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
@@ -253,6 +257,14 @@ const DashboardPage = () => {
     const handleCloseOnboarding = () => {
         localStorage.setItem("rc_onboarding_seen", "true");
         setShowOnboarding(false);
+    };
+
+    // Closes Settings before opening Feedback rather than stacking two
+    // ModalOverlays — used by both the SettingsModal row and the command
+    // palette action below.
+    const handleOpenFeedback = () => {
+        setIsSettingsOpen(false);
+        setShowFeedbackModal(true);
     };
 
     const handleOpenTaskEditor = (subjectId: number, taskId: number) => {
@@ -835,7 +847,7 @@ const DashboardPage = () => {
             }
 
             if (e.key !== "Escape") return;
-            if (isSettingsOpen || isAiModalOpen || paletteOpen) return;
+            if (isSettingsOpen || isAiModalOpen || paletteOpen || showFeedbackModal) return;
 
             if (mobileSidebarOpen) {
                 setMobileSidebarOpen(false);
@@ -862,6 +874,7 @@ const DashboardPage = () => {
         isSettingsOpen,
         isAiModalOpen,
         paletteOpen,
+        showFeedbackModal,
         mobileSidebarOpen,
         showTrash,
         openFormNewSubject,
@@ -1036,6 +1049,12 @@ const DashboardPage = () => {
             label: t.actionShowTour,
             icon: HelpCircle,
             onSelect: () => setShowOnboarding(true),
+        },
+        {
+            id: "send-feedback",
+            label: t.actionSendFeedback,
+            icon: MessageSquarePlus,
+            onSelect: () => setShowFeedbackModal(true),
         },
     ];
 
@@ -1546,6 +1565,7 @@ const DashboardPage = () => {
                         onToggleReminders={handleToggleReminders}
                         taskFeedbackEnabled={taskFeedbackEnabled}
                         onToggleTaskFeedback={handleToggleTaskFeedback}
+                        onOpenFeedback={handleOpenFeedback}
                     />
                 </Suspense>
 
@@ -1574,6 +1594,10 @@ const DashboardPage = () => {
 
                 <Suspense fallback={null}>
                     <OnboardingTour isOpen={showOnboarding} onClose={handleCloseOnboarding} />
+                </Suspense>
+
+                <Suspense fallback={null}>
+                    <FeedbackModal isOpen={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} />
                 </Suspense>
             </div>
 
