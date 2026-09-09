@@ -1,5 +1,6 @@
 import { Pencil, Archive, X, Plus, Repeat } from "lucide-react";
 import { TaskItem } from "./TaskItem";
+import { WeekdayPicker } from "./WeekdayPicker";
 import { Suspense, lazy, useState, memo } from "react";
 import type { SubjectWithTasks, TaskPriority } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
@@ -26,8 +27,9 @@ interface SubjectSectionProps {
     setOpenFormSubjectId: (id: number | null) => void;
     openFormSubjectId: number | null;
     handleSubmitTask: (e: React.FormEvent, subjectId: number) => void;
-    newTask: { title: string; description: string; deadline: string; recurrence: string; priority: TaskPriority };
+    newTask: { title: string; description: string; deadline: string; recurrence: string; priority: TaskPriority; customDays: number[] };
     handleChangeTask: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+    onToggleNewTaskCustomDay: (day: number) => void;
     error: string | null;
     loading: boolean;
     deletingTasks: number[];
@@ -64,6 +66,9 @@ const translations = {
         optWeekly: "Semanalmente",
         optBiweekly: "Quincenalmente",
         optMonthly: "Mensualmente",
+        optCustom: "Personalizada",
+        lblCustomDays: "Se repite los días",
+        weekDaysShort: ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"],
         lblPriority: "Prioridad",
         priorityLow: "Baja",
         priorityMedium: "Media",
@@ -92,6 +97,9 @@ const translations = {
         optWeekly: "Weekly",
         optBiweekly: "Biweekly",
         optMonthly: "Monthly",
+        optCustom: "Custom",
+        lblCustomDays: "Repeats on",
+        weekDaysShort: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
         lblPriority: "Priority",
         priorityLow: "Low",
         priorityMedium: "Medium",
@@ -121,6 +129,7 @@ export const SubjectSection = memo(({
     handleSubmitTask,
     newTask,
     handleChangeTask,
+    onToggleNewTaskCustomDay,
     error,
     setUpdatedTask,
     setUpdatedSubject,
@@ -272,9 +281,16 @@ export const SubjectSection = memo(({
                                         <option value="WEEKLY">{t.optWeekly}</option>
                                         <option value="BIWEEKLY">{t.optBiweekly}</option>
                                         <option value="MONTHLY">{t.optMonthly}</option>
+                                        <option value="CUSTOM">{t.optCustom}</option>
                                     </select>
                                 </div>
                             </div>
+                            {newTask.recurrence === "CUSTOM" && (
+                                <div className="flex flex-col">
+                                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblCustomDays}</label>
+                                    <WeekdayPicker selectedDays={newTask.customDays} onToggleDay={onToggleNewTaskCustomDay} dayLabels={t.weekDaysShort} />
+                                </div>
+                            )}
                             <div className="flex flex-col">
                                 <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblPriority}</label>
                                 <select name="priority" value={newTask.priority} onChange={handleChangeTask} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500 outline-none cursor-pointer">

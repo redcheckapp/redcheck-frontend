@@ -13,6 +13,7 @@ import type { SmartCheckAiData, SubjectWithTasks, TaskPriority, TaskRequest } fr
 import { useNavigate } from "react-router-dom";
 import { deleteUser, getUsername } from "../api/userApi";
 import { addRecurringTask } from "../api/recurringTaskApi";
+import { buildCustomFrequency } from "../utils/recurrenceUtils";
 import { dailyAnalysis, pollForAnalysis } from "../api/smartCheckApi";
 import { PageTransition } from "../components/PageTransition";
 import { AgendaView } from "../components/AgendaView";
@@ -57,6 +58,7 @@ const translations = {
         alertAiError: "Error al obtener el análisis.",
         alertRecurringCreated: "Tarea recurrente creada. Aparecerá según su periodicidad a partir de mañana.",
         errCreateTask: "Error al crear la tarea",
+        errCustomDaysRequired: "Selecciona al menos un día de la semana",
         errGeneric: "Error",
         errTrash: "No se pudo enviar la asignatura a la papelera.",
         errArchive: "No se pudo cambiar el estado de la asignatura.",
@@ -150,6 +152,7 @@ const translations = {
         alertAiError: "Error fetching analysis.",
         alertRecurringCreated: "Recurring task created. It will appear according to its periodicity starting tomorrow.",
         errCreateTask: "Error creating task",
+        errCustomDaysRequired: "Select at least one day of the week",
         errGeneric: "Error",
         errTrash: "Could not send the subject to the trash.",
         errArchive: "Could not change the subject's status.",
@@ -464,7 +467,7 @@ const DashboardPage = () => {
     const [username, setUsername] = useState("");
     const [userEmail, setUserEmail] = useState("");
     const [updatedSubject, setUpdatedSubject] = useState({ name: "", description: "" });
-    const [newTask, setNewTask] = useState<{ title: string; description: string; deadline: string; recurrence: string; priority: TaskPriority }>({ title: "", description: "", deadline: "", recurrence: "NONE", priority: "MEDIUM" });
+    const [newTask, setNewTask] = useState<{ title: string; description: string; deadline: string; recurrence: string; priority: TaskPriority; customDays: number[] }>({ title: "", description: "", deadline: "", recurrence: "NONE", priority: "MEDIUM", customDays: [] });
     const [updatedTask, setUpdatedTask] = useState<{ title: string; description: string; deadline: string; priority: TaskPriority }>({ title: "", description: "", deadline: "", priority: "MEDIUM" });
     const [newSubject, setNewSubject] = useState({ name: "", description: "" });
     // Mutually exclusive: these are two alternative orderings for the same
@@ -491,6 +494,12 @@ const DashboardPage = () => {
     // would defeat the memoization.
     const handleChangeTask = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setNewTask(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    }, []);
+    const handleToggleNewTaskCustomDay = useCallback((day: number) => {
+        setNewTask(prev => ({
+            ...prev,
+            customDays: prev.customDays.includes(day) ? prev.customDays.filter(d => d !== day) : [...prev.customDays, day]
+        }));
     }, []);
     const handleChangeUpdateTask = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setUpdatedTask(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -543,6 +552,10 @@ const DashboardPage = () => {
     const handleSubmitTask = useCallback(async (e: React.FormEvent, subjectId: number) => {
         e.preventDefault();
         setError(null);
+        if (newTask.recurrence === "CUSTOM" && newTask.customDays.length === 0) {
+            setError(t.errCustomDaysRequired);
+            return;
+        }
         try {
             if (newTask.recurrence === "NONE") {
                 const response = await addNewTask(subjectId, {
@@ -557,7 +570,7 @@ const DashboardPage = () => {
                 setOpenFormSubjectId(null);
 
                 setTimeout(() => {
-                    setNewTask({title: "", description: "", deadline: "", recurrence: "NONE", priority: "MEDIUM"});
+                    setNewTask({title: "", description: "", deadline: "", recurrence: "NONE", priority: "MEDIUM", customDays: []});
                 }, 500);
 
                 setTimeout(() => {
@@ -568,19 +581,19 @@ const DashboardPage = () => {
                 await addRecurringTask(subjectId, {
                     title: newTask.title,
                     description: newTask.description,
-                    periodicidad: newTask.recurrence
+                    periodicidad: newTask.recurrence === "CUSTOM" ? buildCustomFrequency(newTask.customDays) : newTask.recurrence
                 });
                 toast.success(t.alertRecurringCreated);
 
                 setOpenFormSubjectId(null);
                 setTimeout(() => {
-                    setNewTask({title: "", description: "", deadline: "", recurrence: "NONE", priority: "MEDIUM"});
+                    setNewTask({title: "", description: "", deadline: "", recurrence: "NONE", priority: "MEDIUM", customDays: []});
                 }, 500);
             }
         } catch {
             setError(t.errCreateTask);
         }
-    }, [newTask, t.alertRecurringCreated, t.errCreateTask]);
+    }, [newTask, t.alertRecurringCreated, t.errCreateTask, t.errCustomDaysRequired]);
 
     const handleUpdateTask = useCallback(async (e: React.FormEvent, subjectId: number, taskId: number) => {
         e.preventDefault();
@@ -1477,6 +1490,7 @@ const DashboardPage = () => {
                                                     handleSubmitTask={handleSubmitTask}
                                                     newTask={newTask}
                                                     handleChangeTask={handleChangeTask}
+                                                    onToggleNewTaskCustomDay={handleToggleNewTaskCustomDay}
                                                     error={error}
                                                     loading={loading}
                                                     deletingTasks={deletingTasks}

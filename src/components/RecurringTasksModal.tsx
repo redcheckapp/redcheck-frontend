@@ -6,6 +6,8 @@ import { useLanguage } from "../context/LanguageContext"; // <-- We import the c
 import { useConfirm } from "../context/ConfirmContext";
 import type { RecurringTaskResponse } from "../types";
 import { ModalOverlay } from "./ModalOverlay";
+import { WeekdayPicker } from "./WeekdayPicker";
+import { buildCustomFrequency, formatCustomFrequencyLabel, parseCustomFrequencyDays } from "../utils/recurrenceUtils";
 
 interface RecurringTasksModalProps {
     isOpen: boolean;
@@ -41,7 +43,11 @@ const translations = {
         freqDaily: "Diaria",
         freqWeekly: "Semanal",
         freqBiweekly: "Quincenal",
-        freqMonthly: "Mensual"
+        freqMonthly: "Mensual",
+        optCustom: "Personalizada",
+        lblCustomDays: "Se repite los días",
+        weekDaysShort: ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"],
+        errCustomDaysRequired: "Selecciona al menos un día de la semana"
     },
     en: {
         title: "Recurring Routines",
@@ -68,7 +74,11 @@ const translations = {
         freqDaily: "Daily",
         freqWeekly: "Weekly",
         freqBiweekly: "Biweekly",
-        freqMonthly: "Monthly"
+        freqMonthly: "Monthly",
+        optCustom: "Custom",
+        lblCustomDays: "Repeats on",
+        weekDaysShort: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
+        errCustomDaysRequired: "Select at least one day of the week"
     }
 };
 
@@ -82,7 +92,7 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
 
     // States for editing
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-    const [editForm, setEditForm] = useState({ title: "", description: "", frequency: "DAILY" });
+    const [editForm, setEditForm] = useState({ title: "", description: "", frequency: "DAILY", customDays: [] as number[] });
 
     const fetchTasks = useCallback(async () => {
         setLoading(true);
@@ -124,20 +134,33 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
 
     const handleStartEdit = (task: RecurringTaskResponse) => {
         setEditingTaskId(task.id);
-        setEditForm({ 
-            title: task.title, 
-            description: task.description || "", 
-            frequency: task.frequency 
+        const customDays = parseCustomFrequencyDays(task.frequency);
+        setEditForm({
+            title: task.title,
+            description: task.description || "",
+            frequency: customDays ? "CUSTOM" : task.frequency,
+            customDays: customDays ?? []
         });
+    };
+
+    const handleToggleEditCustomDay = (day: number) => {
+        setEditForm(prev => ({
+            ...prev,
+            customDays: prev.customDays.includes(day) ? prev.customDays.filter(d => d !== day) : [...prev.customDays, day]
+        }));
     };
 
     const handleUpdateSubmit = async (e: React.FormEvent, taskId: number) => {
         e.preventDefault();
+        if (editForm.frequency === "CUSTOM" && editForm.customDays.length === 0) {
+            toast.error(t.errCustomDaysRequired);
+            return;
+        }
         try {
             const updatedTask = await updateRecurringTask(subjectId, taskId, {
                 title: editForm.title,
                 description: editForm.description,
-                frequency: editForm.frequency,
+                frequency: editForm.frequency === "CUSTOM" ? buildCustomFrequency(editForm.customDays) : editForm.frequency,
                 subjectId: subjectId
             });
             // We update visually
@@ -150,11 +173,13 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
     };
 
     const translateFrequency = (freq: string) => {
-        const dict: Record<string, string> = { 
-            "DAILY": t.freqDaily, 
-            "WEEKLY": t.freqWeekly, 
-            "BIWEEKLY": t.freqBiweekly, 
-            "MONTHLY": t.freqMonthly 
+        const customLabel = formatCustomFrequencyLabel(freq, t.weekDaysShort);
+        if (customLabel) return customLabel;
+        const dict: Record<string, string> = {
+            "DAILY": t.freqDaily,
+            "WEEKLY": t.freqWeekly,
+            "BIWEEKLY": t.freqBiweekly,
+            "MONTHLY": t.freqMonthly
         };
         return dict[freq] || freq;
     };
@@ -206,8 +231,15 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
                                                 <option value="WEEKLY">{t.optWeekly}</option>
                                                 <option value="BIWEEKLY">{t.optBiweekly}</option>
                                                 <option value="MONTHLY">{t.optMonthly}</option>
+                                                <option value="CUSTOM">{t.optCustom}</option>
                                             </select>
                                         </div>
+                                        {editForm.frequency === "CUSTOM" && (
+                                            <div className="flex flex-col gap-1.5">
+                                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.lblCustomDays}</label>
+                                                <WeekdayPicker selectedDays={editForm.customDays} onToggleDay={handleToggleEditCustomDay} dayLabels={t.weekDaysShort} />
+                                            </div>
+                                        )}
                                         <div className="flex justify-end gap-2 mt-1 transition-colors duration-300">
                                             <button type="button" onClick={() => setEditingTaskId(null)} className="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg transition-all duration-300">{t.btnCancel}</button>
                                             <button type="submit" className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 rounded-lg shadow-sm transition-all duration-300">{t.btnSave}</button>
