@@ -6,8 +6,8 @@ import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, Bar
 import { ArchivedSubjectsPopover } from "../components/ArchivedSubjectsPopover";
 import type { CommandAction } from "../components/CommandPalette";
 import { ProgressHeatmap } from "../components/ProgressHeatmap";
-import { archiveSubject, deleteSubject, getSubjects, postSubject, restoreSubject, updateSubject } from "../api/subjectApi";
-import { addNewTask, deleteTask, getTodayTasks, restoreTask, toggleTask, updateTask } from "../api/taskApi";
+import { archiveSubject, deleteSubject, getSubjectsWithTasks, postSubject, restoreSubject, updateSubject } from "../api/subjectApi";
+import { addNewTask, deleteTask, restoreTask, toggleTask, updateTask } from "../api/taskApi";
 import type { SmartCheckAiData, SubjectWithTasks, TaskRequest } from "../types";
 import { useNavigate } from "react-router-dom";
 import { deleteUser, getUsername } from "../api/userApi";
@@ -528,13 +528,7 @@ const DashboardPage = () => {
     // to stay the same function across renders rather than being recreated.
     const refreshData = useCallback(async () => {
         try {
-            const subjectsData = await getSubjects();
-            const subjectsWithTasks = await Promise.all(
-                subjectsData.map(async (subject) => {
-                    const tasks = await getTodayTasks(subject.id);
-                    return { ...subject, tasks };
-                })
-            );
+            const subjectsWithTasks = await getSubjectsWithTasks();
             setSubjects(subjectsWithTasks);
         } catch (err) {
             console.error("Error refreshing the dashboard:", err);

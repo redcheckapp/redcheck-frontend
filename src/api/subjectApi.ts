@@ -1,8 +1,16 @@
 import api from "./axiosConfig";
-import type { SubjectRequest, SubjectResponse } from "../types";
+import type { SubjectRequest, SubjectResponse, SubjectWithTasks } from "../types";
 
 export const getSubjects = async (): Promise<SubjectResponse[]> => {
     const response = await api.get(`subjects`);
+    return response.data;
+}
+
+// Single-call dashboard fetch: subjects with their pending/completed-today
+// tasks already nested, avoiding one tasks request per subject (see
+// refreshData() in DashboardPage.tsx).
+export const getSubjectsWithTasks = async (): Promise<SubjectWithTasks[]> => {
+    const response = await api.get(`subjects/with-tasks`);
     return response.data;
 }
 
