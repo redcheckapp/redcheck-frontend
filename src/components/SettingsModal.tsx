@@ -18,6 +18,8 @@ interface SettingsModalProps {
     onToggleTaskFeedback: () => void;
     showTasksInCalendar: boolean;
     onToggleShowTasksInCalendar: () => void;
+    heatmapEnabled: boolean;
+    onToggleHeatmap: () => void;
     onOpenFeedback: () => void;
 }
 
@@ -59,6 +61,9 @@ const translations = {
         showTasksInCalendar: "Tareas en el calendario",
         showTasksInCalendarDesc: "Muestra tus tareas dentro de la vista de calendario",
         ttShowTasksInCalendar: "Activar/desactivar tareas en el calendario",
+        heatmapColoring: "Coloreado por progreso",
+        heatmapColoringDesc: "Colorea los días del calendario según tus tareas completadas",
+        ttHeatmapColoring: "Activar/desactivar coloreado por progreso",
         support: "Soporte",
         sendFeedback: "¿Tienes feedback?",
         sendFeedbackDesc: "Cuéntanoslo — bugs, ideas, o lo que sea",
@@ -104,6 +109,9 @@ const translations = {
         showTasksInCalendar: "Tasks in calendar",
         showTasksInCalendarDesc: "Show your tasks inside the calendar view",
         ttShowTasksInCalendar: "Turn tasks in calendar on/off",
+        heatmapColoring: "Progress coloring",
+        heatmapColoringDesc: "Colors calendar days based on your completed tasks",
+        ttHeatmapColoring: "Turn progress coloring on/off",
         support: "Support",
         sendFeedback: "Got feedback?",
         sendFeedbackDesc: "Tell us — bugs, ideas, anything",
@@ -151,7 +159,7 @@ const chipClass = (selected: boolean) =>
             : "bg-gray-50 dark:bg-gray-800/60 border-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
     }`;
 
-export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail, remindersEnabled, onToggleReminders, taskFeedbackEnabled, onToggleTaskFeedback, showTasksInCalendar, onToggleShowTasksInCalendar, onOpenFeedback }: SettingsModalProps) => {
+export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail, remindersEnabled, onToggleReminders, taskFeedbackEnabled, onToggleTaskFeedback, showTasksInCalendar, onToggleShowTasksInCalendar, heatmapEnabled, onToggleHeatmap, onOpenFeedback }: SettingsModalProps) => {
     const { theme, toggleTheme } = useTheme();
     const { language, toggleLanguage } = useLanguage(); // We extract the language and the toggle function
     const { colorblindMode, setColorblindMode, fontSize, setFontSize } = useAccessibility();
@@ -298,6 +306,26 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                                 </p>
                             </div>
                             <ToggleSwitch enabled={showTasksInCalendar} onToggle={onToggleShowTasksInCalendar} title={t.ttShowTasksInCalendar} />
+                        </div>
+
+                        {/* Month/Week day-cell completion-ratio coloring —
+                            opt-out, defaults on. Used to be a Palette icon
+                            button in AgendaView's own header; moved here
+                            (2026-09-10, per user request) to sit next to the
+                            other calendar-display toggle above instead of a
+                            separate control living inside the calendar
+                            itself. Independent of showTasksInCalendar —
+                            see AgendaView's getSquareColor. */}
+                        <div className="flex justify-between items-center p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 transition-colors">
+                            <div>
+                                <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                                    {t.heatmapColoring}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
+                                    {t.heatmapColoringDesc}
+                                </p>
+                            </div>
+                            <ToggleSwitch enabled={heatmapEnabled} onToggle={onToggleHeatmap} title={t.ttHeatmapColoring} />
                         </div>
                     </div>
 

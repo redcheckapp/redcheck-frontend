@@ -464,6 +464,22 @@ const DashboardPage = () => {
         localStorage.setItem("rc_show_tasks_in_calendar", String(next));
     };
 
+    // Whether Month/Week day cells get colored by completion ratio in
+    // AgendaView — opt-out (defaults on), same pattern as the two toggles
+    // above. Was local state inside AgendaView itself (same localStorage
+    // key, `rc_calendar_heatmap_enabled` — reused as-is here so an existing
+    // user's preference carries over) until it moved into Settings
+    // (2026-09-10) to sit next to the other calendar-display toggles
+    // instead of a separate icon button in the calendar's own header.
+    const [heatmapEnabled, setHeatmapEnabled] = useState(
+        () => localStorage.getItem("rc_calendar_heatmap_enabled") !== "false"
+    );
+    const handleToggleHeatmap = () => {
+        const next = !heatmapEnabled;
+        setHeatmapEnabled(next);
+        localStorage.setItem("rc_calendar_heatmap_enabled", String(next));
+    };
+
     // Desktop-only dismissible tip inside the Focus Mode performance panel.
     // Persisted in sessionStorage (not plain state) so it stays dismissed
     // across refreshes/navigation within the same session, but reappears
@@ -1310,6 +1326,7 @@ const DashboardPage = () => {
                                         onDeleteTask={handleCalendarDeleteTask}
                                         onToggleTask={handleToggleTask}
                                         showTasks={showTasksInCalendar}
+                                        heatmapEnabled={heatmapEnabled}
                                     />
                                 </main>
                             </div>
@@ -1717,6 +1734,8 @@ const DashboardPage = () => {
                         onToggleTaskFeedback={handleToggleTaskFeedback}
                         showTasksInCalendar={showTasksInCalendar}
                         onToggleShowTasksInCalendar={handleToggleShowTasksInCalendar}
+                        heatmapEnabled={heatmapEnabled}
+                        onToggleHeatmap={handleToggleHeatmap}
                         onOpenFeedback={handleOpenFeedback}
                     />
                 </Suspense>

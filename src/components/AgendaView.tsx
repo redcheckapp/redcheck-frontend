@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo, lazy, Suspense, type TouchEvent, type KeyboardEvent, type DragEvent, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
-import { ChevronLeft, ChevronRight, Clock, CalendarDays, Plus, Check, Palette } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, CalendarDays, Plus, Check } from "lucide-react";
 import { getProgressHeatmap } from "../api/progressRecordApi";
 import { getTasksForDateRange } from "../api/taskApi";
 import type { ProgressRecord, SubjectWithTasks, TaskPriority, TaskRequest, TaskResponse } from "../types";
@@ -28,6 +28,13 @@ interface AgendaViewProps {
     // tasks, or the separate heatmap-coloring toggle. See
     // getMergedTasksForDate, the single choke point this gates.
     showTasks?: boolean;
+    // Whether Month/Week day cells get colored by completion ratio (see
+    // getSquareColor below) — defaults true. Lifted to DashboardPage/
+    // SettingsModal (2026-09-10, was local state here) to sit next to the
+    // other calendar-display toggles in Settings rather than a separate
+    // icon button in the calendar's own header, for consistency with how
+    // every other app-wide preference is now surfaced in one place.
+    heatmapEnabled?: boolean;
 }
 
 // Either creating a new task on a clicked date, or editing/rescheduling one
@@ -48,8 +55,6 @@ const translations = {
         lblAllDay: "Todo el día",
         moreTasks: "más",
         jumpToDate: "Ir a una fecha",
-        toggleHeatmapOn: "Desactivar coloreado por progreso",
-        toggleHeatmapOff: "Activar coloreado por progreso",
         prevPeriod: "Periodo anterior",
         nextPeriod: "Periodo siguiente",
         prevMonth: "Mes anterior",
@@ -76,8 +81,6 @@ const translations = {
         lblAllDay: "All day",
         moreTasks: "more",
         jumpToDate: "Jump to a date",
-        toggleHeatmapOn: "Turn off progress coloring",
-        toggleHeatmapOff: "Turn on progress coloring",
         prevPeriod: "Previous period",
         nextPeriod: "Next period",
         prevMonth: "Previous month",
@@ -294,7 +297,7 @@ const DatePickerPopover = ({ selectedDate, onSelect, onClose, weekDays, months, 
     );
 };
 
-export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onDeleteTask, onToggleTask, showTasks = true }: AgendaViewProps) => {
+export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onDeleteTask, onToggleTask, showTasks = true, heatmapEnabled = true }: AgendaViewProps) => {
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
 
@@ -312,28 +315,6 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
     const [historyRefreshTick, setHistoryRefreshTick] = useState(0);
     const refreshHistory = () => setHistoryRefreshTick(tick => tick + 1);
     const [datePickerOpen, setDatePickerOpen] = useState(false);
-    // Whether Month/Week day cells get colored by completion ratio (see
-    // getSquareColor below) — on by default, opt-out for users who find it
-    // distracting. Local to AgendaView (not lifted to DashboardPage/a
-    // shared context) since nothing outside the calendar reads it; plain
-    // localStorage, same lightweight pattern as DashboardPage's own
-    // remindersEnabled/taskFeedbackEnabled toggles rather than the
-    // cookie+localStorage tier AccessibilityContext uses for whole-app
-    // identity-level preferences.
-    const [heatmapEnabled, setHeatmapEnabled] = useState(() => {
-        try {
-            return localStorage.getItem("rc_calendar_heatmap_enabled") !== "false";
-        } catch {
-            return true;
-        }
-    });
-    useEffect(() => {
-        try {
-            localStorage.setItem("rc_calendar_heatmap_enabled", String(heatmapEnabled));
-        } catch {
-            // ignore (private browsing / storage disabled)
-        }
-    }, [heatmapEnabled]);
     const [taskModalState, setTaskModalState] = useState<TaskModalState | null>(null);
     const [transitionVariant, setTransitionVariant] = useState<TransitionVariant>("fade");
     // Month view's "+N more" hover preview (see the popover render near the
@@ -966,15 +947,6 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                 />
                             )}
                         </div>
-                        <button
-                            onClick={() => setHeatmapEnabled(v => !v)}
-                            aria-pressed={heatmapEnabled}
-                            title={heatmapEnabled ? t.toggleHeatmapOn : t.toggleHeatmapOff}
-                            aria-label={heatmapEnabled ? t.toggleHeatmapOn : t.toggleHeatmapOff}
-                            className={`p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-md transition-all ${heatmapEnabled ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-gray-400"}`}
-                        >
-                            <Palette size={18} />
-                        </button>
                     </div>
                 </div>
 
