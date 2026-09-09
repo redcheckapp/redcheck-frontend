@@ -33,6 +33,7 @@ const translations = {
         language: "Idioma",
         langDesc: "Cambiar el idioma de la aplicación",
         ttLanguage: "Cambiar idioma",
+        notifications: "Notificaciones y comportamiento",
         reminders: "Recordatorios de tareas",
         remindersDesc: "Avisa cuando una tarea esté por vencer (solo con la app abierta)",
         ttReminders: "Activar/desactivar recordatorios",
@@ -77,6 +78,7 @@ const translations = {
         language: "Language",
         langDesc: "Change application language",
         ttLanguage: "Change language",
+        notifications: "Notifications & behavior",
         reminders: "Task reminders",
         remindersDesc: "Get notified when a task is about to be due (app must be open)",
         ttReminders: "Turn reminders on/off",
@@ -187,10 +189,15 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                 {/* Content */}
                 <div className="p-5 flex flex-col gap-6 max-h-[60vh] overflow-y-auto">
                     
-                    {/* Section 1: Appearance & Language */}
+                    {/* Section 1: Appearance — purely visual settings.
+                        Notification/behavior toggles used to live in here
+                        too (grouped by "when this was added" rather than
+                        what it actually is); split into their own section
+                        below per user request, since "reminders"/"haptic
+                        feedback"/"tasks in calendar" aren't appearance. */}
                     <div className="flex flex-col gap-3">
                         <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.appearance}</h3>
-                        
+
                         {/* Language selector (New) */}
                         <div className="flex justify-between items-center p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 transition-colors">
                             <div>
@@ -229,6 +236,15 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                                 {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
                             </button>
                         </div>
+                    </div>
+
+                    {/* Section 2: Notifications & behavior — reminders,
+                        haptic feedback, and calendar task visibility all
+                        change what the app *does*, not how it looks, so
+                        they get their own section rather than sitting under
+                        "Appearance". */}
+                    <div className="flex flex-col gap-3 pt-4 border-t border-gray-100 dark:border-gray-800 transition-colors">
+                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.notifications}</h3>
 
                         {/* Task reminders toggle — client-side only, no
                             backend push involved (see CLAUDE.md). */}
@@ -285,7 +301,7 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                         </div>
                     </div>
 
-                    {/* Section 2: Accessibility — colorblind filter defaults
+                    {/* Section 3: Accessibility — colorblind filter defaults
                         to "none" and font size to "medium" (no override at
                         all, see AccessibilityContext.tsx/index.css), so a
                         fresh install looks and reads exactly as before this
@@ -330,7 +346,7 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                         </div>
                     </div>
 
-                    {/* Section 3: Support — a single discreet row, not a
+                    {/* Section 4: Support — a single discreet row, not a
                         prominent CTA, opening FeedbackModal (DashboardPage
                         closes this modal and opens that one, rather than
                         stacking two ModalOverlays). */}
@@ -354,7 +370,7 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                         </button>
                     </div>
 
-                    {/* Section 4: Danger Zone */}
+                    {/* Section 5: Danger Zone */}
                     <div className="flex flex-col gap-3 pt-4 border-t border-gray-100 dark:border-gray-800 transition-colors">
                         <h3 className="text-sm font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">{t.dangerZone}</h3>
                         
