@@ -212,22 +212,22 @@ export const RoutinesView = ({ subjects, onClose }: RoutinesViewProps) => {
         .sort((a, b) => a.subject.name.localeCompare(b.subject.name));
 
     return (
-        <div className="w-full h-full bg-white dark:bg-gray-900 rounded-2xl shadow-md p-8 flex flex-col overflow-y-auto transition-colors duration-500">
-            <div className="flex items-center gap-4 mb-2">
-                <button onClick={onClose} aria-label={t.backTitle} title={t.backTitle} className="p-2 text-gray-500 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-300">
-                    <ArrowLeft size={24} />
+        <div className="w-full h-full bg-white dark:bg-gray-900 rounded-2xl shadow-md p-4 sm:p-8 flex flex-col overflow-y-auto transition-colors duration-500">
+            <div className="flex items-center gap-3 sm:gap-4 mb-2">
+                <button onClick={onClose} aria-label={t.backTitle} title={t.backTitle} className="shrink-0 p-2 text-gray-500 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-300">
+                    <ArrowLeft size={22} className="sm:w-6 sm:h-6" />
                 </button>
-                <div className="flex items-center gap-3 text-red-600 dark:text-red-500 transition-colors duration-300">
-                    <Repeat size={28} />
-                    <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 transition-colors duration-300">{t.title}</h1>
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0 text-red-600 dark:text-red-500 transition-colors duration-300">
+                    <Repeat size={22} className="shrink-0 sm:w-7 sm:h-7" />
+                    <h1 className="text-xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100 truncate transition-colors duration-300">{t.title}</h1>
                 </div>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-500 mb-8 ml-[3.25rem] transition-colors duration-300">{t.subtitle}</p>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-500 mb-6 sm:mb-8 sm:ml-[3.25rem] transition-colors duration-300">{t.subtitle}</p>
 
             {loading ? (
                 <div className="flex-1 space-y-8 animate-pulse">
-                    <div className="grid grid-cols-3 gap-3">
-                        {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-20 rounded-xl bg-gray-100 dark:bg-gray-800" />)}
+                    <div className="grid grid-cols-3 gap-1.5 sm:gap-3">
+                        {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-14 sm:h-20 rounded-xl bg-gray-100 dark:bg-gray-800" />)}
                     </div>
                     {Array.from({ length: 2 }).map((_, i) => (
                         <div key={i} className="flex flex-col gap-2">
@@ -245,20 +245,25 @@ export const RoutinesView = ({ subjects, onClose }: RoutinesViewProps) => {
                     <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-sm transition-colors duration-300">{t.emptyDesc}</p>
                 </div>
             ) : (
-                <div className="flex-1 flex flex-col gap-8">
-                    {/* Summary strip */}
-                    <div className="grid grid-cols-3 gap-3">
-                        <div className="flex flex-col items-center justify-center gap-0.5 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800 transition-colors duration-300">
-                            <span className="text-2xl font-black text-gray-800 dark:text-gray-100">{activeCount}</span>
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-500">{t.statActive}</span>
+                <div className="flex-1 flex flex-col gap-6 sm:gap-8">
+                    {/* Summary strip — padding/gaps/text all shrink on mobile
+                        (3 columns of translated labels like "Cumplimiento
+                        medio" have very little room to work with under
+                        ~380px), rather than reusing the same sizing as the
+                        desktop layout and letting the labels wrap badly or
+                        crowd the numbers out. */}
+                    <div className="grid grid-cols-3 gap-1.5 sm:gap-3">
+                        <div className="flex flex-col items-center justify-center gap-0.5 p-2 sm:p-4 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800 transition-colors duration-300">
+                            <span className="text-lg sm:text-2xl font-black text-gray-800 dark:text-gray-100">{activeCount}</span>
+                            <span className="text-center text-[9px] sm:text-[10px] leading-tight font-bold uppercase tracking-wider text-gray-500 dark:text-gray-500">{t.statActive}</span>
                         </div>
-                        <div className="flex flex-col items-center justify-center gap-0.5 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800 transition-colors duration-300">
-                            <span className="flex items-center gap-1 text-2xl font-black text-orange-500 dark:text-orange-400"><Flame size={20} />{bestStreak}</span>
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-500">{t.statBestStreak}</span>
+                        <div className="flex flex-col items-center justify-center gap-0.5 p-2 sm:p-4 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800 transition-colors duration-300">
+                            <span className="flex items-center gap-1 text-lg sm:text-2xl font-black text-orange-500 dark:text-orange-400"><Flame size={16} className="sm:w-5 sm:h-5" />{bestStreak}</span>
+                            <span className="text-center text-[9px] sm:text-[10px] leading-tight font-bold uppercase tracking-wider text-gray-500 dark:text-gray-500">{t.statBestStreak}</span>
                         </div>
-                        <div className="flex flex-col items-center justify-center gap-0.5 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800 transition-colors duration-300">
-                            <span className="flex items-center gap-1 text-2xl font-black text-green-600 dark:text-green-500"><CheckCircle2 size={20} />{Math.round(avgCompletion * 100)}%</span>
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-500">{t.statAvgCompletion}</span>
+                        <div className="flex flex-col items-center justify-center gap-0.5 p-2 sm:p-4 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800 transition-colors duration-300">
+                            <span className="flex items-center gap-1 text-lg sm:text-2xl font-black text-green-600 dark:text-green-500"><CheckCircle2 size={16} className="sm:w-5 sm:h-5" />{Math.round(avgCompletion * 100)}%</span>
+                            <span className="text-center text-[9px] sm:text-[10px] leading-tight font-bold uppercase tracking-wider text-gray-500 dark:text-gray-500">{t.statAvgCompletion}</span>
                         </div>
                     </div>
 
