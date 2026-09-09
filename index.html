@@ -32,11 +32,6 @@
           document.documentElement.classList.remove('dark');
         }
 
-        const storedColorblindMode = localStorage.getItem('rc_colorblind_mode');
-        if (storedColorblindMode && storedColorblindMode !== 'none') {
-          document.documentElement.classList.add('cb-' + storedColorblindMode);
-        }
-
         const storedFontSize = localStorage.getItem('rc_font_size');
         if (storedFontSize && storedFontSize !== 'medium') {
           document.documentElement.classList.add('text-scale-' + storedFontSize);
@@ -45,6 +40,19 @@
     </script>
   </head>
   <body class="bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500 m-0 p-0">
+    <!-- Applies the colorblind filter class synchronously, same anti-
+         flicker intent as the <head> script above — split out into its own
+         script here (rather than living in the <head> one) because it
+         targets document.body (see AccessibilityContext.tsx for why), which
+         doesn't exist yet while the parser is still inside <head>. -->
+    <script>
+      try {
+        const storedColorblindMode = localStorage.getItem('rc_colorblind_mode');
+        if (storedColorblindMode && storedColorblindMode !== 'none') {
+          document.body.classList.add('cb-' + storedColorblindMode);
+        }
+      } catch (e) {}
+    </script>
     <!-- Colorblind assist filters (see AccessibilityContext.tsx) — hidden,
          zero-size SVG that exists purely to host <filter> defs the CSS in
          index.css references via url(#...). Kept as plain markup (not a

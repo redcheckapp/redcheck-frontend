@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo, lazy, Suspense, type TouchEvent, type KeyboardEvent, type DragEvent } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
-import { ChevronLeft, ChevronRight, Clock, CalendarDays, Plus, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, CalendarDays, Plus, Check, Palette } from "lucide-react";
 import { getProgressHeatmap } from "../api/progressRecordApi";
 import { getTasksForDateRange } from "../api/taskApi";
 import type { ProgressRecord, SubjectWithTasks, TaskPriority, TaskRequest, TaskResponse } from "../types";
@@ -39,11 +39,12 @@ const translations = {
         btnDay: "Día",
         btnWeek: "Semana",
         btnMonth: "Mes",
-        lblTasks: "Tareas",
         lblViewTasks: "Ver tareas",
         lblAllDay: "Todo el día",
         moreTasks: "más",
         jumpToDate: "Ir a una fecha",
+        toggleHeatmapOn: "Desactivar coloreado por progreso",
+        toggleHeatmapOff: "Activar coloreado por progreso",
         prevPeriod: "Periodo anterior",
         nextPeriod: "Periodo siguiente",
         prevMonth: "Mes anterior",
@@ -66,11 +67,12 @@ const translations = {
         btnDay: "Day",
         btnWeek: "Week",
         btnMonth: "Month",
-        lblTasks: "Tasks",
         lblViewTasks: "View tasks",
         lblAllDay: "All day",
         moreTasks: "more",
         jumpToDate: "Jump to a date",
+        toggleHeatmapOn: "Turn off progress coloring",
+        toggleHeatmapOff: "Turn on progress coloring",
         prevPeriod: "Previous period",
         nextPeriod: "Next period",
         prevMonth: "Previous month",
@@ -301,6 +303,28 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
     const [historyRefreshTick, setHistoryRefreshTick] = useState(0);
     const refreshHistory = () => setHistoryRefreshTick(tick => tick + 1);
     const [datePickerOpen, setDatePickerOpen] = useState(false);
+    // Whether Month/Week day cells get colored by completion ratio (see
+    // getSquareColor below) — on by default, opt-out for users who find it
+    // distracting. Local to AgendaView (not lifted to DashboardPage/a
+    // shared context) since nothing outside the calendar reads it; plain
+    // localStorage, same lightweight pattern as DashboardPage's own
+    // remindersEnabled/taskFeedbackEnabled toggles rather than the
+    // cookie+localStorage tier AccessibilityContext uses for whole-app
+    // identity-level preferences.
+    const [heatmapEnabled, setHeatmapEnabled] = useState(() => {
+        try {
+            return localStorage.getItem("rc_calendar_heatmap_enabled") !== "false";
+        } catch {
+            return true;
+        }
+    });
+    useEffect(() => {
+        try {
+            localStorage.setItem("rc_calendar_heatmap_enabled", String(heatmapEnabled));
+        } catch {
+            // ignore (private browsing / storage disabled)
+        }
+    }, [heatmapEnabled]);
     const [taskModalState, setTaskModalState] = useState<TaskModalState | null>(null);
     const [transitionVariant, setTransitionVariant] = useState<TransitionVariant>("fade");
     // Month view's "+N more" hover preview (see the popover render near the
@@ -728,6 +752,13 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
     }
 
     const getSquareColor = (dateString: string) => {
+        // Single choke point for the heatmap toggle: every call site (Month
+        // and Week views) goes through this, so disabling it here is enough
+        // — the "today"/"this week" tint overrides downstream still apply
+        // on top of the neutral background this returns, since those read
+        // as navigational cues rather than the completion-ratio heatmap
+        // itself.
+        if (!heatmapEnabled) return "bg-white dark:bg-gray-900";
         const record = records[dateString];
         if (!record || record.totalTasks === 0) return "bg-white dark:bg-gray-900"; 
         const ratio = record.completionRate;
@@ -898,6 +929,15 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                 />
                             )}
                         </div>
+                        <button
+                            onClick={() => setHeatmapEnabled(v => !v)}
+                            aria-pressed={heatmapEnabled}
+                            title={heatmapEnabled ? t.toggleHeatmapOn : t.toggleHeatmapOff}
+                            aria-label={heatmapEnabled ? t.toggleHeatmapOn : t.toggleHeatmapOff}
+                            className={`p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-md transition-all ${heatmapEnabled ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-gray-400"}`}
+                        >
+                            <Palette size={18} />
+                        </button>
                     </div>
                 </div>
 
@@ -994,14 +1034,10 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                     }
                                 }
 
-                                const record = records[cellDateString];
                                 // getMergedTasksForDate covers both today/future (from
                                 // `subjects`, live-synced) and past days (from the fetched
                                 // calendar-history data, which — unlike `subjects` — includes
-                                // completed tasks). The heatmap `record` fallback below only
-                                // still applies to a past day with zero real task rows to show
-                                // (e.g. a day whose tasks were later deleted, or that never
-                                // had a real deadline recorded).
+                                // completed tasks).
                                 const dayTasks = getMergedTasksForDate(cellDateObj);
 
                                 const monthCellKey = `month-${cellDateString}`;
@@ -1077,14 +1113,7 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                                     </span>
                                                 )}
                                             </div>
-                                        ) : record && record.totalTasks > 0 && (
-                                            <div className="flex-1 flex flex-col gap-1 overflow-y-auto no-scrollbar">
-                                                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-black/5 dark:border-white/10 text-gray-700 dark:text-gray-300 text-[9px] sm:text-[10px] font-bold px-1 sm:px-1.5 py-0.5 sm:py-1 rounded truncate shadow-sm flex items-center justify-center sm:justify-between transition-colors duration-300">
-                                                    <span className="hidden sm:inline">{t.lblTasks}</span>
-                                                    <span className={record.completionRate === 1 ? "text-green-600 dark:text-green-400" : ""}>{record.completedTasks}/{record.totalTasks}</span>
-                                                </div>
-                                            </div>
-                                        )}
+                                        ) : null}
                                     </div>
                                 );
                             })}

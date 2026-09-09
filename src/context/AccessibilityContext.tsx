@@ -45,11 +45,19 @@ export const AccessibilityProvider = ({ children }: { children: React.ReactNode 
     });
 
     useEffect(() => {
-        const root = window.document.documentElement;
+        // Applied to `document.body`, not `documentElement` (`<html>`) —
+        // `filter: url(#svg-filter-id)` on the root `<html>` element is
+        // unreliable across browsers in practice, `body` is the far more
+        // commonly proven-working target for this exact technique. This
+        // still covers content portaled into `document.body` (every
+        // ModalOverlay-based modal, see ModalOverlay.tsx): a portal's
+        // content becomes a DOM *child* of body, which inherits the filter
+        // like any other descendant — nothing is lost by not using `html`.
+        const body = window.document.body;
 
-        root.classList.remove('cb-protanopia', 'cb-deuteranopia', 'cb-tritanopia');
+        body.classList.remove('cb-protanopia', 'cb-deuteranopia', 'cb-tritanopia');
         if (colorblindMode !== 'none') {
-            root.classList.add(`cb-${colorblindMode}`);
+            body.classList.add(`cb-${colorblindMode}`);
         }
 
         localStorage.setItem('rc_colorblind_mode', colorblindMode);

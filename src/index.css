@@ -24,16 +24,17 @@
 /* 3b. Colorblind assist filters (see AccessibilityContext.tsx) — applies
    one of the <filter> defs from index.html's inline SVG to the whole page
    via the standard CSS `filter` property. Toggled by class, same pattern
-   as `.dark` for the theme. Deliberately applied to `html` (not scoped to
-   `#root` or some inner wrapper): a `filter` on any ancestor creates a new
-   containing block for `position: fixed` descendants, which would already
-   apply here regardless of which ancestor we picked, and `html` is the one
-   choice that still covers content portaled straight into `document.body`
-   (every ModalOverlay-based modal — see ModalOverlay.tsx) instead of
-   leaving those uncorrected. */
-html.cb-protanopia { filter: url(#cb-protanopia-filter); }
-html.cb-deuteranopia { filter: url(#cb-deuteranopia-filter); }
-html.cb-tritanopia { filter: url(#cb-tritanopia-filter); }
+   as `.dark` for the theme. Applied to `body`, not `html`: `filter:
+   url(#id)` on the root `<html>` element is unreliable across browsers in
+   practice (this shipped once targeting `html` and simply had no visible
+   effect anywhere) — `body` is the far more commonly proven-working target
+   for this technique. Content portaled straight into `document.body`
+   (every ModalOverlay-based modal — see ModalOverlay.tsx) is still covered:
+   a portal's content becomes a DOM *child* of body, inheriting the filter
+   like any other descendant. */
+body.cb-protanopia { filter: url(#cb-protanopia-filter); }
+body.cb-deuteranopia { filter: url(#cb-deuteranopia-filter); }
+body.cb-tritanopia { filter: url(#cb-tritanopia-filter); }
 
 /* 3c. Font size accessibility setting — scales the same root font-size
    rule #3 above already uses for its desktop compact-scale, so this stays
