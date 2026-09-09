@@ -42,17 +42,26 @@ export const RoutineRow = ({ task, labels, onEdit, onToggleActive, onDelete, sub
         <div className={`flex items-center justify-between p-3.5 border rounded-xl transition-all duration-300 ${task.active ? 'border-red-100 dark:border-red-900/30 bg-white dark:bg-gray-800 shadow-sm' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 opacity-75'}`}>
             <div className="flex-1 min-w-0 pr-3">
                 <p className={`text-sm font-semibold truncate transition-colors duration-300 ${task.active ? 'text-gray-800 dark:text-gray-200' : 'text-gray-500 dark:text-gray-500'}`}>{task.title}</p>
+                {/* min-w-0 on the truncating spans below is load-bearing, not
+                    decorative: a flex item's default min-width is its own
+                    content size, which overrides `truncate` entirely (no
+                    ellipsis, the item just refuses to shrink) and — since
+                    nothing up the ancestor chain clips overflow until
+                    DashboardPage's own overflow-x-auto wrapper — silently
+                    pushes the *whole page* wider instead of stopping at this
+                    row, forcing horizontal scroll to see the cut-off content
+                    (fixed 2026-09-09). */}
                 <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5 flex items-center gap-1.5 transition-colors duration-300">
                     {subjectChip && (
-                        <span className="flex items-center gap-1 shrink-0">
-                            <span className={`w-1.5 h-1.5 rounded-full ${subjectChip.dotClass}`} />
-                            <span className="font-semibold text-gray-600 dark:text-gray-300">{subjectChip.name}</span>
+                        <span className="flex items-center gap-1 min-w-0 max-w-[7rem] shrink-0">
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${subjectChip.dotClass}`} />
+                            <span className="font-semibold text-gray-600 dark:text-gray-300 truncate min-w-0">{subjectChip.name}</span>
                         </span>
                     )}
                     <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 transition-colors duration-300 shrink-0">
                         {formatFrequencyLabel(task.frequency, labels)}
                     </span>
-                    <span className="truncate">{task.description || labels.noDesc}</span>
+                    <span className="truncate min-w-0 flex-1">{task.description || labels.noDesc}</span>
                 </p>
                 {hasMetaRow && (
                     <p className="flex items-center gap-2.5 flex-wrap mt-1 text-[10px] font-medium text-gray-400 dark:text-gray-500 transition-colors duration-300">

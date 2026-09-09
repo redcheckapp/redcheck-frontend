@@ -219,7 +219,7 @@ export const RoutinesView = ({ subjects, onClose }: RoutinesViewProps) => {
                 </button>
                 <div className="flex items-center gap-2 sm:gap-3 min-w-0 text-red-600 dark:text-red-500 transition-colors duration-300">
                     <Repeat size={22} className="shrink-0 sm:w-7 sm:h-7" />
-                    <h1 className="text-xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100 truncate transition-colors duration-300">{t.title}</h1>
+                    <h1 className="text-xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100 truncate min-w-0 transition-colors duration-300">{t.title}</h1>
                 </div>
             </div>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-500 mb-6 sm:mb-8 sm:ml-[3.25rem] transition-colors duration-300">{t.subtitle}</p>
