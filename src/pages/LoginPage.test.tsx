@@ -28,20 +28,17 @@ describe("LoginPage", () => {
         expect(screen.getByRole("button", { name: /^demo$/i })).toBeInTheDocument();
     });
 
-    it("lets the user type into the email and password fields", async () => {
+    it("lets the user type into the identifier and password fields", async () => {
         const user = userEvent.setup();
         const { container } = renderLoginPage();
 
-        // The email/password inputs aren't associated with their <label> via
-        // htmlFor/id, so they have no accessible name for getByRole/getByLabelText —
-        // that's a pre-existing accessibility gap, not something to work around silently.
-        const emailInput = container.querySelector<HTMLInputElement>('input[name="email"]')!;
+        const identifierInput = container.querySelector<HTMLInputElement>('input[name="emailOrUsername"]')!;
         const passwordInput = container.querySelector<HTMLInputElement>('input[name="password"]')!;
 
-        await user.type(emailInput, "ana@example.com");
+        await user.type(identifierInput, "ana@example.com");
         await user.type(passwordInput, "hunter2");
 
-        expect(emailInput).toHaveValue("ana@example.com");
+        expect(identifierInput).toHaveValue("ana@example.com");
         expect(passwordInput).toHaveValue("hunter2");
     });
 

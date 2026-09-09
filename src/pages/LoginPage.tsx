@@ -10,7 +10,7 @@ import { useLanguage } from "../context/LanguageContext"; // <-- New context
 const translations = {
     es: {
         loginTitle: "Iniciar sesión",
-        email: "Correo electrónico",
+        emailOrUsername: "Correo electrónico o usuario",
         password: "Contraseña",
         loginBtn: "Entrar a RedCheck",
         loading: "Cargando...",
@@ -19,14 +19,14 @@ const translations = {
         register: "Regístrate aquí",
         legal: "Aviso Legal",
         privacy: "Política de Privacidad",
-        errCreds: "Correo o contraseña incorrectos",
+        errCreds: "Correo/usuario o contraseña incorrectos",
         errDemo: "Error al acceder a la cuenta de demostración. Asegúrate de que el backend la ha inicializado.",
         tags: ["Agenda", "Inteligente", "Interactiva"],
         copyright: "© 2026 RedCheck. Desarrollado por Francisco Javier Molina Cuenca. Todos los derechos reservados."
     },
     en: {
         loginTitle: "Sign in",
-        email: "Email address",
+        emailOrUsername: "Email or username",
         password: "Password",
         loginBtn: "Log in to RedCheck",
         loading: "Loading...",
@@ -35,7 +35,7 @@ const translations = {
         register: "Register here",
         legal: "Legal Notice",
         privacy: "Privacy Policy",
-        errCreds: "Incorrect email or password",
+        errCreds: "Incorrect email/username or password",
         errDemo: "Error accessing demo account. Make sure the backend initialized it.",
         tags: ["AI-Powered", "Smart", "Planner"],
         copyright: "© 2026 RedCheck. Developed by Francisco Javier Molina Cuenca. All rights reserved."
@@ -47,7 +47,7 @@ const LoginPage = () => {
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
 
-    const [form, setForm] = useState({ email: "", password: "" });
+    const [form, setForm] = useState({ emailOrUsername: "", password: "" });
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -79,10 +79,10 @@ const LoginPage = () => {
         // We select the demo email based on the current language
         const demoEmail = language === 'en' ? "demo-en@redcheck.com" : "demo-es@redcheck.com";
 
-        setForm({ email: demoEmail, password: "demo1234" });
+        setForm({ emailOrUsername: demoEmail, password: "demo1234" });
 
         try {
-            const response = await login({ email: demoEmail, password: "demo1234" });
+            const response = await login({ emailOrUsername: demoEmail, password: "demo1234" });
             localStorage.setItem("token", response.token); 
             navigate("/dashboard");
         } catch {
@@ -126,14 +126,15 @@ const LoginPage = () => {
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-6">
                     <div className="flex flex-col gap-1.5">
-                        <label htmlFor="login-email" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
-                            {t.email}
+                        <label htmlFor="login-identifier" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
+                            {t.emailOrUsername}
                         </label>
                         <input
-                            id="login-email"
-                            type="email"
-                            name="email"
-                            value={form.email}
+                            id="login-identifier"
+                            type="text"
+                            name="emailOrUsername"
+                            autoComplete="username"
+                            value={form.emailOrUsername}
                             onChange={handleChange}
                             className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
                             required
