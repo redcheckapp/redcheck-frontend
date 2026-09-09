@@ -1409,7 +1409,13 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                     very top so this is actually visible without the user
                                     having to scroll up first. */}
                                 {tasksForCurrentDay.length === 0 && (
-                                    <div className="absolute inset-x-0 top-0 z-30 mt-10 p-6 sm:max-w-xl sm:ml-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center text-center bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-sm transition-colors duration-300">
+                                    // left-1/2 -translate-x-1/2 centers this reliably regardless
+                                    // of width — inset-x-0 (left-0 right-0) plus a capped
+                                    // max-width doesn't auto-center an absolutely positioned box
+                                    // (the browser resolves width to fill the gap first, then
+                                    // just clips it down to max-width from the left edge), which
+                                    // is why this used to hug the left instead (fixed 2026-09-09).
+                                    <div className="absolute left-1/2 -translate-x-1/2 top-0 z-30 mt-10 p-6 w-full sm:max-w-xl border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center text-center bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-sm transition-colors duration-300">
                                         <DayOffIllustration className="w-20 h-20 mb-2" />
                                         <h3 className="text-gray-500 dark:text-gray-400 font-bold transition-colors duration-300">{t.dayOffTitle}</h3>
                                         <p className="text-sm text-gray-500 dark:text-gray-500 mb-3 transition-colors duration-300">{t.dayOffDesc}</p>
