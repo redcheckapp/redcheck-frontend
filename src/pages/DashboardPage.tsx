@@ -1243,7 +1243,7 @@ const DashboardPage = () => {
                 <div key={showTrash ? 'view-trash' : showRoutines ? 'view-routines' : 'view-dashboard'} className="flex-1 flex h-full min-h-0 overflow-x-auto animate-soft-fade">
 
                     {showTrash ? (
-                        <div className="flex-1 sm:ml-4">
+                        <div className="flex-1 min-w-0 sm:ml-4">
                             <Suspense fallback={null}>
                                 <TrashView
                                     onClose={() => {
@@ -1254,7 +1254,7 @@ const DashboardPage = () => {
                             </Suspense>
                         </div>
                     ) : showRoutines ? (
-                        <div className="flex-1 sm:ml-4">
+                        <div className="flex-1 min-w-0 sm:ml-4">
                             <Suspense fallback={null}>
                                 <RoutinesView
                                     subjects={subjects}

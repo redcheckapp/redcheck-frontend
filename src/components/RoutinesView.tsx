@@ -212,7 +212,7 @@ export const RoutinesView = ({ subjects, onClose }: RoutinesViewProps) => {
         .sort((a, b) => a.subject.name.localeCompare(b.subject.name));
 
     return (
-        <div className="w-full h-full bg-white dark:bg-gray-900 rounded-2xl shadow-md p-4 sm:p-8 flex flex-col overflow-y-auto transition-colors duration-500">
+        <div className="w-full h-full min-w-0 bg-white dark:bg-gray-900 rounded-2xl shadow-md p-4 sm:p-8 flex flex-col overflow-x-hidden overflow-y-auto transition-colors duration-500">
             <div className="flex items-center gap-3 sm:gap-4 mb-2">
                 <button onClick={onClose} aria-label={t.backTitle} title={t.backTitle} className="shrink-0 p-2 text-gray-500 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-300">
                     <ArrowLeft size={22} className="sm:w-6 sm:h-6" />
