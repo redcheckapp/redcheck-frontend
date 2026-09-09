@@ -106,10 +106,14 @@ const translations = {
         taskDeletedToast: "Tarea eliminada.",
         subjectDeletedToast: "Asignatura eliminada.",
         undoBtn: "Deshacer",
-        palettePlaceholder: "Buscar tareas o escribe un comando...",
+        palettePlaceholder: "Buscar asignaturas, tareas o escribe un comando...",
+        paletteSubjectsGroup: "Asignaturas",
         paletteTasksGroup: "Tareas",
         paletteActionsGroup: "Comandos",
         paletteEmpty: "Sin resultados.",
+        paletteTaskCountOne: "1 tarea",
+        paletteTaskCountMany: "tareas",
+        paletteMoreTasks: "más",
         actionToggleThemeDark: "Cambiar a modo oscuro",
         actionToggleThemeLight: "Cambiar a modo claro",
         actionToggleLanguage: "Cambiar idioma",
@@ -193,10 +197,14 @@ const translations = {
         taskDeletedToast: "Task deleted.",
         subjectDeletedToast: "Subject deleted.",
         undoBtn: "Undo",
-        palettePlaceholder: "Search tasks or type a command...",
+        palettePlaceholder: "Search subjects, tasks, or type a command...",
+        paletteSubjectsGroup: "Subjects",
         paletteTasksGroup: "Tasks",
         paletteActionsGroup: "Commands",
         paletteEmpty: "No results.",
+        paletteTaskCountOne: "1 task",
+        paletteTaskCountMany: "tasks",
+        paletteMoreTasks: "more",
         actionToggleThemeDark: "Switch to dark mode",
         actionToggleThemeLight: "Switch to light mode",
         actionToggleLanguage: "Switch language",
@@ -286,6 +294,16 @@ const DashboardPage = () => {
             deadline: formattedDate,
             priority: task.priority
         });
+    };
+
+    // Selecting a subject result in the command palette reuses the existing
+    // dashboard search/filter (rather than a dedicated subject-detail view,
+    // which doesn't exist here) — it surfaces that subject with all its
+    // tasks the same way typing its name into the search bar would.
+    const handleSelectSubjectFromPalette = (subjectId: number) => {
+        const subject = subjects.find(s => s.id === subjectId);
+        if (!subject) return;
+        setSearchQuery(subject.name);
     };
 
     // Bulk task actions — selection is a set of "subjectId:taskId" keys
@@ -1600,10 +1618,15 @@ const DashboardPage = () => {
                         actions={paletteActions}
                         subjects={subjects}
                         onSelectTask={handleOpenTaskEditor}
+                        onSelectSubject={handleSelectSubjectFromPalette}
                         placeholder={t.palettePlaceholder}
+                        subjectsGroupLabel={t.paletteSubjectsGroup}
                         tasksGroupLabel={t.paletteTasksGroup}
                         actionsGroupLabel={t.paletteActionsGroup}
                         emptyLabel={t.paletteEmpty}
+                        taskCountOneLabel={t.paletteTaskCountOne}
+                        taskCountManyLabel={t.paletteTaskCountMany}
+                        moreTasksLabel={t.paletteMoreTasks}
                     />
                 </Suspense>
 

@@ -3,6 +3,7 @@ import { Search, CornerDownLeft } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { SubjectWithTasks } from "../types";
 import { ModalOverlay } from "./ModalOverlay";
+import { getSubjectColor } from "../utils/subjectColors";
 
 export interface CommandAction {
     id: string;
@@ -17,13 +18,20 @@ interface CommandPaletteProps {
     actions: CommandAction[];
     subjects: SubjectWithTasks[];
     onSelectTask: (subjectId: number, taskId: number) => void;
+    onSelectSubject: (subjectId: number) => void;
     placeholder: string;
+    subjectsGroupLabel: string;
     tasksGroupLabel: string;
     actionsGroupLabel: string;
     emptyLabel: string;
+    taskCountOneLabel: string;
+    taskCountManyLabel: string;
+    moreTasksLabel: string;
 }
 
 const MAX_TASK_RESULTS = 6;
+const MAX_SUBJECT_RESULTS = 4;
+const TASK_PREVIEW_PER_SUBJECT = 3;
 
 // Built on ModalOverlay so it gets Escape-to-close, focus trap, and
 // focus-into-the-first-element (the search input, here) for free — see
@@ -34,10 +42,15 @@ export const CommandPalette = ({
     actions,
     subjects,
     onSelectTask,
+    onSelectSubject,
     placeholder,
+    subjectsGroupLabel,
     tasksGroupLabel,
     actionsGroupLabel,
     emptyLabel,
+    taskCountOneLabel,
+    taskCountManyLabel,
+    moreTasksLabel,
 }: CommandPaletteProps) => {
     const [query, setQuery] = useState("");
     const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -59,6 +72,29 @@ export const CommandPalette = ({
         return actions.filter(a => a.label.toLowerCase().includes(q));
     }, [actions, query]);
 
+    // Matches by subject NAME (not task title, see taskResults below) — a
+    // subject match carries its own pending/completed-today tasks (the same
+    // subset already available on `subjects`, no extra fetch) so the result
+    // can preview them inline rather than just naming the subject.
+    const subjectResults = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        if (!q) return [];
+        const results: { subjectId: number; name: string; previewTasks: SubjectWithTasks["tasks"]; totalTasks: number }[] = [];
+        for (const subject of subjects) {
+            if (subject.archived) continue;
+            if (subject.name.toLowerCase().includes(q)) {
+                results.push({
+                    subjectId: subject.id,
+                    name: subject.name,
+                    previewTasks: subject.tasks.slice(0, TASK_PREVIEW_PER_SUBJECT),
+                    totalTasks: subject.tasks.length,
+                });
+                if (results.length >= MAX_SUBJECT_RESULTS) return results;
+            }
+        }
+        return results;
+    }, [subjects, query]);
+
     const taskResults = useMemo(() => {
         const q = query.trim().toLowerCase();
         if (!q) return [];
@@ -76,11 +112,14 @@ export const CommandPalette = ({
     }, [subjects, query]);
 
     // One flat list backs keyboard navigation regardless of which visual
-    // group (tasks vs. actions) an item belongs to.
+    // group (subjects, tasks, or actions) an item belongs to. Subjects lead
+    // since typing a subject name is a broader, more deliberate match than
+    // an incidental task-title substring hit.
     const flatItems = useMemo(() => [
+        ...subjectResults.map(r => ({ type: "subject" as const, ...r })),
         ...taskResults.map(r => ({ type: "task" as const, ...r })),
         ...filteredActions.map(a => ({ type: "action" as const, ...a })),
-    ], [taskResults, filteredActions]);
+    ], [subjectResults, taskResults, filteredActions]);
 
     // Derived (not stored) — clamps whenever the list shrinks (e.g. typing
     // narrows the results) without needing an effect + extra setState.
@@ -95,6 +134,9 @@ export const CommandPalette = ({
     // measured DOM value onto another DOM node (an "update an external
     // system" effect, not state synchronization), so there's no re-render
     // to trigger and nothing for the set-state-in-effect lint rule to flag.
+    // Subject rows are taller (multi-line preview) than task/action rows,
+    // but that's fine — the bar is sized off the actual ref'd element's
+    // offsetHeight, not a fixed row height.
     const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
     const highlightBarRef = useRef<HTMLDivElement>(null);
 
@@ -109,12 +151,14 @@ export const CommandPalette = ({
         } else {
             bar.style.opacity = "0";
         }
-    }, [clampedIndex, query, taskResults.length, filteredActions.length]);
+    }, [clampedIndex, query, subjectResults.length, taskResults.length, filteredActions.length]);
 
     const runItem = (index: number) => {
         const item = flatItems[index];
         if (!item) return;
-        if (item.type === "task") {
+        if (item.type === "subject") {
+            onSelectSubject(item.subjectId);
+        } else if (item.type === "task") {
             onSelectTask(item.subjectId, item.taskId);
         } else {
             item.onSelect();
@@ -167,25 +211,73 @@ export const CommandPalette = ({
                             <p className="text-sm text-gray-500 dark:text-gray-500 text-center py-8">{emptyLabel}</p>
                         )}
 
+                        {subjectResults.length > 0 && (
+                            <div className="px-2 pb-1">
+                                <p className="px-2 pb-1 text-[11px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider">{subjectsGroupLabel}</p>
+                                {subjectResults.map((subject, i) => {
+                                    const subjectColor = getSubjectColor(subject.subjectId);
+                                    const extra = subject.totalTasks - subject.previewTasks.length;
+                                    return (
+                                        <button
+                                            key={`subject-${subject.subjectId}`}
+                                            ref={(el) => { itemRefs.current[i] = el; }}
+                                            onClick={() => runItem(i)}
+                                            onMouseEnter={() => setHighlightedIndex(i)}
+                                            className={`relative w-full flex flex-col gap-1 px-3 py-2 rounded-lg text-left transition-colors ${
+                                                clampedIndex === i
+                                                    ? "text-gray-900 dark:text-gray-100"
+                                                    : "text-gray-700 dark:text-gray-200"
+                                            }`}
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <span className={`shrink-0 w-1.5 h-1.5 rounded-full ${subjectColor.dot}`} />
+                                                <span className="text-sm font-semibold truncate flex-1">{subject.name}</span>
+                                                {subject.totalTasks > 0 && (
+                                                    <span className="text-[11px] text-gray-500 dark:text-gray-500 shrink-0">
+                                                        {subject.totalTasks === 1 ? taskCountOneLabel : `${subject.totalTasks} ${taskCountManyLabel}`}
+                                                    </span>
+                                                )}
+                                            </span>
+                                            {subject.previewTasks.length > 0 && (
+                                                <span className="pl-3.5 flex flex-col gap-0.5">
+                                                    {subject.previewTasks.map(task => (
+                                                        <span key={task.id} className="text-xs text-gray-500 dark:text-gray-500 truncate">
+                                                            · {task.title}
+                                                        </span>
+                                                    ))}
+                                                    {extra > 0 && (
+                                                        <span className="text-xs text-gray-400 dark:text-gray-600">+{extra} {moreTasksLabel}</span>
+                                                    )}
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
                         {taskResults.length > 0 && (
                             <div className="px-2 pb-1">
                                 <p className="px-2 pb-1 text-[11px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider">{tasksGroupLabel}</p>
-                                {taskResults.map((task, i) => (
-                                    <button
-                                        key={`task-${task.subjectId}-${task.taskId}`}
-                                        ref={(el) => { itemRefs.current[i] = el; }}
-                                        onClick={() => runItem(i)}
-                                        onMouseEnter={() => setHighlightedIndex(i)}
-                                        className={`relative w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left text-sm transition-colors ${
-                                            clampedIndex === i
-                                                ? "text-gray-900 dark:text-gray-100"
-                                                : "text-gray-700 dark:text-gray-200"
-                                        }`}
-                                    >
-                                        <span className="truncate">{task.title}</span>
-                                        <span className="text-xs text-gray-500 dark:text-gray-500 shrink-0">{task.subjectName}</span>
-                                    </button>
-                                ))}
+                                {taskResults.map((task, i) => {
+                                    const flatIndex = subjectResults.length + i;
+                                    return (
+                                        <button
+                                            key={`task-${task.subjectId}-${task.taskId}`}
+                                            ref={(el) => { itemRefs.current[flatIndex] = el; }}
+                                            onClick={() => runItem(flatIndex)}
+                                            onMouseEnter={() => setHighlightedIndex(flatIndex)}
+                                            className={`relative w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left text-sm transition-colors ${
+                                                clampedIndex === flatIndex
+                                                    ? "text-gray-900 dark:text-gray-100"
+                                                    : "text-gray-700 dark:text-gray-200"
+                                            }`}
+                                        >
+                                            <span className="truncate">{task.title}</span>
+                                            <span className="text-xs text-gray-500 dark:text-gray-500 shrink-0">{task.subjectName}</span>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         )}
 
@@ -193,7 +285,7 @@ export const CommandPalette = ({
                             <div className="px-2 pb-1">
                                 <p className="px-2 pb-1 text-[11px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider">{actionsGroupLabel}</p>
                                 {filteredActions.map((action, i) => {
-                                    const flatIndex = taskResults.length + i;
+                                    const flatIndex = subjectResults.length + taskResults.length + i;
                                     const Icon = action.icon;
                                     return (
                                         <button
