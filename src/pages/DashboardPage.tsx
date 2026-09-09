@@ -314,6 +314,16 @@ const DashboardPage = () => {
         setSelectedTaskKeys(new Set());
     };
 
+    // Mobile-only entry point into selection mode (gallery-style long-press
+    // on a task, wired up in TaskItem) — replaces the "Select" button there,
+    // which is hidden below the sm: breakpoint. Enters selection mode with
+    // the long-pressed task already selected, same as the photo-gallery
+    // pattern it's modeled on.
+    const handleLongPressSelectTask = (subjectId: number, taskId: number) => {
+        setSelectionMode(true);
+        setSelectedTaskKeys(new Set([taskKey(subjectId, taskId)]));
+    };
+
     const handleBulkComplete = async () => {
         // Fired synchronously, before the awaited calls below — see
         // handleToggleTask for why this can't happen after an await.
@@ -1341,9 +1351,13 @@ const DashboardPage = () => {
                                                 >
                                                     <ArrowUpDown size={16} /> {t.sortByPriority}
                                                 </button>
+                                                {/* Desktop only — on mobile, selection mode is entered by
+                                                    long-pressing a task (gallery-style), so this button
+                                                    would just be redundant chrome cramped next to the
+                                                    priority-sort button above. */}
                                                 <button
                                                     onClick={() => setSelectionMode(true)}
-                                                    className="flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                                                    className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
                                                 >
                                                     <CheckSquare size={16} /> {t.selectTasks}
                                                 </button>
@@ -1413,6 +1427,7 @@ const DashboardPage = () => {
                                                     selectionMode={selectionMode}
                                                     selectedTaskKeys={selectedTaskKeys}
                                                     onToggleSelectTask={handleToggleSelectTask}
+                                                    onLongPressSelectTask={handleLongPressSelectTask}
                                                 />
                                             </div>
                                         );

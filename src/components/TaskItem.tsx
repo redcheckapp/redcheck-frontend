@@ -1,8 +1,9 @@
-import { memo } from "react";
+import { memo, useRef } from "react";
 import { Check, Pencil, X, Type, AlignLeft, Clock3, Flag } from "lucide-react";
 import type { SubjectWithTasks, TaskPriority } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import { getPriorityColor } from "../utils/priorityColors";
+import { triggerHapticFeedback } from "../utils/feedback";
 
 type Task = SubjectWithTasks["tasks"][0];
 
@@ -27,7 +28,16 @@ interface TaskItemProps {
     selectionMode?: boolean;
     isSelected?: boolean;
     onToggleSelect?: (subjectId: number, taskId: number) => void;
+    onLongPressSelect?: (subjectId: number, taskId: number) => void;
 }
+
+// Gallery-style long-press-to-select, touch only (desktop keeps the
+// explicit "Select" button in DashboardPage.tsx, hidden on mobile — see
+// that file). Hand-rolled with raw touch handlers rather than a gesture
+// library, same reasoning as AgendaView's swipe navigation and Sidebar's
+// drawer swipe.
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_MOVE_THRESHOLD_PX = 10;
 
 // --- Translation dictionary for TaskItem ---
 const translations = {
@@ -145,21 +155,68 @@ const renderDeadline = (deadlineStr: string | null, isCompleted: boolean, t: typ
 export const TaskItem = memo(({
     subjectId, task, handleToggleTask, handleDeleteTask, setOpenFormSubjectIdTaskId,
     openFormSubjectIdTaskId, handleUpdateTask, updatedTask, handleChangeUpdateTask, setUpdatedTask, loading, error, isAdding, isDeleting,
-    selectionMode, isSelected, onToggleSelect,
+    selectionMode, isSelected, onToggleSelect, onLongPressSelect,
 }: TaskItemProps) => {
 
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
     const locale = language === 'es' ? 'es-ES' : 'en-US';
 
+    // See LONG_PRESS_MS above. Attached to the row itself (not just the
+    // checkbox) so a hold anywhere on the task — title, deadline, even the
+    // edit/delete icons — enters selection mode, matching a photo gallery's
+    // long-press-anywhere-on-the-tile behavior.
+    const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const longPressStartRef = useRef<{ x: number; y: number } | null>(null);
+
+    const clearLongPressTimer = () => {
+        if (longPressTimerRef.current) {
+            clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+        }
+        longPressStartRef.current = null;
+    };
+
+    const handleRowTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+        if (selectionMode || !onLongPressSelect) return;
+        const touch = e.touches[0];
+        longPressStartRef.current = { x: touch.clientX, y: touch.clientY };
+        longPressTimerRef.current = setTimeout(() => {
+            longPressTimerRef.current = null;
+            if (localStorage.getItem("taskFeedbackEnabled") !== "false") {
+                triggerHapticFeedback();
+            }
+            onLongPressSelect(subjectId, task.id);
+        }, LONG_PRESS_MS);
+    };
+
+    // A scroll starts with the same touchstart as a long-press — cancel the
+    // timer once the finger has clearly moved rather than held still, same
+    // threshold-based disambiguation AgendaView's swipe handling uses.
+    const handleRowTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+        const start = longPressStartRef.current;
+        if (!start || !longPressTimerRef.current) return;
+        const touch = e.touches[0];
+        const deltaX = Math.abs(touch.clientX - start.x);
+        const deltaY = Math.abs(touch.clientY - start.y);
+        if (deltaX > LONG_PRESS_MOVE_THRESHOLD_PX || deltaY > LONG_PRESS_MOVE_THRESHOLD_PX) {
+            clearLongPressTimer();
+        }
+    };
+
     return (
         <div className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
                 isAdding || isDeleting
-                    ? "opacity-0 scale-95 max-h-0 !mb-[-0.5rem]" 
-                    : "opacity-100 scale-100 max-h-[1000px]" 
+                    ? "opacity-0 scale-95 max-h-0 !mb-[-0.5rem]"
+                    : "opacity-100 scale-100 max-h-[1000px]"
         }`}>
             {/* Main task row */}
-            <div className={`flex items-center gap-3 p-3 rounded-xl transition group ${
+            <div
+                onTouchStart={handleRowTouchStart}
+                onTouchMove={handleRowTouchMove}
+                onTouchEnd={clearLongPressTimer}
+                onTouchCancel={clearLongPressTimer}
+                className={`flex items-center gap-3 p-3 rounded-xl transition active:scale-[0.99] group ${
                 selectionMode && isSelected
                     ? "bg-blue-50 dark:bg-blue-900/20"
                     : "hover:bg-gray-50 dark:hover:bg-gray-800/50"

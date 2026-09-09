@@ -37,6 +37,7 @@ interface SubjectSectionProps {
     selectionMode?: boolean;
     selectedTaskKeys?: Set<string>;
     onToggleSelectTask?: (subjectId: number, taskId: number) => void;
+    onLongPressSelectTask?: (subjectId: number, taskId: number) => void;
 }
 
 // --- Translation dictionary for SubjectSection ---
@@ -128,7 +129,8 @@ export const SubjectSection = memo(({
     addingTasks,
     selectionMode,
     selectedTaskKeys,
-    onToggleSelectTask
+    onToggleSelectTask,
+    onLongPressSelectTask
 }: SubjectSectionProps) => {
 
     const { language } = useLanguage();
@@ -215,6 +217,7 @@ export const SubjectSection = memo(({
                             selectionMode={selectionMode}
                             isSelected={selectedTaskKeys?.has(`${subject.id}:${task.id}`)}
                             onToggleSelect={onToggleSelectTask}
+                            onLongPressSelect={onLongPressSelectTask}
                         />
                     ))
                 )}
