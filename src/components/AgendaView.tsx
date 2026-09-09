@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Clock, CheckCircle2 } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { ChevronLeft, ChevronRight, Clock, CheckCircle2, CalendarDays } from "lucide-react";
 import { getProgressHeatmap } from "../api/progressRecordApi";
 import type { ProgressRecord, SubjectWithTasks } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
@@ -22,6 +22,7 @@ const translations = {
         lblViewTasks: "Ver tareas",
         lblAllDay: "Todo el día",
         moreTasks: "más",
+        jumpToDate: "Ir a una fecha",
         dayOffTitle: "¡Día libre!",
         dayOffDesc: "No hay tareas programadas para este día.",
         weekDays: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
@@ -37,6 +38,7 @@ const translations = {
         lblViewTasks: "View tasks",
         lblAllDay: "All day",
         moreTasks: "more",
+        jumpToDate: "Jump to a date",
         dayOffTitle: "Day off!",
         dayOffDesc: "No tasks scheduled for this day.",
         weekDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
@@ -96,6 +98,7 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [records, setRecords] = useState<Record<string, ProgressRecord>>({});
     const [loadingRecords, setLoadingRecords] = useState(true);
+    const jumpDateInputRef = useRef<HTMLInputElement>(null);
 
     const todayObj = new Date();
     const currentYear = currentDate.getFullYear();
@@ -131,6 +134,13 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
         if (view === "month") setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
         if (view === "week") setCurrentDate(new Date(currentYear, currentMonth, currentDate.getDate() + 7));
         if (view === "day") setCurrentDate(new Date(currentYear, currentMonth, currentDate.getDate() + 1));
+    };
+
+    const handleJumpDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        if (!value) return;
+        const [year, month, day] = value.split("-").map(Number);
+        setCurrentDate(new Date(year, month - 1, day));
     };
 
     const currentWeekDays = useMemo(() => {
@@ -285,7 +295,7 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
         <div className="flex-1 flex flex-col h-full bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500 p-3 sm:p-8 overflow-hidden">
 
             {/* --- HEADER --- */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4 sm:mb-8 shrink-0">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3 sm:gap-y-2 mb-4 sm:mb-8 shrink-0">
                 <div className="flex items-center gap-2 sm:gap-4">
                     <h1 className="text-xl sm:text-3xl font-black text-gray-900 dark:text-gray-100 tracking-tight capitalize sm:min-w-[280px] transition-colors duration-300">
                         {headerTitle}
@@ -301,6 +311,26 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                         <button onClick={handleNext} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md text-gray-500 dark:text-gray-400 transition-colors">
                             <ChevronRight size={20} />
                         </button>
+                        <div className="relative w-px self-stretch bg-gray-100 dark:bg-gray-800 mx-0.5" />
+                        <div className="relative">
+                            <button
+                                onClick={() => jumpDateInputRef.current?.showPicker?.() ?? jumpDateInputRef.current?.click()}
+                                title={t.jumpToDate}
+                                aria-label={t.jumpToDate}
+                                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md text-gray-500 dark:text-gray-400 transition-colors"
+                            >
+                                <CalendarDays size={18} />
+                            </button>
+                            <input
+                                ref={jumpDateInputRef}
+                                type="date"
+                                onChange={handleJumpDateChange}
+                                value={`${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`}
+                                aria-hidden="true"
+                                tabIndex={-1}
+                                className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
+                            />
+                        </div>
                     </div>
                 </div>
 
