@@ -169,6 +169,10 @@ const getHistoricalTasksForDate = (
 const DAY_VIEW_HOUR_START = 0;
 const DAY_VIEW_HOUR_END = 23;
 
+// Week cells are one tall row (vs. Month's up to six short ones), so they
+// can comfortably fit more real task cards before falling back to "+N more".
+const WEEK_CELL_TASK_LIMIT = 6;
+
 const VIEW_ORDER: ViewMode[] = ["day", "week", "month"];
 
 // Which direction the grid content should slide in from. Set directly in
@@ -1191,7 +1195,7 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                         tabIndex={0}
                                         aria-label={date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
                                         onKeyDown={(e) => handleActivateKeyDown(e, () => jumpToDay(date))}
-                                        className={`${bgColorClass} rounded-lg p-1 sm:p-2 flex flex-col gap-1 overflow-y-auto no-scrollbar cursor-pointer transition-all hover:brightness-95 dark:hover:brightness-110 hover:shadow-md hover:z-20 outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 relative group ${
+                                        className={`${bgColorClass} rounded-xl p-1.5 sm:p-2.5 flex flex-col gap-1 sm:gap-1.5 overflow-y-auto no-scrollbar cursor-pointer transition-all hover:brightness-95 dark:hover:brightness-110 hover:shadow-md hover:z-20 outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 relative group ${
                                             dragOverKey === weekCellKey ? "z-20 ring-2 ring-inset ring-red-400 dark:ring-red-500" : ""
                                         }`}
                                     >
@@ -1211,8 +1215,17 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                             </div>
                                         ) : (
                                             <>
-                                                {dayTasks.slice(0, 4).map((task, taskIdx) => {
+                                                {/* Week's cells are far taller than Month's (one row instead of
+                                                    up to six), so each task gets a real card instead of Month's
+                                                    plain truncated-text chip: the same soft subject-tinted
+                                                    bg/text identity as before, plus a priority-colored left
+                                                    border *and* a matching dot (redundant on purpose — a quick
+                                                    color glance and an explicit marker), plus the time. */}
+                                                {dayTasks.slice(0, WEEK_CELL_TASK_LIMIT).map((task, taskIdx) => {
                                                     const subjectColor = getSubjectColor(task.subjectId);
+                                                    const tDate = new Date(task.deadline!);
+                                                    const hasTime = tDate.getHours() !== 0 || tDate.getMinutes() !== 0;
+                                                    const timeString = hasTime ? tDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
                                                     return (
                                                         <div
                                                             key={task.id}
@@ -1226,21 +1239,27 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                                             aria-label={`${task.subjectName} — ${task.title}`}
                                                             onKeyDown={(e) => { e.stopPropagation(); handleActivateKeyDown(e, () => openEditModal(task)); }}
                                                             style={{ animationDelay: `${taskIdx * 40}ms` }}
-                                                            className={`animate-chip-in text-[9px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 sm:py-1 rounded-md truncate cursor-grab active:cursor-grabbing transition-all hover:brightness-95 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 border-l-2 ${
+                                                            className={`animate-chip-in flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-lg border-l-2 text-[9px] sm:text-[10px] font-semibold shrink-0 cursor-grab active:cursor-grabbing shadow-sm transition-all hover:shadow-md hover:-translate-y-px active:translate-y-0 active:scale-[0.97] outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 ${
                                                                 draggedTask?.id === task.id ? "opacity-30" : ""
                                                             } ${
                                                                 task.completed
-                                                                    ? "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500 line-through border-transparent"
+                                                                    ? "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500 line-through border-transparent shadow-none"
                                                                     : `${subjectColor.bg} ${subjectColor.text} ${task.priority === "MEDIUM" ? "border-transparent" : getPriorityColor(task.priority).border}`
                                                             }`}
                                                         >
-                                                            {task.title}
+                                                            {task.priority !== "MEDIUM" && !task.completed && (
+                                                                <span title={priorityLabel(task.priority, t)} className={`shrink-0 w-1.5 h-1.5 rounded-full ${getPriorityColor(task.priority).dot}`} />
+                                                            )}
+                                                            {timeString && (
+                                                                <span className="shrink-0 opacity-70 tabular-nums">{timeString}</span>
+                                                            )}
+                                                            <span className="truncate">{task.title}</span>
                                                         </div>
                                                     );
                                                 })}
-                                                {dayTasks.length > 4 && (
+                                                {dayTasks.length > WEEK_CELL_TASK_LIMIT && (
                                                     <span className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-500 font-bold px-1">
-                                                        +{dayTasks.length - 4} {t.moreTasks}
+                                                        +{dayTasks.length - WEEK_CELL_TASK_LIMIT} {t.moreTasks}
                                                     </span>
                                                 )}
                                             </>
@@ -1279,7 +1298,17 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                             row-aligned can drift out of sync (they did, visibly,
                             once tasks were actually placed per-hour-row). */}
                         <div ref={dayScrollRef} className="flex-1 flex overflow-y-auto">
-                            <div className="w-12 sm:w-20 border-r border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 pt-3 sm:pt-6 pb-3 sm:pb-6 flex flex-col shrink-0 transition-colors duration-300">
+                            {/* self-start on both columns below: without it, flexbox's default
+                                align-items:stretch caps each column's own box at the scroll
+                                container's *visible* height (the only definite height available
+                                here), not its full 24-row content height — the row divs still
+                                render past that point (block children overflow a visible-overflow
+                                box just fine), but the column's own background paints only up to
+                                that capped box, so the grey label backdrop and the ruled-line
+                                gradient both stop partway down while the hour numbers keep
+                                appearing past them. self-start sizes each column to its natural
+                                content height instead, so the backgrounds cover every row. */}
+                            <div className="w-12 sm:w-20 self-start border-r border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 pt-3 sm:pt-6 pb-3 sm:pb-6 flex flex-col shrink-0 transition-colors duration-300">
                                 {hours.map(hour => (
                                     <div key={hour} className="h-20 shrink-0 flex justify-end pr-1.5 sm:pr-4 text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-500 relative transition-colors duration-300">
                                         <span className="-mt-2">{hour.toString().padStart(2, '0')}:00</span>
@@ -1292,7 +1321,7 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                 right after the p-3/sm:p-6 padding) instead of the default padding-box
                                 origin (the box's outer edge) — otherwise the ruled lines start above
                                 where the hour rows actually begin and drift out of sync with them. */}
-                            <div className="flex-1 relative bg-[linear-gradient(to_bottom,#f9fafb_1px,transparent_1px)] dark:bg-[linear-gradient(to_bottom,#1f2937_1px,transparent_1px)] bg-[size:100%_5rem] bg-origin-content p-3 sm:p-6 transition-colors duration-300">
+                            <div className="flex-1 self-start relative bg-[linear-gradient(to_bottom,#f9fafb_1px,transparent_1px)] dark:bg-[linear-gradient(to_bottom,#1f2937_1px,transparent_1px)] bg-[size:100%_5rem] bg-origin-content p-3 sm:p-6 transition-colors duration-300">
 
                                 {currentDate.toDateString() === todayObj.toDateString() && (
                                     <div
