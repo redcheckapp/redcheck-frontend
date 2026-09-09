@@ -1335,54 +1335,73 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                     </div>
                                 )}
 
-                                {tasksForCurrentDay.length === 0 ? (
-                                    <div className="relative z-20 mt-10 p-6 sm:max-w-xl sm:ml-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center text-center bg-white/50 dark:bg-gray-800/50 transition-colors duration-300">
-                                        <DayOffIllustration className="w-20 h-20 mb-2" />
-                                        <h3 className="text-gray-500 dark:text-gray-400 font-bold transition-colors duration-300">{t.dayOffTitle}</h3>
-                                        <p className="text-sm text-gray-500 dark:text-gray-500 mb-3 transition-colors duration-300">{t.dayOffDesc}</p>
-                                        {subjects.length > 0 && (
-                                            <button
-                                                onClick={() => openCreateModal(currentDate)}
-                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 rounded-lg transition-all"
+                                {/* Always render the full 24-row grid — including on an empty
+                                    day — rather than swapping it out for a small placeholder
+                                    box. Swapping it out used to make this column's own natural
+                                    content height collapse to just that placeholder's height on
+                                    empty days (self-start sizes each column to its *own*
+                                    content, see the note above), so only days with at least one
+                                    task got a full-height ruled-line/grey-column background —
+                                    empty days, cut short, alternated with task-filled ones as
+                                    the user paged through the week (fixed 2026-09-09). Keeping
+                                    the grid also means an empty day still gets working
+                                    hour-row drop zones and "+" buttons instead of only the one
+                                    generic "add task" affordance the placeholder had. */}
+                                <div className="relative z-20 sm:max-w-xl sm:ml-4">
+                                    {hours.map(hour => {
+                                        const hourDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), hour, 0);
+                                        const hourKey = `hour-${hour}`;
+                                        return (
+                                            <div
+                                                key={hour}
+                                                onDragOver={(e) => handleDropZoneDragOver(e, hourKey)}
+                                                onDragLeave={() => handleDropZoneDragLeave(hourKey)}
+                                                onDrop={(e) => handleHourRowDrop(e, hour)}
+                                                className={`h-20 shrink-0 flex items-center gap-1 overflow-y-auto no-scrollbar py-0.5 group rounded-lg transition-all ${
+                                                    dragOverKey === hourKey ? "ring-2 ring-inset ring-red-400 dark:ring-red-500 bg-red-50/40 dark:bg-red-900/10" : ""
+                                                }`}
                                             >
-                                                <Plus size={14} /> {t.btnAddTask}
-                                            </button>
-                                        )}
-                                    </div>
-                                ) : (
-                                    // Tasks are placed in the row for their own hour (the full
-                                    // 0-23 range) instead of floating in an unrelated list on
-                                    // top of the (previously decorative) grid.
-                                    <div className="relative z-20 sm:max-w-xl sm:ml-4">
-                                        {hours.map(hour => {
-                                            const hourDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), hour, 0);
-                                            const hourKey = `hour-${hour}`;
-                                            return (
-                                                <div
-                                                    key={hour}
-                                                    onDragOver={(e) => handleDropZoneDragOver(e, hourKey)}
-                                                    onDragLeave={() => handleDropZoneDragLeave(hourKey)}
-                                                    onDrop={(e) => handleHourRowDrop(e, hour)}
-                                                    className={`h-20 shrink-0 flex items-center gap-1 overflow-y-auto no-scrollbar py-0.5 group rounded-lg transition-all ${
-                                                        dragOverKey === hourKey ? "ring-2 ring-inset ring-red-400 dark:ring-red-500 bg-red-50/40 dark:bg-red-900/10" : ""
-                                                    }`}
-                                                >
-                                                    <div className="flex flex-col justify-center gap-1 flex-1 min-w-0">
-                                                        {(timedTasksByHour[hour] ?? []).map((task, taskIdx) => renderCompactHourTask(task, taskIdx))}
-                                                    </div>
-                                                    {subjects.length > 0 && (
-                                                        <button
-                                                            onClick={() => openCreateModal(hourDate)}
-                                                            title={t.addTaskTitle}
-                                                            aria-label={t.addTaskTitle}
-                                                            className="can-hover:opacity-0 can-hover:group-hover:opacity-100 focus:opacity-100 no-hover:opacity-100 p-1 rounded-md text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-110 active:scale-90 shrink-0 transition-all"
-                                                        >
-                                                            <Plus size={14} />
-                                                        </button>
-                                                    )}
+                                                <div className="flex flex-col justify-center gap-1 flex-1 min-w-0">
+                                                    {(timedTasksByHour[hour] ?? []).map((task, taskIdx) => renderCompactHourTask(task, taskIdx))}
                                                 </div>
-                                            );
-                                        })}
+                                                {subjects.length > 0 && (
+                                                    <button
+                                                        onClick={() => openCreateModal(hourDate)}
+                                                        title={t.addTaskTitle}
+                                                        aria-label={t.addTaskTitle}
+                                                        className="can-hover:opacity-0 can-hover:group-hover:opacity-100 focus:opacity-100 no-hover:opacity-100 p-1 rounded-md text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-110 active:scale-90 shrink-0 transition-all"
+                                                    >
+                                                        <Plus size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Empty-day message: sticky (not absolute) so it stays
+                                    pinned near the top of the current scroll position
+                                    instead of only being visible if the user happens to be
+                                    scrolled to hour 0 — h-0 on the sticky wrapper keeps it
+                                    from adding any layout height of its own (the actual
+                                    card, an overflowing child, still renders fine past a
+                                    zero-height parent, same visible-overflow behavior the
+                                    self-start fix above relies on). */}
+                                {tasksForCurrentDay.length === 0 && (
+                                    <div className="sticky top-0 h-0 z-30 pointer-events-none">
+                                        <div className="pointer-events-auto mt-10 p-6 sm:max-w-xl sm:ml-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center text-center bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-sm transition-colors duration-300">
+                                            <DayOffIllustration className="w-20 h-20 mb-2" />
+                                            <h3 className="text-gray-500 dark:text-gray-400 font-bold transition-colors duration-300">{t.dayOffTitle}</h3>
+                                            <p className="text-sm text-gray-500 dark:text-gray-500 mb-3 transition-colors duration-300">{t.dayOffDesc}</p>
+                                            {subjects.length > 0 && (
+                                                <button
+                                                    onClick={() => openCreateModal(currentDate)}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 rounded-lg transition-all"
+                                                >
+                                                    <Plus size={14} /> {t.btnAddTask}
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </div>
