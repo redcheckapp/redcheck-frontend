@@ -2,6 +2,7 @@ import { X, Trash2, Moon, Sun, MessageSquarePlus, ChevronRight } from "lucide-re
 import { toast } from "react-hot-toast";
 import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
+import { useAccessibility, type ColorblindMode, type FontSize } from "../context/AccessibilityContext";
 import { ModalOverlay } from "./ModalOverlay";
 import { triggerHapticFeedback } from "../utils/feedback";
 
@@ -38,6 +39,17 @@ const translations = {
         testHaptic: "Probar vibración",
         testHapticAccepted: "El navegador ha aceptado la vibración. Si no la has notado, puede que tu móvil no tenga motor de vibración activo para el navegador, o que la duración sea demasiado corta para notarla.",
         testHapticRejected: "Tu navegador ha rechazado la vibración (no soportada en este dispositivo/navegador).",
+        accessibility: "Accesibilidad",
+        colorblindFilter: "Filtro para daltonismo",
+        colorblindFilterDesc: "Ajusta los colores de la app para distinguirlos mejor",
+        cbNone: "Ninguno",
+        cbProtanopia: "Protanopia",
+        cbDeuteranopia: "Deuteranopia",
+        cbTritanopia: "Tritanopia",
+        fontSize: "Tamaño de letra",
+        fontSmall: "Pequeña",
+        fontMedium: "Normal",
+        fontLarge: "Grande",
         support: "Soporte",
         sendFeedback: "¿Tienes feedback?",
         sendFeedbackDesc: "Cuéntanoslo — bugs, ideas, o lo que sea",
@@ -66,6 +78,17 @@ const translations = {
         testHaptic: "Test vibration",
         testHapticAccepted: "The browser accepted the vibration request. If you didn't feel anything, your phone's vibration motor might not respond to browser requests, or the duration may be too short to notice.",
         testHapticRejected: "Your browser rejected the vibration request (not supported on this device/browser).",
+        accessibility: "Accessibility",
+        colorblindFilter: "Colorblind filter",
+        colorblindFilterDesc: "Adjusts the app's colors to make them easier to tell apart",
+        cbNone: "None",
+        cbProtanopia: "Protanopia",
+        cbDeuteranopia: "Deuteranopia",
+        cbTritanopia: "Tritanopia",
+        fontSize: "Font size",
+        fontSmall: "Small",
+        fontMedium: "Normal",
+        fontLarge: "Large",
         support: "Support",
         sendFeedback: "Got feedback?",
         sendFeedbackDesc: "Tell us — bugs, ideas, anything",
@@ -96,9 +119,33 @@ const ToggleSwitch = ({ enabled, onToggle, title }: { enabled: boolean; onToggle
     </button>
 );
 
+const COLORBLIND_OPTIONS: { value: ColorblindMode; labelKey: "cbNone" | "cbProtanopia" | "cbDeuteranopia" | "cbTritanopia" }[] = [
+    { value: "none", labelKey: "cbNone" },
+    { value: "protanopia", labelKey: "cbProtanopia" },
+    { value: "deuteranopia", labelKey: "cbDeuteranopia" },
+    { value: "tritanopia", labelKey: "cbTritanopia" },
+];
+
+const FONT_SIZE_OPTIONS: { value: FontSize; labelKey: "fontSmall" | "fontMedium" | "fontLarge" }[] = [
+    { value: "small", labelKey: "fontSmall" },
+    { value: "medium", labelKey: "fontMedium" },
+    { value: "large", labelKey: "fontLarge" },
+];
+
+// Shared by both chip groups below — same "chip button" language
+// FeedbackModal's category picker already established, reused here rather
+// than introducing a different selection control.
+const chipClass = (selected: boolean) =>
+    `px-3 py-2 rounded-xl border text-sm font-medium text-center transition-all active:scale-95 ${
+        selected
+            ? "bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-800 text-red-700 dark:text-red-400"
+            : "bg-gray-50 dark:bg-gray-800/60 border-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+    }`;
+
 export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail, remindersEnabled, onToggleReminders, taskFeedbackEnabled, onToggleTaskFeedback, onOpenFeedback }: SettingsModalProps) => {
     const { theme, toggleTheme } = useTheme();
     const { language, toggleLanguage } = useLanguage(); // We extract the language and the toggle function
+    const { colorblindMode, setColorblindMode, fontSize, setFontSize } = useAccessibility();
     const t = translations[language as keyof typeof translations];
 
     // Diagnostic for "it's not vibrating" reports: a long, deliberate,
@@ -212,7 +259,53 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                         </div>
                     </div>
 
-                    {/* Section 2: Support — a single discreet row, not a
+                    {/* Section 2: Accessibility — colorblind filter defaults
+                        to "none" and font size to "medium" (no override at
+                        all, see AccessibilityContext.tsx/index.css), so a
+                        fresh install looks and reads exactly as before this
+                        section existed. */}
+                    <div className="flex flex-col gap-3 pt-4 border-t border-gray-100 dark:border-gray-800 transition-colors">
+                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.accessibility}</h3>
+
+                        <div className="flex flex-col gap-2">
+                            <div>
+                                <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{t.colorblindFilter}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">{t.colorblindFilterDesc}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                {COLORBLIND_OPTIONS.map(({ value, labelKey }) => (
+                                    <button
+                                        key={value}
+                                        type="button"
+                                        onClick={() => setColorblindMode(value)}
+                                        aria-pressed={colorblindMode === value}
+                                        className={chipClass(colorblindMode === value)}
+                                    >
+                                        {t[labelKey]}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{t.fontSize}</p>
+                            <div className="grid grid-cols-3 gap-2">
+                                {FONT_SIZE_OPTIONS.map(({ value, labelKey }) => (
+                                    <button
+                                        key={value}
+                                        type="button"
+                                        onClick={() => setFontSize(value)}
+                                        aria-pressed={fontSize === value}
+                                        className={chipClass(fontSize === value)}
+                                    >
+                                        {t[labelKey]}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Section 3: Support — a single discreet row, not a
                         prominent CTA, opening FeedbackModal (DashboardPage
                         closes this modal and opens that one, rather than
                         stacking two ModalOverlays). */}
@@ -236,7 +329,7 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                         </button>
                     </div>
 
-                    {/* Section 3: Danger Zone */}
+                    {/* Section 4: Danger Zone */}
                     <div className="flex flex-col gap-3 pt-4 border-t border-gray-100 dark:border-gray-800 transition-colors">
                         <h3 className="text-sm font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">{t.dangerZone}</h3>
                         

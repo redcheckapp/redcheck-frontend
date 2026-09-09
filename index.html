@@ -17,7 +17,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="RedCheck" />
 
-    <!-- ANTI-FLICKER SCRIPT: Applies dark mode synchronously before the browser paints the page -->
+    <!-- ANTI-FLICKER SCRIPT: Applies dark mode, colorblind filter, and font
+         size synchronously before the browser paints the page — mirrors
+         AccessibilityContext.tsx/ThemeContext.tsx's own class application,
+         duplicated here (not imported, this runs before any JS module
+         loads) so the very first paint already has the user's saved
+         preference instead of flashing default-then-corrected. -->
     <script>
       try {
         const storedTheme = localStorage.getItem('theme');
@@ -26,10 +31,59 @@
         } else {
           document.documentElement.classList.remove('dark');
         }
+
+        const storedColorblindMode = localStorage.getItem('rc_colorblind_mode');
+        if (storedColorblindMode && storedColorblindMode !== 'none') {
+          document.documentElement.classList.add('cb-' + storedColorblindMode);
+        }
+
+        const storedFontSize = localStorage.getItem('rc_font_size');
+        if (storedFontSize && storedFontSize !== 'medium') {
+          document.documentElement.classList.add('text-scale-' + storedFontSize);
+        }
       } catch (e) {}
     </script>
   </head>
   <body class="bg-[#e3e7e2] dark:bg-gray-950 transition-colors duration-500 m-0 p-0">
+    <!-- Colorblind assist filters (see AccessibilityContext.tsx) — hidden,
+         zero-size SVG that exists purely to host <filter> defs the CSS in
+         index.css references via url(#...). Kept as plain markup (not a
+         React component) so it's present from the very first paint, same
+         reasoning as the anti-flicker script above. Matrices are the
+         well-established Machado/Viénot/Brettel-family color transforms
+         widely reused across browser/OS accessibility color filters
+         (e.g. the same family Android's and iOS's built-in "color
+         correction" filters draw from) for shifting hues away from each
+         deficiency's confusable region — a whole-page best-effort assist,
+         not a clinically precise per-user correction. -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <filter id="cb-protanopia-filter">
+          <feColorMatrix
+            type="matrix"
+            values="0.567, 0.433, 0,     0, 0
+                    0.558, 0.442, 0,     0, 0
+                    0,     0.242, 0.758, 0, 0
+                    0,     0,     0,     1, 0" />
+        </filter>
+        <filter id="cb-deuteranopia-filter">
+          <feColorMatrix
+            type="matrix"
+            values="0.625, 0.375, 0,   0, 0
+                    0.7,   0.3,   0,   0, 0
+                    0,     0.3,   0.7, 0, 0
+                    0,     0,     0,   1, 0" />
+        </filter>
+        <filter id="cb-tritanopia-filter">
+          <feColorMatrix
+            type="matrix"
+            values="0.95, 0.05,  0,     0, 0
+                    0,    0.433, 0.567, 0, 0
+                    0,    0.475, 0.525, 0, 0
+                    0,    0,     0,     1, 0" />
+        </filter>
+      </defs>
+    </svg>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

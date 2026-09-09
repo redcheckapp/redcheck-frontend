@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 import { Check } from "lucide-react";
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
+import { AccessibilityProvider } from './context/AccessibilityContext';
 import { ConfirmProvider } from './context/ConfirmContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
@@ -101,9 +102,11 @@ const App = () => {
         <ErrorBoundary>
             <LanguageProvider>
                 <ThemeProvider>
-                    <BrowserRouter>
-                        <AppShell />
-                    </BrowserRouter>
+                    <AccessibilityProvider>
+                        <BrowserRouter>
+                            <AppShell />
+                        </BrowserRouter>
+                    </AccessibilityProvider>
                 </ThemeProvider>
             </LanguageProvider>
         </ErrorBoundary>
