@@ -2,7 +2,7 @@ import { Sidebar } from "../components/Sidebar";
 import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
 import { useState, useEffect, useMemo, useRef, useCallback, Suspense, lazy } from "react";
-import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2, Settings, Moon, Sun, Languages, Archive, HelpCircle, ArrowUpDown, MessageSquarePlus } from "lucide-react";
+import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2, Settings, Moon, Sun, Languages, Archive, HelpCircle, ArrowUpDown, MessageSquarePlus, Clock3 } from "lucide-react";
 import { ArchivedSubjectsPopover } from "../components/ArchivedSubjectsPopover";
 import type { CommandAction } from "../components/CommandPalette";
 import { ProgressHeatmap } from "../components/ProgressHeatmap";
@@ -34,6 +34,19 @@ const TrashView = lazy(() => import("../components/TrashView").then(m => ({ defa
 const CommandPalette = lazy(() => import("../components/CommandPalette").then(m => ({ default: m.CommandPalette })));
 const OnboardingTour = lazy(() => import("../components/OnboardingTour").then(m => ({ default: m.OnboardingTour })));
 const FeedbackModal = lazy(() => import("../components/FeedbackModal").then(m => ({ default: m.FeedbackModal })));
+
+// Soonest deadline first — mirrors sortTasksByPriority's shape (copy, stable
+// for equal keys) but lives here rather than in priorityColors.ts since it
+// has nothing to do with priority. Tasks with no deadline sort last: no
+// deadline means nothing to be "soon" about, so they'd otherwise land
+// wherever a null Date happens to fall instead of predictably at the end.
+const sortTasksByDeadline = <T extends { deadline: string | null }>(tasks: T[]): T[] =>
+    [...tasks].sort((a, b) => {
+        if (a.deadline === null && b.deadline === null) return 0;
+        if (a.deadline === null) return 1;
+        if (b.deadline === null) return -1;
+        return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+    });
 
 // --- Translation dictionary for the Dashboard ---
 const translations = {
@@ -90,6 +103,8 @@ const translations = {
         welcomeTitle: "¡Bienvenido a RedCheck!",
         welcomeDesc: "Organiza tus tareas por asignaturas. Crea la primera para empezar y deja que SmartCheck AI te ayude a priorizar tu día.",
         selectTasks: "Seleccionar",
+        sortByDeadline: "Fecha límite",
+        ttSortByDeadline: "Ordenar tareas por fecha límite",
         sortByPriority: "Prioridad",
         ttSortByPriority: "Ordenar tareas por prioridad",
         archivedTrigger: "archivada",
@@ -181,6 +196,8 @@ const translations = {
         welcomeTitle: "Welcome to RedCheck!",
         welcomeDesc: "Organize your tasks by subject. Create your first one to get started and let SmartCheck AI help prioritize your day.",
         selectTasks: "Select",
+        sortByDeadline: "Deadline",
+        ttSortByDeadline: "Sort tasks by deadline",
         sortByPriority: "Priority",
         ttSortByPriority: "Sort tasks by priority",
         archivedTrigger: "archived",
@@ -450,7 +467,20 @@ const DashboardPage = () => {
     const [newTask, setNewTask] = useState<{ title: string; description: string; deadline: string; recurrence: string; priority: TaskPriority }>({ title: "", description: "", deadline: "", recurrence: "NONE", priority: "MEDIUM" });
     const [updatedTask, setUpdatedTask] = useState<{ title: string; description: string; deadline: string; priority: TaskPriority }>({ title: "", description: "", deadline: "", priority: "MEDIUM" });
     const [newSubject, setNewSubject] = useState({ name: "", description: "" });
+    // Mutually exclusive: these are two alternative orderings for the same
+    // list, not independent filters, so turning one on turns the other off
+    // rather than trying to define how they'd combine (which should win as
+    // the primary key?).
     const [sortByPriority, setSortByPriority] = useState(false);
+    const [sortByDeadline, setSortByDeadline] = useState(false);
+    const handleToggleSortByPriority = () => {
+        setSortByPriority(v => !v);
+        setSortByDeadline(false);
+    };
+    const handleToggleSortByDeadline = () => {
+        setSortByDeadline(v => !v);
+        setSortByPriority(false);
+    };
 
     // Functional-updater form (not `{ ...newTask, ... }` reading the outer
     // closure directly) so these can be useCallback'd with an empty
@@ -835,14 +865,20 @@ const DashboardPage = () => {
         }, []);
     }, [subjects, searchQuery]);
 
-    // "Sort by priority" toggle (HIGH first, see priorityColors.ts) applied
-    // on top of the search filter above — read by both the Tasks panel and
+    // "Sort by priority"/"sort by deadline" toggles (mutually exclusive —
+    // see handleToggleSortByPriority/handleToggleSortByDeadline) applied on
+    // top of the search filter above — read by both the Tasks panel and
     // OverdueSection, same as filteredSubjects itself, so the two stay
     // consistent with each other.
     const displaySubjects = useMemo(() => {
-        if (!sortByPriority) return filteredSubjects;
-        return filteredSubjects.map(subject => ({ ...subject, tasks: sortTasksByPriority(subject.tasks) }));
-    }, [filteredSubjects, sortByPriority]);
+        if (sortByPriority) {
+            return filteredSubjects.map(subject => ({ ...subject, tasks: sortTasksByPriority(subject.tasks) }));
+        }
+        if (sortByDeadline) {
+            return filteredSubjects.map(subject => ({ ...subject, tasks: sortTasksByDeadline(subject.tasks) }));
+        }
+        return filteredSubjects;
+    }, [filteredSubjects, sortByPriority, sortByDeadline]);
 
     // Feeds the archived-subjects popover trigger in the bulk-actions row —
     // computed from the unfiltered `subjects` (not filteredSubjects) since
@@ -1350,10 +1386,22 @@ const DashboardPage = () => {
                                                     </div>
                                                 )}
                                                 <button
-                                                    onClick={() => setSortByPriority(v => !v)}
+                                                    onClick={handleToggleSortByDeadline}
+                                                    aria-pressed={sortByDeadline}
+                                                    title={t.ttSortByDeadline}
+                                                    className={`ml-auto mr-4 flex items-center gap-1.5 text-sm font-medium transition-colors ${
+                                                        sortByDeadline
+                                                            ? "text-red-600 dark:text-red-400"
+                                                            : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                                                    }`}
+                                                >
+                                                    <Clock3 size={16} /> {t.sortByDeadline}
+                                                </button>
+                                                <button
+                                                    onClick={handleToggleSortByPriority}
                                                     aria-pressed={sortByPriority}
                                                     title={t.ttSortByPriority}
-                                                    className={`ml-auto mr-4 flex items-center gap-1.5 text-sm font-medium transition-colors ${
+                                                    className={`mr-4 flex items-center gap-1.5 text-sm font-medium transition-colors ${
                                                         sortByPriority
                                                             ? "text-red-600 dark:text-red-400"
                                                             : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
