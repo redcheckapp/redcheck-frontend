@@ -1,24 +1,25 @@
 import { memo } from "react";
-import { Check, Pencil, X, Type, AlignLeft, Clock3 } from "lucide-react";
-import type { SubjectWithTasks } from "../types";
+import { Check, Pencil, X, Type, AlignLeft, Clock3, Flag } from "lucide-react";
+import type { SubjectWithTasks, TaskPriority } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
+import { getPriorityColor } from "../utils/priorityColors";
 
-type Task = SubjectWithTasks["tasks"][0]; 
+type Task = SubjectWithTasks["tasks"][0];
 
 interface TaskItemProps {
     subjectId: number;
     task: Task;
     handleToggleTask: (subjectId: number, taskId: number) => void;
     handleDeleteTask: (subjectId: number, taskId: number) => void;
-    
+
     setOpenFormSubjectIdTaskId: (val: { subjectId: number; taskId: number } | null) => void;
     openFormSubjectIdTaskId: { subjectId: number; taskId: number } | null;
     handleUpdateTask: (e: React.FormEvent, subjectId: number, taskId: number) => void;
-    updatedTask: { title: string; description: string; deadline: string };
-    handleChangeUpdateTask: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    updatedTask: { title: string; description: string; deadline: string; priority: TaskPriority };
+    handleChangeUpdateTask: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
 
-    setUpdatedTask: (task: { title: string; description: string; deadline: string }) => void;
-    
+    setUpdatedTask: (task: { title: string; description: string; deadline: string; priority: TaskPriority }) => void;
+
     loading: boolean;
     error: string | null;
     isAdding?: boolean;
@@ -44,6 +45,10 @@ const translations = {
         lblTitle: "Título de la tarea",
         lblDesc: "Descripción",
         lblDeadline: "Fecha límite",
+        lblPriority: "Prioridad",
+        priorityLow: "Baja",
+        priorityMedium: "Media",
+        priorityHigh: "Alta",
         btnCancel: "Cancelar",
         btnSave: "Guardar cambios"
     },
@@ -61,10 +66,17 @@ const translations = {
         lblTitle: "Task title",
         lblDesc: "Description",
         lblDeadline: "Deadline",
+        lblPriority: "Priority",
+        priorityLow: "Low",
+        priorityMedium: "Medium",
+        priorityHigh: "High",
         btnCancel: "Cancel",
         btnSave: "Save changes"
     }
 };
+
+const priorityLabel = (priority: TaskPriority, t: typeof translations["es"]) =>
+    priority === "HIGH" ? t.priorityHigh : priority === "LOW" ? t.priorityLow : t.priorityMedium;
 
 // We pass `t` (translations) and `locale` as parameters to the helper function
 const renderDeadline = (deadlineStr: string | null, isCompleted: boolean, t: typeof translations['es'], locale: string) => {
@@ -197,6 +209,22 @@ export const TaskItem = memo(({
                     </p>
                 </div>
 
+                {/* Priority badge — separate color dimension from subject
+                    color (see priorityColors.ts), so it stays legible next
+                    to the deadline badge above rather than competing with it. */}
+                {!task.completed && (() => {
+                    const pc = getPriorityColor(task.priority);
+                    return (
+                        <span
+                            title={priorityLabel(task.priority, t)}
+                            className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${pc.bg} ${pc.text}`}
+                        >
+                            <span className={`w-1.5 h-1.5 rounded-full ${pc.dot}`} />
+                            {priorityLabel(task.priority, t)}
+                        </span>
+                    );
+                })()}
+
                 {/* ACTION BUTTONS — hidden during selection mode, which uses
                     the row's own checkbox/highlight instead */}
                 {!selectionMode && (
@@ -216,7 +244,8 @@ export const TaskItem = memo(({
                                 setUpdatedTask({
                                     title: task.title,
                                     description: task.description || "",
-                                    deadline: formattedDate
+                                    deadline: formattedDate,
+                                    priority: task.priority
                                 });
                             }}
                             title={t.ttEdit}
@@ -288,6 +317,23 @@ export const TaskItem = memo(({
                                         onChange={handleChangeUpdateTask}
                                         className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 [color-scheme:light] dark:[color-scheme:dark] transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500 outline-none"
                                     />
+                                </div>
+                            </div>
+
+                            <div className="flex-1 flex flex-col">
+                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblPriority}</label>
+                                <div className="relative">
+                                    <Flag size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500 pointer-events-none" />
+                                    <select
+                                        name="priority"
+                                        value={updatedTask.priority}
+                                        onChange={handleChangeUpdateTask}
+                                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500 outline-none cursor-pointer"
+                                    >
+                                        <option value="LOW">{t.priorityLow}</option>
+                                        <option value="MEDIUM">{t.priorityMedium}</option>
+                                        <option value="HIGH">{t.priorityHigh}</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>

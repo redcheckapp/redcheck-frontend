@@ -1,8 +1,9 @@
 import { memo } from "react";
-import { AlertCircle, Check, Pencil, X, Type, AlignLeft, Clock3 } from "lucide-react";
-import type { SubjectWithTasks } from "../types";
+import { AlertCircle, Check, Pencil, X, Type, AlignLeft, Clock3, Flag } from "lucide-react";
+import type { SubjectWithTasks, TaskPriority } from "../types";
 import { AnimatedVisibility } from "./AnimatedVisibility";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
+import { getPriorityColor } from "../utils/priorityColors";
 
 interface OverdueSectionProps {
     subjects: SubjectWithTasks[];
@@ -12,9 +13,9 @@ interface OverdueSectionProps {
     setOpenFormSubjectIdTaskId: (val: { subjectId: number; taskId: number } | null) => void;
     openFormSubjectIdTaskId: {subjectId: number; taskId: number} | null;
     handleUpdateTask: (e: React.FormEvent, subjectId: number, taskId: number) => void;
-    updatedTask: { title: string; description: string; deadline: string };
-    handleChangeUpdateTask: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    setUpdatedTask: (task: { title: string; description: string; deadline: string }) => void;
+    updatedTask: { title: string; description: string; deadline: string; priority: TaskPriority };
+    handleChangeUpdateTask: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+    setUpdatedTask: (task: { title: string; description: string; deadline: string; priority: TaskPriority }) => void;
     deletingTasks: number[];
 }
 
@@ -32,6 +33,10 @@ const translations = {
         taskTitleLabel: "Título de la tarea",
         descLabel: "Descripción",
         deadlineLabel: "Fecha límite",
+        priorityLabel: "Prioridad",
+        priorityLow: "Baja",
+        priorityMedium: "Media",
+        priorityHigh: "Alta",
         btnCancel: "Cancelar",
         btnSave: "Guardar cambios"
     },
@@ -47,10 +52,17 @@ const translations = {
         taskTitleLabel: "Task title",
         descLabel: "Description",
         deadlineLabel: "Deadline",
+        priorityLabel: "Priority",
+        priorityLow: "Low",
+        priorityMedium: "Medium",
+        priorityHigh: "High",
         btnCancel: "Cancel",
         btnSave: "Save changes"
     }
 };
+
+const priorityText = (priority: TaskPriority, t: typeof translations["es"]) =>
+    priority === "HIGH" ? t.priorityHigh : priority === "LOW" ? t.priorityLow : t.priorityMedium;
 
 export const OverdueSection = memo(({
     subjects, 
@@ -160,6 +172,21 @@ export const OverdueSection = memo(({
                                                         </p>
                                                     </div>
 
+                                                    {/* Priority badge — see priorityColors.ts; a separate color
+                                                        dimension from this section's red overdue styling. */}
+                                                    {!task.completed && (() => {
+                                                        const pc = getPriorityColor(task.priority);
+                                                        return (
+                                                            <span
+                                                                title={priorityText(task.priority, t)}
+                                                                className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${pc.bg} ${pc.text}`}
+                                                            >
+                                                                <span className={`w-1.5 h-1.5 rounded-full ${pc.dot}`} />
+                                                                {priorityText(task.priority, t)}
+                                                            </span>
+                                                        );
+                                                    })()}
+
                                                     {/* ACTION BUTTONS: Accessible on touch, hover on desktop */}
                                                     <div className="flex items-center gap-1 opacity-100 [@media(any-hover:hover)]:opacity-0 [@media(any-hover:hover)]:group-hover:opacity-100 transition-opacity duration-200">
                                                         <button 
@@ -173,7 +200,7 @@ export const OverdueSection = memo(({
                                                                     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
                                                                     formattedDate = d.toISOString().slice(0, 16);
                                                                 }
-                                                                setUpdatedTask({ title: task.title, description: task.description || "", deadline: formattedDate });
+                                                                setUpdatedTask({ title: task.title, description: task.description || "", deadline: formattedDate, priority: task.priority });
                                                             }}
                                                             title={t.editTooltip}
                                                         >
@@ -236,9 +263,25 @@ export const OverdueSection = memo(({
                                                                         />
                                                                     </div>
                                                                 </div>
+
+                                                                <div className="flex-1 flex flex-col gap-1.5">
+                                                                    <label className="text-xs font-bold text-red-400 uppercase tracking-wider">{t.priorityLabel}</label>
+                                                                    <div className="relative">
+                                                                        <Flag size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-red-300 dark:text-gray-500 pointer-events-none" />
+                                                                        <select
+                                                                            name="priority"
+                                                                            value={updatedTask.priority} onChange={handleChangeUpdateTask}
+                                                                            className="w-full pl-10 pr-4 bg-red-50/30 dark:bg-gray-800 border border-red-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl py-2.5 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all cursor-pointer"
+                                                                        >
+                                                                            <option value="LOW">{t.priorityLow}</option>
+                                                                            <option value="MEDIUM">{t.priorityMedium}</option>
+                                                                            <option value="HIGH">{t.priorityHigh}</option>
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                        
+
                                                         <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-red-50 dark:border-gray-800 transition-colors duration-300">
                                                             <button 
                                                                 type="button" 

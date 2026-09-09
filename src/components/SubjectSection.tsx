@@ -1,7 +1,7 @@
 import { Pencil, Archive, X, Plus, Repeat } from "lucide-react";
 import { TaskItem } from "./TaskItem";
 import { Suspense, lazy, useState, memo } from "react";
-import type { SubjectWithTasks } from "../types";
+import type { SubjectWithTasks, TaskPriority } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 
 // Only needed once the user opens the recurring-routines modal for a subject.
@@ -21,18 +21,18 @@ interface SubjectSectionProps {
     setOpenFormSubjectIdTaskId: (val: { subjectId: number; taskId: number } | null) => void;
     openFormSubjectIdTaskId: { subjectId: number; taskId: number } | null;
     handleUpdateTask: (e: React.FormEvent, subjectId: number, taskId: number) => void;
-    updatedTask: { title: string; description: string; deadline: string };
-    handleChangeUpdateTask: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    updatedTask: { title: string; description: string; deadline: string; priority: TaskPriority };
+    handleChangeUpdateTask: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
     setOpenFormSubjectId: (id: number | null) => void;
     openFormSubjectId: number | null;
     handleSubmitTask: (e: React.FormEvent, subjectId: number) => void;
-    newTask: { title: string; description: string; deadline: string; recurrence: string }; 
-    handleChangeTask: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void; 
+    newTask: { title: string; description: string; deadline: string; recurrence: string; priority: TaskPriority };
+    handleChangeTask: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
     error: string | null;
     loading: boolean;
     deletingTasks: number[];
     addingTasks: number[];
-    setUpdatedTask: (task: { title: string; description: string; deadline: string }) => void;
+    setUpdatedTask: (task: { title: string; description: string; deadline: string; priority: TaskPriority }) => void;
     setUpdatedSubject: (subject: { name: string; description: string }) => void;
     selectionMode?: boolean;
     selectedTaskKeys?: Set<string>;
@@ -63,6 +63,10 @@ const translations = {
         optWeekly: "Semanalmente",
         optBiweekly: "Quincenalmente",
         optMonthly: "Mensualmente",
+        lblPriority: "Prioridad",
+        priorityLow: "Baja",
+        priorityMedium: "Media",
+        priorityHigh: "Alta",
         btnSaveTask: "Guardar tarea"
     },
     en: {
@@ -87,6 +91,10 @@ const translations = {
         optWeekly: "Weekly",
         optBiweekly: "Biweekly",
         optMonthly: "Monthly",
+        lblPriority: "Priority",
+        priorityLow: "Low",
+        priorityMedium: "Medium",
+        priorityHigh: "High",
         btnSaveTask: "Save task"
     }
 };
@@ -263,6 +271,14 @@ export const SubjectSection = memo(({
                                         <option value="MONTHLY">{t.optMonthly}</option>
                                     </select>
                                 </div>
+                            </div>
+                            <div className="flex flex-col">
+                                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{t.lblPriority}</label>
+                                <select name="priority" value={newTask.priority} onChange={handleChangeTask} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500 outline-none cursor-pointer">
+                                    <option value="LOW">{t.priorityLow}</option>
+                                    <option value="MEDIUM">{t.priorityMedium}</option>
+                                    <option value="HIGH">{t.priorityHigh}</option>
+                                </select>
                             </div>
                         </div>
                         {error && <p className="text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/30 p-2 rounded-lg text-center">{error}</p>}

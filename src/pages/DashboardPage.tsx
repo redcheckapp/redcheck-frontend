@@ -2,13 +2,14 @@ import { Sidebar } from "../components/Sidebar";
 import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
 import { useState, useEffect, useMemo, useRef, useCallback, Suspense, lazy } from "react";
-import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2, Settings, Moon, Sun, Languages, Archive, HelpCircle } from "lucide-react";
+import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2, Settings, Moon, Sun, Languages, Archive, HelpCircle, ArrowUpDown } from "lucide-react";
 import { ArchivedSubjectsPopover } from "../components/ArchivedSubjectsPopover";
 import type { CommandAction } from "../components/CommandPalette";
 import { ProgressHeatmap } from "../components/ProgressHeatmap";
 import { archiveSubject, deleteSubject, getSubjectsWithTasks, postSubject, restoreSubject, updateSubject } from "../api/subjectApi";
 import { addNewTask, deleteTask, restoreTask, toggleTask, updateTask } from "../api/taskApi";
-import type { SmartCheckAiData, SubjectWithTasks, TaskRequest } from "../types";
+import { sortTasksByPriority } from "../utils/priorityColors";
+import type { SmartCheckAiData, SubjectWithTasks, TaskPriority, TaskRequest } from "../types";
 import { useNavigate } from "react-router-dom";
 import { deleteUser, getUsername } from "../api/userApi";
 import { addRecurringTask } from "../api/recurringTaskApi";
@@ -88,6 +89,8 @@ const translations = {
         welcomeTitle: "¡Bienvenido a RedCheck!",
         welcomeDesc: "Organiza tus tareas por asignaturas. Crea la primera para empezar y deja que SmartCheck AI te ayude a priorizar tu día.",
         selectTasks: "Seleccionar",
+        sortByPriority: "Prioridad",
+        ttSortByPriority: "Ordenar tareas por prioridad",
         archivedTrigger: "archivada",
         archivedTriggerPlural: "archivadas",
         cancelSelection: "Cancelar",
@@ -172,6 +175,8 @@ const translations = {
         welcomeTitle: "Welcome to RedCheck!",
         welcomeDesc: "Organize your tasks by subject. Create your first one to get started and let SmartCheck AI help prioritize your day.",
         selectTasks: "Select",
+        sortByPriority: "Priority",
+        ttSortByPriority: "Sort tasks by priority",
         archivedTrigger: "archived",
         archivedTriggerPlural: "archived",
         cancelSelection: "Cancel",
@@ -266,7 +271,8 @@ const DashboardPage = () => {
         setUpdatedTask({
             title: task.title,
             description: task.description || "",
-            deadline: formattedDate
+            deadline: formattedDate,
+            priority: task.priority
         });
     };
 
@@ -409,9 +415,10 @@ const DashboardPage = () => {
     const [username, setUsername] = useState("");
     const [userEmail, setUserEmail] = useState("");
     const [updatedSubject, setUpdatedSubject] = useState({ name: "", description: "" });
-    const [newTask, setNewTask] = useState({ title: "", description: "", deadline: "", recurrence: "NONE" });
-    const [updatedTask, setUpdatedTask] = useState({ title: "", description: "", deadline: "" });
+    const [newTask, setNewTask] = useState<{ title: string; description: string; deadline: string; recurrence: string; priority: TaskPriority }>({ title: "", description: "", deadline: "", recurrence: "NONE", priority: "MEDIUM" });
+    const [updatedTask, setUpdatedTask] = useState<{ title: string; description: string; deadline: string; priority: TaskPriority }>({ title: "", description: "", deadline: "", priority: "MEDIUM" });
     const [newSubject, setNewSubject] = useState({ name: "", description: "" });
+    const [sortByPriority, setSortByPriority] = useState(false);
 
     // Functional-updater form (not `{ ...newTask, ... }` reading the outer
     // closure directly) so these can be useCallback'd with an empty
@@ -423,7 +430,7 @@ const DashboardPage = () => {
     const handleChangeTask = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setNewTask(prev => ({ ...prev, [e.target.name]: e.target.value }));
     }, []);
-    const handleChangeUpdateTask = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChangeUpdateTask = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setUpdatedTask(prev => ({ ...prev, [e.target.name]: e.target.value }));
     }, []);
     const handleChangeUpdateSubject = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -479,7 +486,8 @@ const DashboardPage = () => {
                 const response = await addNewTask(subjectId, {
                     title: newTask.title,
                     description: newTask.description,
-                    deadline: newTask.deadline
+                    deadline: newTask.deadline,
+                    priority: newTask.priority
                 });
 
                 setAddingTasks(prev => [...prev, response.id]);
@@ -487,7 +495,7 @@ const DashboardPage = () => {
                 setOpenFormSubjectId(null);
 
                 setTimeout(() => {
-                    setNewTask({title: "", description: "", deadline: "", recurrence: "NONE"});
+                    setNewTask({title: "", description: "", deadline: "", recurrence: "NONE", priority: "MEDIUM"});
                 }, 500);
 
                 setTimeout(() => {
@@ -504,7 +512,7 @@ const DashboardPage = () => {
 
                 setOpenFormSubjectId(null);
                 setTimeout(() => {
-                    setNewTask({title: "", description: "", deadline: "", recurrence: "NONE"});
+                    setNewTask({title: "", description: "", deadline: "", recurrence: "NONE", priority: "MEDIUM"});
                 }, 500);
             }
         } catch {
@@ -519,7 +527,7 @@ const DashboardPage = () => {
             const response = await updateTask(subjectId, taskId, updatedTask);
             setSubjects(prev => prev.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: subject.tasks.map(task => task.id !== taskId ? task : response) }));
             setOpenFormSubjectIdTaskId(null);
-            setUpdatedTask({title: "", description: "", deadline: ""});
+            setUpdatedTask({title: "", description: "", deadline: "", priority: "MEDIUM"});
         } catch { setError(t.errGeneric); }
     }, [updatedTask, t.errGeneric]);
 
@@ -794,6 +802,15 @@ const DashboardPage = () => {
             return acc;
         }, []);
     }, [subjects, searchQuery]);
+
+    // "Sort by priority" toggle (HIGH first, see priorityColors.ts) applied
+    // on top of the search filter above — read by both the Tasks panel and
+    // OverdueSection, same as filteredSubjects itself, so the two stay
+    // consistent with each other.
+    const displaySubjects = useMemo(() => {
+        if (!sortByPriority) return filteredSubjects;
+        return filteredSubjects.map(subject => ({ ...subject, tasks: sortTasksByPriority(subject.tasks) }));
+    }, [filteredSubjects, sortByPriority]);
 
     // Feeds the archived-subjects popover trigger in the bulk-actions row —
     // computed from the unfiltered `subjects` (not filteredSubjects) since
@@ -1294,8 +1311,20 @@ const DashboardPage = () => {
                                                     </div>
                                                 )}
                                                 <button
+                                                    onClick={() => setSortByPriority(v => !v)}
+                                                    aria-pressed={sortByPriority}
+                                                    title={t.ttSortByPriority}
+                                                    className={`ml-auto flex items-center gap-1.5 text-sm font-medium transition-colors ${
+                                                        sortByPriority
+                                                            ? "text-red-600 dark:text-red-400"
+                                                            : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                                                    }`}
+                                                >
+                                                    <ArrowUpDown size={16} /> {t.sortByPriority}
+                                                </button>
+                                                <button
                                                     onClick={() => setSelectionMode(true)}
-                                                    className="ml-auto flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                                                    className="flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
                                                 >
                                                     <CheckSquare size={16} /> {t.selectTasks}
                                                 </button>
@@ -1322,7 +1351,7 @@ const DashboardPage = () => {
                                 )}
 
                                 <div className="flex flex-col gap-8">
-                                    {filteredSubjects.filter(subject => !subject.archived).map(subject => {
+                                    {displaySubjects.filter(subject => !subject.archived).map(subject => {
                                         const isDeleting = deletingSubjects.includes(subject.id);
                                         const isAdding = addingSubjects.includes(subject.id);
                                         return (
@@ -1440,7 +1469,7 @@ const DashboardPage = () => {
                                 </div>
 
                                 <OverdueSection
-                                    subjects={filteredSubjects}
+                                    subjects={displaySubjects}
                                     totalPendingOverdue={totalPendingOverdue}
                                     handleToggleTask={handleToggleTask}
                                     handleDeleteTask={handleDeleteTask}

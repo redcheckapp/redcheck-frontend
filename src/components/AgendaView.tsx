@@ -4,9 +4,10 @@ import { toast } from "react-hot-toast";
 import { ChevronLeft, ChevronRight, Clock, CalendarDays, Plus, Check } from "lucide-react";
 import { getProgressHeatmap } from "../api/progressRecordApi";
 import { getTasksForDateRange } from "../api/taskApi";
-import type { ProgressRecord, SubjectWithTasks, TaskRequest, TaskResponse } from "../types";
+import type { ProgressRecord, SubjectWithTasks, TaskPriority, TaskRequest, TaskResponse } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import { getSubjectColor } from "../utils/subjectColors";
+import { getPriorityColor } from "../utils/priorityColors";
 import { DayOffIllustration } from "./illustrations/DayOffIllustration";
 
 // Only needed once the user opens the create/edit task modal from the
@@ -54,6 +55,9 @@ const translations = {
         ttToggleComplete: "Marcar como completada",
         taskRescheduled: "Tarea reprogramada",
         errReschedule: "No se pudo reprogramar la tarea.",
+        priorityLow: "Baja",
+        priorityMedium: "Media",
+        priorityHigh: "Alta",
         weekDays: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
         months: ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
     },
@@ -78,12 +82,18 @@ const translations = {
         ttToggleComplete: "Mark as complete",
         taskRescheduled: "Task rescheduled",
         errReschedule: "Couldn't reschedule the task.",
+        priorityLow: "Low",
+        priorityMedium: "Medium",
+        priorityHigh: "High",
         weekDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
         months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
     }
 };
 
 type CalendarTask = TaskResponse & { subjectName: string };
+
+const priorityLabel = (priority: TaskPriority, t: typeof translations["es"]) =>
+    priority === "HIGH" ? t.priorityHigh : priority === "LOW" ? t.priorityLow : t.priorityMedium;
 
 // Day cells and task chips across Month/Week/Day are plain onClick divs
 // (not <button>s, since they sit inside CSS grids/flex rows with very
@@ -782,8 +792,12 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                 <div className="mt-1">{renderCompleteToggle(task, "sm")}</div>
                 <div className="flex flex-col flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-0.5">
-                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider truncate transition-colors duration-300">
-                            {task.subjectName}
+                        <span className="flex items-center gap-1 min-w-0 text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider truncate transition-colors duration-300">
+                            {/* Priority dot — separate color dimension from
+                                this card's subject-colored border, see
+                                priorityColors.ts. */}
+                            <span title={priorityLabel(task.priority, t)} className={`shrink-0 w-1.5 h-1.5 rounded-full ${getPriorityColor(task.priority).dot}`} />
+                            <span className="truncate">{task.subjectName}</span>
                         </span>
                         <div className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 sm:px-2 py-0.5 rounded-md shrink-0 transition-colors duration-300">
                             <Clock size={11} />
@@ -828,6 +842,7 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                 }`}
             >
                 {renderCompleteToggle(task, "xs")}
+                <span title={priorityLabel(task.priority, t)} className={`shrink-0 w-1.5 h-1.5 rounded-full ${getPriorityColor(task.priority).dot}`} />
                 <span className="shrink-0 font-semibold text-gray-500 dark:text-gray-500">{timeString}</span>
                 <span className="truncate font-medium">{task.title}</span>
             </div>
@@ -1024,19 +1039,22 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                                             draggable
                                                             onDragStart={(e) => handleChipDragStart(e, task)}
                                                             onDragEnd={handleChipDragEnd}
-                                                            title={`${task.subjectName} — ${task.title}`}
+                                                            title={`${task.subjectName} — ${task.title} (${priorityLabel(task.priority, t)})`}
                                                             onClick={(e) => { e.stopPropagation(); openEditModal(task); }}
                                                             role="button"
                                                             tabIndex={0}
                                                             aria-label={`${task.subjectName} — ${task.title}`}
                                                             onKeyDown={(e) => { e.stopPropagation(); handleActivateKeyDown(e, () => openEditModal(task)); }}
                                                             style={{ animationDelay: `${taskIdx * 40}ms` }}
-                                                            className={`animate-chip-in text-[8px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded truncate cursor-grab active:cursor-grabbing transition-all hover:brightness-95 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 ${
+                                                            // Priority reads here as a left border accent (border-l-2)
+                                                            // rather than a separate dot element — these chips are too
+                                                            // small (text-[8px]) to spare the width for one.
+                                                            className={`animate-chip-in text-[8px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded truncate cursor-grab active:cursor-grabbing transition-all hover:brightness-95 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 border-l-2 ${
                                                                 draggedTask?.id === task.id ? "opacity-30" : ""
                                                             } ${
                                                                 task.completed
-                                                                    ? "bg-white/60 dark:bg-gray-900/60 text-gray-500 dark:text-gray-500 line-through"
-                                                                    : `${subjectColor.bg} ${subjectColor.text}`
+                                                                    ? "bg-white/60 dark:bg-gray-900/60 text-gray-500 dark:text-gray-500 line-through border-transparent"
+                                                                    : `${subjectColor.bg} ${subjectColor.text} ${getPriorityColor(task.priority).border}`
                                                             }`}
                                                         >
                                                             {task.title}
@@ -1143,19 +1161,19 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                                             draggable
                                                             onDragStart={(e) => handleChipDragStart(e, task)}
                                                             onDragEnd={handleChipDragEnd}
-                                                            title={`${task.subjectName} — ${task.title}`}
+                                                            title={`${task.subjectName} — ${task.title} (${priorityLabel(task.priority, t)})`}
                                                             onClick={(e) => { e.stopPropagation(); openEditModal(task); }}
                                                             role="button"
                                                             tabIndex={0}
                                                             aria-label={`${task.subjectName} — ${task.title}`}
                                                             onKeyDown={(e) => { e.stopPropagation(); handleActivateKeyDown(e, () => openEditModal(task)); }}
                                                             style={{ animationDelay: `${taskIdx * 40}ms` }}
-                                                            className={`animate-chip-in text-[9px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 sm:py-1 rounded-md truncate cursor-grab active:cursor-grabbing transition-all hover:brightness-95 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 ${
+                                                            className={`animate-chip-in text-[9px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 sm:py-1 rounded-md truncate cursor-grab active:cursor-grabbing transition-all hover:brightness-95 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 border-l-2 ${
                                                                 draggedTask?.id === task.id ? "opacity-30" : ""
                                                             } ${
                                                                 task.completed
-                                                                    ? "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500 line-through"
-                                                                    : `${subjectColor.bg} ${subjectColor.text}`
+                                                                    ? "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500 line-through border-transparent"
+                                                                    : `${subjectColor.bg} ${subjectColor.text} ${getPriorityColor(task.priority).border}`
                                                             }`}
                                                         >
                                                             {task.title}
@@ -1303,10 +1321,10 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                         return (
                             <div
                                 key={task.id}
-                                className={`text-xs font-semibold px-2 py-1.5 rounded-lg truncate ${
+                                className={`text-xs font-semibold px-2 py-1.5 rounded-lg truncate border-l-2 ${
                                     task.completed
-                                        ? "bg-gray-50 dark:bg-gray-800/60 text-gray-500 dark:text-gray-500 line-through"
-                                        : `${subjectColor.bg} ${subjectColor.text}`
+                                        ? "bg-gray-50 dark:bg-gray-800/60 text-gray-500 dark:text-gray-500 line-through border-transparent"
+                                        : `${subjectColor.bg} ${subjectColor.text} ${getPriorityColor(task.priority).border}`
                                 }`}
                             >
                                 {task.title}

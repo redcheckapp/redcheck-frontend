@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { X, Trash2, BookOpen, Type, AlignLeft, Clock3, ChevronDown, CalendarPlus, CalendarClock, Loader2 } from "lucide-react";
+import { X, Trash2, BookOpen, Type, AlignLeft, Clock3, Flag, ChevronDown, CalendarPlus, CalendarClock, Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import { useConfirm } from "../context/ConfirmContext";
-import type { SubjectWithTasks, TaskRequest, TaskResponse } from "../types";
+import type { SubjectWithTasks, TaskPriority, TaskRequest, TaskResponse } from "../types";
 import { ModalOverlay } from "./ModalOverlay";
 import { getSubjectColor } from "../utils/subjectColors";
 import { triggerHapticFeedback } from "../utils/feedback";
@@ -35,6 +35,10 @@ const translations = {
         phTitle: "¿Qué hay que hacer?",
         phDesc: "Añade detalles o notas...",
         lblDeadline: "Fecha y hora",
+        lblPriority: "Prioridad",
+        priorityLow: "Baja",
+        priorityMedium: "Media",
+        priorityHigh: "Alta",
         noSubjects: "Crea primero una asignatura para poder añadir tareas.",
         close: "Cerrar",
         btnCancel: "Cancelar",
@@ -58,6 +62,10 @@ const translations = {
         phTitle: "What needs to get done?",
         phDesc: "Add details or notes...",
         lblDeadline: "Date and time",
+        lblPriority: "Priority",
+        priorityLow: "Low",
+        priorityMedium: "Medium",
+        priorityHigh: "High",
         noSubjects: "Create a subject first so you can add tasks.",
         close: "Close",
         btnCancel: "Cancel",
@@ -91,6 +99,7 @@ export const CalendarTaskModal = ({
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [deadline, setDeadline] = useState("");
+    const [priority, setPriority] = useState<TaskPriority>("MEDIUM");
     const [subjectId, setSubjectId] = useState<number | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
@@ -105,11 +114,13 @@ export const CalendarTaskModal = ({
             setTitle(task.title);
             setDescription(task.description ?? "");
             setDeadline(task.deadline ? toDatetimeLocal(new Date(task.deadline)) : "");
+            setPriority(task.priority);
             setSubjectId(task.subjectId);
         } else {
             setTitle("");
             setDescription("");
             setDeadline(initialDate ? toDatetimeLocal(initialDate) : "");
+            setPriority("MEDIUM");
             setSubjectId(defaultSubjectId ?? null);
         }
     }, [isOpen, mode, task, initialDate, defaultSubjectId]);
@@ -128,7 +139,7 @@ export const CalendarTaskModal = ({
         }
         setSubmitting(true);
         try {
-            const data: TaskRequest = { title: title.trim(), description: description.trim() || null, deadline: deadline || null };
+            const data: TaskRequest = { title: title.trim(), description: description.trim() || null, deadline: deadline || null, priority };
             if (mode === "edit" && task) {
                 await onUpdate(task.subjectId, task.id, data);
             } else {
@@ -259,6 +270,23 @@ export const CalendarTaskModal = ({
                                         onChange={(e) => setDeadline(e.target.value)}
                                         className={`${fieldClass} pr-3`}
                                     />
+                                </div>
+                            </label>
+
+                            <label className="flex flex-col gap-1.5">
+                                <span className="text-[11px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider px-0.5">{t.lblPriority}</span>
+                                <div className="relative">
+                                    <Flag size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500 pointer-events-none" />
+                                    <select
+                                        value={priority}
+                                        onChange={(e) => setPriority(e.target.value as TaskPriority)}
+                                        className={`${fieldClass} appearance-none pr-9 cursor-pointer`}
+                                    >
+                                        <option value="LOW">{t.priorityLow}</option>
+                                        <option value="MEDIUM">{t.priorityMedium}</option>
+                                        <option value="HIGH">{t.priorityHigh}</option>
+                                    </select>
+                                    <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500 pointer-events-none" />
                                 </div>
                             </label>
 

@@ -21,6 +21,8 @@ export interface SubjectResponse {
     archived: boolean;
 }
 
+export type TaskPriority = "LOW" | "MEDIUM" | "HIGH";
+
 export interface TaskResponse {
     id: number;
     title: string;
@@ -32,12 +34,17 @@ export interface TaskResponse {
     deleted: boolean;
     overdue: boolean;
     subjectId: number;
+    priority: TaskPriority;
 }
 
 export interface TaskRequest {
     title: string;
     description: string | null;
     deadline: string | null;
+    // Optional: omitting it means "default to MEDIUM" on create, or "keep
+    // the task's current priority" on update — see redcheck-backend's
+    // TaskService (createTask/updateTask).
+    priority?: TaskPriority;
 }
 
 export interface SubjectWithTasks extends SubjectResponse {
