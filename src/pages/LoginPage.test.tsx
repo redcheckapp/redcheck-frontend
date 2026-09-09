@@ -8,6 +8,7 @@ import LoginPage from "./LoginPage";
 
 vi.mock("../api/authApi", () => ({
     login: vi.fn(),
+    loginWithGoogle: vi.fn(),
 }));
 
 const renderLoginPage = () =>
@@ -46,5 +47,39 @@ describe("LoginPage", () => {
         renderLoginPage();
         const registerLink = screen.getByRole("link", { name: /register here|regístrate aquí/i });
         expect(registerLink).toHaveAttribute("href", "/register");
+    });
+
+    it("does not render the Google sign-in section when no client id is configured", () => {
+        renderLoginPage();
+        expect(screen.queryByText(/or continue with|o continúa con/i)).not.toBeInTheDocument();
+    });
+
+    it("renders the Google sign-in section once a client id is configured", async () => {
+        vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "test-client-id.apps.googleusercontent.com");
+        vi.resetModules();
+
+        // LoginPage reads the client id at module-load time, so both it and
+        // its context providers must be re-imported fresh after stubbing the
+        // env var — otherwise LoginPage's freshly re-imported LanguageContext
+        // module wouldn't be the same one the statically-imported provider
+        // above renders, and useLanguage() would find no matching provider.
+        const { default: FreshLoginPage } = await import("./LoginPage");
+        const { LanguageProvider: FreshLanguageProvider } = await import("../context/LanguageContext");
+        const { ThemeProvider: FreshThemeProvider } = await import("../context/ThemeContext");
+
+        render(
+            <MemoryRouter>
+                <FreshLanguageProvider>
+                    <FreshThemeProvider>
+                        <FreshLoginPage />
+                    </FreshThemeProvider>
+                </FreshLanguageProvider>
+            </MemoryRouter>
+        );
+
+        expect(screen.getByText(/or continue with|o continúa con/i)).toBeInTheDocument();
+
+        vi.unstubAllEnvs();
+        vi.resetModules();
     });
 });

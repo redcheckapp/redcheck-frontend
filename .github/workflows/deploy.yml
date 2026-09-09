@@ -26,6 +26,7 @@ jobs:
           # Variable injection for Vite pointing to the API
           build-args: |
             VITE_API_URL=https://my.redcheckapp.com
+            VITE_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
 
   deploy:
     needs: build-and-push

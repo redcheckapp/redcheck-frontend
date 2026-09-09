@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { login } from "../api/authApi";
+import { GoogleOAuthProvider, GoogleLogin, type CredentialResponse } from "@react-oauth/google";
+import { login, loginWithGoogle } from "../api/authApi";
 import { Check, Loader2 } from "lucide-react";
 import { PageTransition } from "../components/PageTransition";
 import { AuthFloatingNav } from "../components/AuthFloatingNav";
 import { useLanguage } from "../context/LanguageContext"; // <-- New context
+import { useTheme } from "../context/ThemeContext";
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
 // --- Translation dictionary ---
 const translations = {
@@ -21,6 +25,8 @@ const translations = {
         privacy: "Política de Privacidad",
         errCreds: "Correo/usuario o contraseña incorrectos",
         errDemo: "Error al acceder a la cuenta de demostración. Asegúrate de que el backend la ha inicializado.",
+        errGoogle: "No se pudo iniciar sesión con Google. Inténtalo de nuevo.",
+        orContinueWith: "o continúa con",
         tags: ["Agenda", "Inteligente", "Interactiva"],
         copyright: "© 2026 RedCheck. Desarrollado por Francisco Javier Molina Cuenca. Todos los derechos reservados."
     },
@@ -37,6 +43,8 @@ const translations = {
         privacy: "Privacy Policy",
         errCreds: "Incorrect email/username or password",
         errDemo: "Error accessing demo account. Make sure the backend initialized it.",
+        errGoogle: "Couldn't sign in with Google. Please try again.",
+        orContinueWith: "or continue with",
         tags: ["AI-Powered", "Smart", "Planner"],
         copyright: "© 2026 RedCheck. Developed by Francisco Javier Molina Cuenca. All rights reserved."
     }
@@ -45,6 +53,7 @@ const translations = {
 const LoginPage = () => {
     const navigate = useNavigate();
     const { language } = useLanguage();
+    const { theme } = useTheme();
     const t = translations[language as keyof typeof translations];
 
     const [form, setForm] = useState({ emailOrUsername: "", password: "" });
@@ -66,6 +75,26 @@ const LoginPage = () => {
             navigate("/dashboard");
         } catch {
             setError(t.errCreds);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+        if (!credentialResponse.credential) {
+            setError(t.errGoogle);
+            return;
+        }
+
+        setError(null);
+        setLoading(true);
+
+        try {
+            const response = await loginWithGoogle(credentialResponse.credential);
+            localStorage.setItem("token", response.token);
+            navigate("/dashboard");
+        } catch {
+            setError(t.errGoogle);
         } finally {
             setLoading(false);
         }
@@ -179,6 +208,30 @@ const LoginPage = () => {
                         {t.demoBtn}
                     </button>
                 </form>
+
+                {GOOGLE_CLIENT_ID && (
+                    <div className="mt-6">
+                        <div className="flex items-center gap-3">
+                            <div className="flex-1 h-px bg-gray-100 dark:bg-gray-800 transition-colors duration-300" />
+                            <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                                {t.orContinueWith}
+                            </span>
+                            <div className="flex-1 h-px bg-gray-100 dark:bg-gray-800 transition-colors duration-300" />
+                        </div>
+                        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+                            <div className="mt-4 flex justify-center">
+                                <GoogleLogin
+                                    onSuccess={handleGoogleSuccess}
+                                    onError={() => setError(t.errGoogle)}
+                                    theme={theme === "dark" ? "filled_black" : "outline"}
+                                    shape="pill"
+                                    text="continue_with"
+                                    locale={language}
+                                />
+                            </div>
+                        </GoogleOAuthProvider>
+                    </div>
+                )}
 
                 <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-8 transition-colors duration-300">
                     {t.noAccount}{" "}

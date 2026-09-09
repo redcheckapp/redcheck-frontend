@@ -7,6 +7,10 @@ export interface AuthResponse {
     token: string;
 }
 
+export interface GoogleAuthRequest {
+    idToken: string;
+}
+
 export interface RegisterForm {
     username: string;
     email: string;

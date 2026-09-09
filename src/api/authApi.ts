@@ -6,3 +6,8 @@ export const login = async (form : LoginForm): Promise<AuthResponse> => {
     const response = await api.post('/auth/login', form);
     return response.data;
 };
+
+export const loginWithGoogle = async (idToken: string): Promise<AuthResponse> => {
+    const response = await api.post('/auth/google', { idToken });
+    return response.data;
+};
