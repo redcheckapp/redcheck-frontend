@@ -1,14 +1,25 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { ChevronLeft, ChevronRight, Clock, CheckCircle2, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, CheckCircle2, CalendarDays, Plus } from "lucide-react";
 import { getProgressHeatmap } from "../api/progressRecordApi";
-import type { ProgressRecord, SubjectWithTasks } from "../types";
+import type { ProgressRecord, SubjectWithTasks, TaskRequest, TaskResponse } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
+import { CalendarTaskModal } from "./CalendarTaskModal";
 
 type ViewMode = "day" | "week" | "month";
 
 interface AgendaViewProps {
     subjects?: SubjectWithTasks[];
+    onCreateTask: (subjectId: number, data: TaskRequest) => Promise<void>;
+    onUpdateTask: (subjectId: number, taskId: number, data: TaskRequest) => Promise<void>;
+    onDeleteTask: (subjectId: number, taskId: number) => Promise<void>;
 }
+
+// Either creating a new task on a clicked date, or editing/rescheduling one
+// clicked in Day/Week/Month — a single modal (CalendarTaskModal) handles
+// both, keyed off which variant this is.
+type TaskModalState =
+    | { mode: "create"; date: Date; defaultSubjectId: number | null }
+    | { mode: "edit"; task: TaskResponse };
 
 // --- Translation dictionary for AgendaView ---
 const translations = {
@@ -23,6 +34,8 @@ const translations = {
         lblAllDay: "Todo el día",
         moreTasks: "más",
         jumpToDate: "Ir a una fecha",
+        addTaskTitle: "Añadir tarea",
+        btnAddTask: "Añadir tarea",
         dayOffTitle: "¡Día libre!",
         dayOffDesc: "No hay tareas programadas para este día.",
         weekDays: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
@@ -39,6 +52,8 @@ const translations = {
         lblAllDay: "All day",
         moreTasks: "more",
         jumpToDate: "Jump to a date",
+        addTaskTitle: "Add task",
+        btnAddTask: "Add task",
         dayOffTitle: "Day off!",
         dayOffDesc: "No tasks scheduled for this day.",
         weekDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
@@ -89,16 +104,24 @@ const SUBJECT_COLOR_PALETTE = [
 const getSubjectColor = (subjectId: number) =>
     SUBJECT_COLOR_PALETTE[subjectId % SUBJECT_COLOR_PALETTE.length];
 
-export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
+export const AgendaView = ({ subjects = [], onCreateTask, onUpdateTask, onDeleteTask }: AgendaViewProps) => {
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
 
     const [view, setView] = useState<ViewMode>("month");
-    
+
     const [currentDate, setCurrentDate] = useState(new Date());
     const [records, setRecords] = useState<Record<string, ProgressRecord>>({});
     const [loadingRecords, setLoadingRecords] = useState(true);
     const jumpDateInputRef = useRef<HTMLInputElement>(null);
+    const [taskModalState, setTaskModalState] = useState<TaskModalState | null>(null);
+
+    const openCreateModal = (date: Date) => {
+        setTaskModalState({ mode: "create", date, defaultSubjectId: subjects[0]?.id ?? null });
+    };
+    const openEditModal = (task: TaskResponse) => {
+        setTaskModalState({ mode: "edit", task });
+    };
 
     const todayObj = new Date();
     const currentYear = currentDate.getFullYear();
@@ -246,7 +269,8 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
             <div
                 key={task.id}
                 title={task.title}
-                className={`bg-white dark:bg-gray-800 border p-2 sm:p-3 rounded-xl shadow-sm flex items-start gap-2 sm:gap-3 transition-all hover:shadow-md ${task.completed ? 'opacity-60 bg-gray-50 dark:bg-gray-900/50 dark:border-gray-800' : subjectColor.border}`}
+                onClick={() => openEditModal(task)}
+                className={`bg-white dark:bg-gray-800 border p-2 sm:p-3 rounded-xl shadow-sm flex items-start gap-2 sm:gap-3 transition-all hover:shadow-md cursor-pointer ${task.completed ? 'opacity-60 bg-gray-50 dark:bg-gray-900/50 dark:border-gray-800' : subjectColor.border}`}
             >
                 <div className={`mt-1 w-3 h-3 rounded-full border-2 shrink-0 transition-colors duration-300 ${task.completed ? 'border-green-500 bg-green-100 dark:bg-green-900/30' : `border-transparent ${subjectColor.dot}`}`} />
                 <div className="flex flex-col flex-1 min-w-0">
@@ -279,7 +303,8 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
             <div
                 key={task.id}
                 title={`${task.subjectName} — ${task.title}`}
-                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs shrink-0 transition-colors ${
+                onClick={() => openEditModal(task)}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs shrink-0 cursor-pointer transition-colors ${
                     task.completed
                         ? 'bg-gray-50 dark:bg-gray-900/50 border-gray-100 dark:border-gray-800 text-gray-400 dark:text-gray-500 line-through'
                         : `${subjectColor.bg} ${subjectColor.border} text-gray-700 dark:text-gray-200`
@@ -388,6 +413,16 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                             <span className={`text-xs sm:text-sm font-bold w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full transition-colors duration-300 ${isToday ? "bg-red-600 text-white shadow-sm" : bgColorClass.includes("bg-[#4ade80]") || bgColorClass.includes("bg-[#16a34a]") ? "text-white drop-shadow-md" : "text-gray-500 dark:text-gray-400"}`}>
                                                 {dayNum}
                                             </span>
+                                            {subjects.length > 0 && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); openCreateModal(cellDateObj); }}
+                                                    title={t.addTaskTitle}
+                                                    aria-label={t.addTaskTitle}
+                                                    className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 sm:p-1 rounded-md bg-white/80 dark:bg-gray-900/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 shadow-sm transition-opacity"
+                                                >
+                                                    <Plus size={12} />
+                                                </button>
+                                            )}
                                         </div>
                                         {dayTasks.length > 0 ? (
                                             <div className="flex-1 flex flex-col gap-0.5 sm:gap-1 overflow-y-auto no-scrollbar">
@@ -397,7 +432,8 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                                         <div
                                                             key={task.id}
                                                             title={`${task.subjectName} — ${task.title}`}
-                                                            className={`text-[8px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded truncate transition-colors ${
+                                                            onClick={(e) => { e.stopPropagation(); openEditModal(task); }}
+                                                            className={`text-[8px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded truncate cursor-pointer transition-colors ${
                                                                 task.completed
                                                                     ? "bg-white/60 dark:bg-gray-900/60 text-gray-400 dark:text-gray-500 line-through"
                                                                     : `${subjectColor.bg} ${subjectColor.text}`
@@ -462,8 +498,18 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                     <div
                                         key={i}
                                         onClick={() => { setCurrentDate(date); setView("day"); }}
-                                        className={`${bgColorClass} p-1 sm:p-2 flex flex-col gap-1 overflow-y-auto no-scrollbar cursor-pointer transition-colors hover:brightness-95 dark:hover:brightness-110`}
+                                        className={`${bgColorClass} p-1 sm:p-2 flex flex-col gap-1 overflow-y-auto no-scrollbar cursor-pointer transition-colors hover:brightness-95 dark:hover:brightness-110 relative group`}
                                     >
+                                        {subjects.length > 0 && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); openCreateModal(date); }}
+                                                title={t.addTaskTitle}
+                                                aria-label={t.addTaskTitle}
+                                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 focus:opacity-100 p-0.5 sm:p-1 rounded-md bg-white/80 dark:bg-gray-900/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 shadow-sm transition-opacity z-10"
+                                            >
+                                                <Plus size={12} />
+                                            </button>
+                                        )}
                                         {dayTasks.length === 0 ? (
                                             <div className="flex-1 flex items-center justify-center">
                                                 <span className="hidden sm:inline text-[10px] text-gray-300 dark:text-gray-600 font-medium">{t.dayOffTitle}</span>
@@ -476,7 +522,8 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                                         <div
                                                             key={task.id}
                                                             title={`${task.subjectName} — ${task.title}`}
-                                                            className={`text-[9px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 sm:py-1 rounded-md truncate transition-colors ${
+                                                            onClick={(e) => { e.stopPropagation(); openEditModal(task); }}
+                                                            className={`text-[9px] sm:text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 sm:py-1 rounded-md truncate cursor-pointer transition-colors ${
                                                                 task.completed
                                                                     ? "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 line-through"
                                                                     : `${subjectColor.bg} ${subjectColor.text}`
@@ -544,18 +591,41 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                                     <div className="relative z-20 mt-10 p-6 sm:max-w-xl sm:ml-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center text-center bg-white/50 dark:bg-gray-800/50 transition-colors duration-300">
                                         <CheckCircle2 size={32} className="text-gray-300 dark:text-gray-600 mb-2 transition-colors duration-300" />
                                         <h3 className="text-gray-500 dark:text-gray-400 font-bold transition-colors duration-300">{t.dayOffTitle}</h3>
-                                        <p className="text-sm text-gray-400 dark:text-gray-500 transition-colors duration-300">{t.dayOffDesc}</p>
+                                        <p className="text-sm text-gray-400 dark:text-gray-500 mb-3 transition-colors duration-300">{t.dayOffDesc}</p>
+                                        {subjects.length > 0 && (
+                                            <button
+                                                onClick={() => openCreateModal(currentDate)}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                                            >
+                                                <Plus size={14} /> {t.btnAddTask}
+                                            </button>
+                                        )}
                                     </div>
                                 ) : (
                                     // Tasks are placed in the row for their own hour — clamped
                                     // to the visible 8-20 range — instead of floating in an
                                     // unrelated list on top of the (previously decorative) grid.
                                     <div className="relative z-20 sm:max-w-xl sm:ml-4">
-                                        {hours.map(hour => (
-                                            <div key={hour} className="h-20 shrink-0 flex flex-col justify-center gap-1 overflow-y-auto no-scrollbar py-0.5">
-                                                {(timedTasksByHour[hour] ?? []).map(task => renderCompactHourTask(task))}
-                                            </div>
-                                        ))}
+                                        {hours.map(hour => {
+                                            const hourDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), hour, 0);
+                                            return (
+                                                <div key={hour} className="h-20 shrink-0 flex items-center gap-1 overflow-y-auto no-scrollbar py-0.5 group">
+                                                    <div className="flex flex-col justify-center gap-1 flex-1 min-w-0">
+                                                        {(timedTasksByHour[hour] ?? []).map(task => renderCompactHourTask(task))}
+                                                    </div>
+                                                    {subjects.length > 0 && (
+                                                        <button
+                                                            onClick={() => openCreateModal(hourDate)}
+                                                            title={t.addTaskTitle}
+                                                            aria-label={t.addTaskTitle}
+                                                            className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0 transition-opacity"
+                                                        >
+                                                            <Plus size={14} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
@@ -563,6 +633,19 @@ export const AgendaView = ({ subjects = [] }: AgendaViewProps) => {
                     </div>
                 )}
             </div>
+
+            <CalendarTaskModal
+                isOpen={taskModalState !== null}
+                onClose={() => setTaskModalState(null)}
+                subjects={subjects}
+                mode={taskModalState?.mode ?? "create"}
+                initialDate={taskModalState?.mode === "create" ? taskModalState.date : undefined}
+                defaultSubjectId={taskModalState?.mode === "create" ? taskModalState.defaultSubjectId : undefined}
+                task={taskModalState?.mode === "edit" ? taskModalState.task : undefined}
+                onCreate={onCreateTask}
+                onUpdate={onUpdateTask}
+                onDelete={onDeleteTask}
+            />
         </div>
     );
 };

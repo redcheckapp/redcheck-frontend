@@ -7,7 +7,7 @@ import type { CommandAction } from "../components/CommandPalette";
 import { ProgressHeatmap } from "../components/ProgressHeatmap";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
 import { addNewTask, deleteTask, getTodayTasks, toggleTask, updateTask } from "../api/taskApi";
-import type { SmartCheckAiData, SubjectWithTasks } from "../types";
+import type { SmartCheckAiData, SubjectWithTasks, TaskRequest } from "../types";
 import { useNavigate } from "react-router-dom";
 import { deleteUser, getUsername } from "../api/userApi";
 import { addRecurringTask } from "../api/recurringTaskApi";
@@ -478,6 +478,27 @@ const DashboardPage = () => {
             console.error("Error deleting the task:", err);
             setDeletingTasks(prev => prev.filter(id => id !== taskId));
         } 
+    };
+
+    // Task create/edit/delete triggered from AgendaView (calendar), kept
+    // separate from the inline-form handlers above since the calendar has
+    // its own self-contained modal (CalendarTaskModal) rather than the
+    // per-subject inline form state (newTask/updatedTask) — it needs to
+    // work standalone even when the Tasks panel isn't on screen (mobile's
+    // Agenda tab). Both paths converge on the same `subjects` state.
+    const handleCalendarCreateTask = async (subjectId: number, data: TaskRequest) => {
+        const response = await addNewTask(subjectId, data);
+        setSubjects(prev => prev.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: [...subject.tasks, response] }));
+    };
+
+    const handleCalendarUpdateTask = async (subjectId: number, taskId: number, data: TaskRequest) => {
+        const response = await updateTask(subjectId, taskId, data);
+        setSubjects(prev => prev.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: subject.tasks.map(task => task.id !== taskId ? task : response) }));
+    };
+
+    const handleCalendarDeleteTask = async (subjectId: number, taskId: number) => {
+        await deleteTask(subjectId, taskId);
+        setSubjects(prev => prev.map(subject => subject.id !== subjectId ? subject : { ...subject, tasks: subject.tasks.filter(task => task.id !== taskId) }));
     };
 
     const handleDeleteSubject = async (subjectId: number) => {
@@ -952,7 +973,12 @@ const DashboardPage = () => {
                                 showCalendar ? "sm:w-[55%] sm:opacity-100 sm:ml-4" : "sm:w-0 sm:opacity-0 sm:ml-0"
                             }`}>
                                 <main className="w-full h-full relative flex flex-col min-w-0 sm:min-w-[700px]">
-                                    <AgendaView subjects={subjects} />
+                                    <AgendaView
+                                        subjects={subjects}
+                                        onCreateTask={handleCalendarCreateTask}
+                                        onUpdateTask={handleCalendarUpdateTask}
+                                        onDeleteTask={handleCalendarDeleteTask}
+                                    />
                                 </main>
                             </div>
 
