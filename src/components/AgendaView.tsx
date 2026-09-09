@@ -1332,12 +1332,20 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
 
                                 {currentDate.toDateString() === todayObj.toDateString() && (
                                     <div
-                                        className="absolute left-0 right-0 top-[calc(0.75rem+var(--now-offset))] sm:top-[calc(1.5rem+var(--now-offset))] border-t-2 border-red-500 z-10 flex items-center pointer-events-none"
+                                        className="absolute left-0 right-0 top-[calc(0.75rem+var(--now-offset))] sm:top-[calc(1.5rem+var(--now-offset))] border-t-2 border-red-500 z-10 pointer-events-none"
                                         style={{ "--now-offset": `${((todayObj.getHours() - DAY_VIEW_HOUR_START) * 5) + (todayObj.getMinutes() / 12)}rem` } as CSSProperties}
                                     >
-                                        <div className="relative w-3 h-3 -ml-1.5">
+                                        {/* Centered exactly ON the line's own (0,0) corner via
+                                            translate, not `flex items-center` — centering within
+                                            a flex container only lines the dot up with the border
+                                            line when the container's own box height happens to
+                                            equal the dot's height; here it didn't, so the dot sat
+                                            visibly below the line instead of on it (fixed
+                                            2026-09-09). translate(-50%,-50%) centers on the exact
+                                            point regardless of any box-height coincidence. */}
+                                        <div className="absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2 w-3 h-3">
                                             <span className="absolute inset-0 rounded-full bg-red-400 opacity-75 animate-ping" />
-                                            <div className="relative w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-900 transition-colors duration-300" />
+                                            <div className="absolute inset-0 bg-red-500 rounded-full border-2 border-white dark:border-gray-900 transition-colors duration-300" />
                                         </div>
                                     </div>
                                 )}
