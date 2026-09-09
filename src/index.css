@@ -22,7 +22,7 @@
 }
 
 /* 4. Respect the OS-level "reduce motion" preference app-wide. The app has
-   no per-component check for this (every animate-*/transition-* class is
+   no per-component check for this (every animate- and transition- class is
    unconditional), so this is a single catch-all override instead of
    threading a check through every component: it collapses every CSS
    transition and @keyframes animation to effectively instant rather than
