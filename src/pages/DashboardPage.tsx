@@ -275,31 +275,17 @@ const DashboardPage = () => {
         setShowFeedbackModal(true);
     };
 
-    const handleOpenTaskEditor = (subjectId: number, taskId: number) => {
+    // Selecting a task result in the command palette surfaces it the same
+    // way selecting a subject does (see handleSelectSubjectFromPalette
+    // below) — filters the dashboard to just that task via the existing
+    // search, rather than jumping straight into its edit form. Searching
+    // shouldn't double as "start editing"; if the user wants to edit the
+    // task once it's visible, the pencil icon is right there.
+    const handleSelectTaskFromPalette = (subjectId: number, taskId: number) => {
         const subject = subjects.find(s => s.id === subjectId);
         const task = subject?.tasks.find(t => t.id === taskId);
         if (!task) return;
-
-        // Clears any search filter left over from a previous palette search
-        // (e.g. a subject search from earlier in the session) that might
-        // not match this task's subject — otherwise the edit form opens via
-        // state but the task stays hidden behind the stale filter, since
-        // filteredSubjects/displaySubjects would exclude it.
-        setSearchQuery("");
-        setOpenFormSubjectIdTaskId({ subjectId, taskId });
-
-        let formattedDate = "";
-        if (task.deadline) {
-            const d = new Date(task.deadline);
-            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-            formattedDate = d.toISOString().slice(0, 16);
-        }
-        setUpdatedTask({
-            title: task.title,
-            description: task.description || "",
-            deadline: formattedDate,
-            priority: task.priority
-        });
+        setSearchQuery(task.title);
     };
 
     // Selecting a subject result in the command palette reuses the existing
@@ -1623,7 +1609,7 @@ const DashboardPage = () => {
                         onClose={() => setPaletteOpen(false)}
                         actions={paletteActions}
                         subjects={subjects}
-                        onSelectTask={handleOpenTaskEditor}
+                        onSelectTask={handleSelectTaskFromPalette}
                         onSelectSubject={handleSelectSubjectFromPalette}
                         placeholder={t.palettePlaceholder}
                         subjectsGroupLabel={t.paletteSubjectsGroup}
