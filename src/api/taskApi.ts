@@ -6,6 +6,15 @@ export const getTodayTasks = async (subjectId: number): Promise<TaskResponse[]> 
     return response.data;
 }
 
+// Calendar history: every task (pending or completed) across all subjects
+// whose deadline falls within [from, to] (both "YYYY-MM-DD"), in one call —
+// used by AgendaView for past days, which the dashboard-scoped `subjects`
+// data never covers (see getSubjectsWithTasks/getTodayTasks above).
+export const getTasksForDateRange = async (from: string, to: string): Promise<TaskResponse[]> => {
+    const response = await api.get(`/tasks?from=${from}&to=${to}`);
+    return response.data;
+}
+
 export const toggleTask = async (subjectId: number, taskId: number, completed: boolean): Promise<TaskResponse> => {
     const response = await api.patch(
         `/subjects/${subjectId}/tasks/${taskId}/complete`,

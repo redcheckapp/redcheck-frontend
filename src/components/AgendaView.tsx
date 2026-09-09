@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo, useRef, memo, lazy, Suspense, type TouchEvent, type KeyboardEvent, type DragEvent } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, memo, lazy, Suspense, type TouchEvent, type KeyboardEvent, type DragEvent } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
 import { ChevronLeft, ChevronRight, Clock, CalendarDays, Plus, Check } from "lucide-react";
 import { getProgressHeatmap } from "../api/progressRecordApi";
+import { getTasksForDateRange } from "../api/taskApi";
 import type { ProgressRecord, SubjectWithTasks, TaskRequest, TaskResponse } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import { getSubjectColor } from "../utils/subjectColors";
@@ -119,6 +120,37 @@ const getTasksForDate = (subjects: SubjectWithTasks[], date: Date) => {
                 })
                 .map(task => ({ ...task, subjectName: subject.name }))
         )
+        .sort((a, b) => (a.completed === b.completed) ? 0 : a.completed ? 1 : -1);
+};
+
+// True if `date` is strictly before `today`'s calendar day (same comparison
+// the Month/Week cell rendering already does inline for `isPast`) — used to
+// decide, per day, whether to trust `subjects` (live, but only ever has
+// pending/completed-today tasks) or the fetched calendar-history data.
+const isDateInPast = (date: Date, today: Date) => date < today && date.toDateString() !== today.toDateString();
+
+const formatDateKey = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+// Historical counterpart to getTasksForDate above: same per-day filter and
+// sort, but over a flat TaskResponse[] (fetched via getTasksForDateRange,
+// which — unlike `subjects` — includes completed tasks) instead of
+// subjects-with-nested-tasks, so subjectName has to be resolved through a
+// separate id->name map rather than read off the grouping.
+const getHistoricalTasksForDate = (
+    tasks: TaskResponse[],
+    subjectNameById: Map<number, string>,
+    date: Date
+): CalendarTask[] => {
+    return tasks
+        .filter(task => {
+            if (!task.deadline) return false;
+            const taskDate = new Date(task.deadline);
+            return taskDate.getFullYear() === date.getFullYear() &&
+                   taskDate.getMonth() === date.getMonth() &&
+                   taskDate.getDate() === date.getDate();
+        })
+        .map(task => ({ ...task, subjectName: subjectNameById.get(task.subjectId) ?? "" }))
         .sort((a, b) => (a.completed === b.completed) ? 0 : a.completed ? 1 : -1);
 };
 
@@ -250,6 +282,14 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
     const [currentDate, setCurrentDate] = useState(new Date());
     const [records, setRecords] = useState<Record<string, ProgressRecord>>({});
     const [loadingRecords, setLoadingRecords] = useState(true);
+    // Calendar history: raw tasks (pending + completed) fetched for the
+    // visible range, used only for past days — see getMergedTasksForDate
+    // below. `historyRefreshTick` is bumped after a create/update/delete/
+    // toggle reaches the calendar so a past-day edit is reflected without
+    // waiting for the next navigation.
+    const [historicalTasks, setHistoricalTasks] = useState<TaskResponse[]>([]);
+    const [historyRefreshTick, setHistoryRefreshTick] = useState(0);
+    const refreshHistory = () => setHistoryRefreshTick(tick => tick + 1);
     const [datePickerOpen, setDatePickerOpen] = useState(false);
     const [taskModalState, setTaskModalState] = useState<TaskModalState | null>(null);
     const [transitionVariant, setTransitionVariant] = useState<TransitionVariant>("fade");
@@ -310,6 +350,7 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                 description: task.description ?? null,
                 deadline: toDatetimeLocalValue(newDeadline),
             });
+            refreshHistory();
             toast.success(t.taskRescheduled);
         } catch (error) {
             console.error("Error rescheduling task:", error);
@@ -374,6 +415,23 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
     };
     const openEditModal = (task: TaskResponse) => {
         setTaskModalState({ mode: "edit", task });
+    };
+
+    // CalendarTaskModal's onCreate/onUpdate/onDelete straight through would
+    // skip refreshHistory() — needed so a past-day task created/edited/
+    // deleted from the calendar shows up immediately instead of only after
+    // the next navigation re-triggers the history fetch.
+    const handleCreateTaskFromCalendar = async (subjectId: number, data: TaskRequest) => {
+        await onCreateTask(subjectId, data);
+        refreshHistory();
+    };
+    const handleUpdateTaskFromCalendar = async (subjectId: number, taskId: number, data: TaskRequest) => {
+        await onUpdateTask(subjectId, taskId, data);
+        refreshHistory();
+    };
+    const handleDeleteTaskFromCalendar = async (subjectId: number, taskId: number) => {
+        await onDeleteTask(subjectId, taskId);
+        refreshHistory();
     };
 
     const todayObj = new Date();
@@ -530,16 +588,74 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
         });
     }, [currentDate]);
 
+    const subjectNameById = useMemo(() => {
+        const map = new Map<number, string>();
+        subjects.forEach(subject => map.set(subject.id, subject.name));
+        return map;
+    }, [subjects]);
+
+    // The date span currently visible, used to fetch calendar-history data
+    // for it (see the effect below). Month view only ever renders the
+    // current month's own days (adjacent-month cells are blank, see
+    // calendarCells below), so the range never needs to spill into
+    // neighboring months.
+    const historicalRange = useMemo(() => {
+        if (view === "day") return { from: currentDate, to: currentDate };
+        if (view === "week") return { from: currentWeekDays[0], to: currentWeekDays[6] };
+        const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+        return { from: new Date(currentYear, currentMonth, 1), to: new Date(currentYear, currentMonth, lastDayOfMonth) };
+    }, [view, currentDate, currentWeekDays, currentYear, currentMonth]);
+
+    // Fetches calendar history (pending + completed tasks, unlike `subjects`)
+    // only when the visible range actually contains a past day — browsing
+    // entirely future dates never needs it. `historyRefreshTick` forces a
+    // refetch after a past-day task is created/updated/deleted/toggled from
+    // the calendar itself, so the change shows up without a re-navigation.
+    useEffect(() => {
+        let cancelled = false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (!isDateInPast(historicalRange.from, today)) {
+            setHistoricalTasks([]);
+            return;
+        }
+
+        const fetchHistory = async () => {
+            try {
+                const data = await getTasksForDateRange(formatDateKey(historicalRange.from), formatDateKey(historicalRange.to));
+                if (!cancelled) setHistoricalTasks(data);
+            } catch (error) {
+                console.error("Error loading calendar history:", error);
+                if (!cancelled) setHistoricalTasks([]);
+            }
+        };
+        fetchHistory();
+
+        return () => { cancelled = true; };
+    }, [historicalRange, historyRefreshTick]);
+
+    // Per-day task lookup used everywhere below: `subjects` (live-synced,
+    // but pending/completed-today only) for today/future, the fetched
+    // calendar-history data for past days.
+    const getMergedTasksForDate = useCallback(
+        (date: Date): CalendarTask[] =>
+            isDateInPast(date, new Date())
+                ? getHistoricalTasksForDate(historicalTasks, subjectNameById, date)
+                : getTasksForDate(subjects, date),
+        [subjects, historicalTasks, subjectNameById]
+    );
+
     const tasksForCurrentDay = useMemo(
-        () => getTasksForDate(subjects, currentDate),
-        [subjects, currentDate]
+        () => getMergedTasksForDate(currentDate),
+        [getMergedTasksForDate, currentDate]
     );
 
     // One list per day of the visible week, for the Week view's per-day
     // task chips — same underlying filter as Day view, just run 7 times.
     const tasksByWeekDay = useMemo(
-        () => currentWeekDays.map(date => getTasksForDate(subjects, date)),
-        [subjects, currentWeekDays]
+        () => currentWeekDays.map(date => getMergedTasksForDate(date)),
+        [getMergedTasksForDate, currentWeekDays]
     );
 
     // Buckets currentDate's tasks so Day view can actually place them on
@@ -626,7 +742,7 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
         return (
             <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); onToggleTask(task.subjectId, task.id); }}
+                onClick={(e) => { e.stopPropagation(); onToggleTask(task.subjectId, task.id).then(refreshHistory); }}
                 title={t.ttToggleComplete}
                 aria-label={t.ttToggleComplete}
                 className={`${dims} rounded-full border-2 shrink-0 flex items-center justify-center transition-all hover:scale-125 active:scale-90 ${
@@ -858,13 +974,14 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                 }
 
                                 const record = records[cellDateString];
-                                // Real task data (from `subjects`) only ever covers currently-
-                                // incomplete tasks, so this is naturally empty for past days
-                                // whose tasks are done — that's fine, the heatmap `record`
-                                // fallback below covers history. For today/future days, this
-                                // is the only source of truth, and wasn't used here at all
-                                // before (future days showed nothing but a bare number).
-                                const dayTasks = getTasksForDate(subjects, cellDateObj);
+                                // getMergedTasksForDate covers both today/future (from
+                                // `subjects`, live-synced) and past days (from the fetched
+                                // calendar-history data, which — unlike `subjects` — includes
+                                // completed tasks). The heatmap `record` fallback below only
+                                // still applies to a past day with zero real task rows to show
+                                // (e.g. a day whose tasks were later deleted, or that never
+                                // had a real deadline recorded).
+                                const dayTasks = getMergedTasksForDate(cellDateObj);
 
                                 const monthCellKey = `month-${cellDateString}`;
                                 return (
@@ -1209,9 +1326,9 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                     initialDate={taskModalState?.mode === "create" ? taskModalState.date : undefined}
                     defaultSubjectId={taskModalState?.mode === "create" ? taskModalState.defaultSubjectId : undefined}
                     task={taskModalState?.mode === "edit" ? taskModalState.task : undefined}
-                    onCreate={onCreateTask}
-                    onUpdate={onUpdateTask}
-                    onDelete={onDeleteTask}
+                    onCreate={handleCreateTaskFromCalendar}
+                    onUpdate={handleUpdateTaskFromCalendar}
+                    onDelete={handleDeleteTaskFromCalendar}
                 />
             </Suspense>
         </div>
