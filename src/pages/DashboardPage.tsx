@@ -2,7 +2,8 @@ import { Sidebar } from "../components/Sidebar";
 import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
 import { useState, useEffect, useMemo, useRef, Suspense, lazy } from "react";
-import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2, Settings, Moon, Sun, Languages } from "lucide-react";
+import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2, Settings, Moon, Sun, Languages, Archive } from "lucide-react";
+import { ArchivedSubjectsPopover } from "../components/ArchivedSubjectsPopover";
 import type { CommandAction } from "../components/CommandPalette";
 import { ProgressHeatmap } from "../components/ProgressHeatmap";
 import { archiveSubject, deleteSubject, getSubjects, postSubject, updateSubject } from "../api/subjectApi";
@@ -83,6 +84,8 @@ const translations = {
         welcomeTitle: "¡Bienvenido a RedCheck!",
         welcomeDesc: "Organiza tus tareas por asignaturas. Crea la primera para empezar y deja que SmartCheck AI te ayude a priorizar tu día.",
         selectTasks: "Seleccionar",
+        archivedTrigger: "archivada",
+        archivedTriggerPlural: "archivadas",
         cancelSelection: "Cancelar",
         tasksSelectedOne: "1 tarea seleccionada",
         tasksSelectedMany: "tareas seleccionadas",
@@ -159,6 +162,8 @@ const translations = {
         welcomeTitle: "Welcome to RedCheck!",
         welcomeDesc: "Organize your tasks by subject. Create your first one to get started and let SmartCheck AI help prioritize your day.",
         selectTasks: "Select",
+        archivedTrigger: "archived",
+        archivedTriggerPlural: "archived",
         cancelSelection: "Cancel",
         tasksSelectedOne: "1 task selected",
         tasksSelectedMany: "tasks selected",
@@ -243,6 +248,7 @@ const DashboardPage = () => {
     // rather than per-subject state, since a selection can span subjects.
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedTaskKeys, setSelectedTaskKeys] = useState<Set<string>>(new Set());
+    const [archivedPopoverOpen, setArchivedPopoverOpen] = useState(false);
 
     const taskKey = (subjectId: number, taskId: number) => `${subjectId}:${taskId}`;
 
@@ -674,6 +680,12 @@ const DashboardPage = () => {
             return acc;
         }, []);
     }, [subjects, searchQuery]);
+
+    // Feeds the archived-subjects popover trigger in the bulk-actions row —
+    // computed from the unfiltered `subjects` (not filteredSubjects) since
+    // archived subjects aren't part of the search-filtered active list to
+    // begin with.
+    const archivedSubjects = useMemo(() => subjects.filter(s => s.archived), [subjects]);
 
     // Global keyboard shortcuts: Ctrl/Cmd+K opens the command palette (a
     // superset of the inline search — see CommandPalette.tsx), Escape backs
@@ -1115,12 +1127,38 @@ const DashboardPage = () => {
                                                 </div>
                                             </>
                                         ) : (
-                                            <button
-                                                onClick={() => setSelectionMode(true)}
-                                                className="ml-auto flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-                                            >
-                                                <CheckSquare size={16} /> {t.selectTasks}
-                                            </button>
+                                            <>
+                                                {/* Only rendered at all when there's something to show —
+                                                    zero footprint for the common case of no archived
+                                                    subjects, per the user's "shouldn't get in the way"
+                                                    request. Opens a popover (ArchivedSubjectsPopover)
+                                                    rather than a dedicated screen or a permanent Settings
+                                                    section, which is where this used to live. */}
+                                                {archivedSubjects.length > 0 && (
+                                                    <div className="relative">
+                                                        <button
+                                                            onClick={() => setArchivedPopoverOpen(o => !o)}
+                                                            className="flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                                                        >
+                                                            <Archive size={16} />
+                                                            {archivedSubjects.length} {archivedSubjects.length === 1 ? t.archivedTrigger : t.archivedTriggerPlural}
+                                                        </button>
+                                                        {archivedPopoverOpen && (
+                                                            <ArchivedSubjectsPopover
+                                                                subjects={archivedSubjects}
+                                                                onRestore={handleArchiveSubject}
+                                                                onClose={() => setArchivedPopoverOpen(false)}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                )}
+                                                <button
+                                                    onClick={() => setSelectionMode(true)}
+                                                    className="ml-auto flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                                                >
+                                                    <CheckSquare size={16} /> {t.selectTasks}
+                                                </button>
+                                            </>
                                         )}
                                     </div>
                                 )}
@@ -1332,8 +1370,6 @@ const DashboardPage = () => {
                     <SettingsModal
                         isOpen={isSettingsOpen}
                         onClose={() => setIsSettingsOpen(false)}
-                        subjects={subjects}
-                        handleArchiveSubject={handleArchiveSubject}
                         handleDeleteAccount={handleDeleteAccount}
                         userEmail={userEmail}
                         remindersEnabled={remindersEnabled}

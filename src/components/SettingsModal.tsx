@@ -1,6 +1,5 @@
-import { X, ArchiveRestore, Trash2, Moon, Sun } from "lucide-react";
+import { X, Trash2, Moon, Sun } from "lucide-react";
 import { toast } from "react-hot-toast";
-import type { SubjectWithTasks } from "../types";
 import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
 import { ModalOverlay } from "./ModalOverlay";
@@ -9,8 +8,6 @@ import { triggerHapticFeedback } from "../utils/feedback";
 interface SettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
-    subjects: SubjectWithTasks[];
-    handleArchiveSubject: (id: number) => void;
     handleDeleteAccount: () => void;
     userEmail: string;
     remindersEnabled: boolean;
@@ -39,9 +36,6 @@ const translations = {
         testHaptic: "Probar vibración",
         testHapticAccepted: "El navegador ha aceptado la vibración. Si no la has notado, puede que tu móvil no tenga motor de vibración activo para el navegador, o que la duración sea demasiado corta para notarla.",
         testHapticRejected: "Tu navegador ha rechazado la vibración (no soportada en este dispositivo/navegador).",
-        archived: "Asignaturas Archivadas",
-        noArchived: "No tienes asignaturas archivadas.",
-        btnRestore: "Restaurar",
         dangerZone: "Zona de peligro",
         demoWarning: "Por motivos de seguridad, la eliminación de cuenta está desactivada en el entorno de demostración.",
         btnDeleteDemo: "Borrar cuenta (Deshabilitado)",
@@ -66,9 +60,6 @@ const translations = {
         testHaptic: "Test vibration",
         testHapticAccepted: "The browser accepted the vibration request. If you didn't feel anything, your phone's vibration motor might not respond to browser requests, or the duration may be too short to notice.",
         testHapticRejected: "Your browser rejected the vibration request (not supported on this device/browser).",
-        archived: "Archived Subjects",
-        noArchived: "You have no archived subjects.",
-        btnRestore: "Restore",
         dangerZone: "Danger Zone",
         demoWarning: "For security reasons, account deletion is disabled in the demo environment.",
         btnDeleteDemo: "Delete account (Disabled)",
@@ -96,13 +87,10 @@ const ToggleSwitch = ({ enabled, onToggle, title }: { enabled: boolean; onToggle
     </button>
 );
 
-export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject, handleDeleteAccount, userEmail, remindersEnabled, onToggleReminders, taskFeedbackEnabled, onToggleTaskFeedback }: SettingsModalProps) => {
+export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail, remindersEnabled, onToggleReminders, taskFeedbackEnabled, onToggleTaskFeedback }: SettingsModalProps) => {
     const { theme, toggleTheme } = useTheme();
     const { language, toggleLanguage } = useLanguage(); // We extract the language and the toggle function
     const t = translations[language as keyof typeof translations];
-
-    // We filter to keep ONLY the archived subjects
-    const archivedSubjects = subjects.filter(subject => subject.archived);
 
     // Diagnostic for "it's not vibrating" reports: a long, deliberate,
     // directly-clicked vibration plus the browser's own accepted/rejected
@@ -215,35 +203,7 @@ export const SettingsModal = ({ isOpen, onClose, subjects, handleArchiveSubject,
                         </div>
                     </div>
 
-                    {/* Section 2: Archived Subjects */}
-                    <div className="flex flex-col gap-3">
-                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.archived}</h3>
-                        
-                        {archivedSubjects.length === 0 ? (
-                            <p className="text-sm text-gray-400 italic">{t.noArchived}</p>
-                        ) : (
-                            <div className="flex flex-col gap-2">
-                                {archivedSubjects.map(subject => (
-                                    <div key={subject.id} className="flex justify-between items-center p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                                                {subject.name}
-                                            </p>
-                                        </div>
-                                        <button 
-                                            onClick={() => handleArchiveSubject(subject.id)}
-                                            className="p-2 rounded-lg transition flex items-center gap-2 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50"
-                                        >
-                                            <ArchiveRestore size={14} />
-                                            {t.btnRestore}
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Section 3: Danger Zone */}
+                    {/* Section 2: Danger Zone */}
                     <div className="flex flex-col gap-3 pt-4 border-t border-gray-100 dark:border-gray-800 transition-colors">
                         <h3 className="text-sm font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">{t.dangerZone}</h3>
                         
