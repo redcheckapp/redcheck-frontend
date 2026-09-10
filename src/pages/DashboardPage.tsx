@@ -1593,23 +1593,27 @@ const DashboardPage = () => {
                                     (each entry point exits the other), so this 3-way branch never
                                     has to decide between two active toolbars at once. */}
                                 {subjects.length > 0 && (
-                                    <div className="flex items-center justify-between mb-4 min-h-[36px]">
+                                    <div className={`flex items-center justify-between mb-4 min-h-[36px] transition-colors duration-300 ${
+                                        subjectSelectionMode || selectionMode
+                                            ? "bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm px-4 py-2 animate-soft-fade"
+                                            : ""
+                                    }`}>
                                         {subjectSelectionMode ? (
                                             <>
                                                 <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">
                                                     {selectedSubjectIds.size === 1 ? t.subjectsSelectedOne : `${selectedSubjectIds.size} ${t.subjectsSelectedMany}`}
                                                 </span>
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-1.5">
                                                     <button
                                                         onClick={exitSubjectSelectionMode}
-                                                        className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                                        className="px-3 py-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 active:scale-95"
                                                     >
                                                         {t.cancelSelection}
                                                     </button>
                                                     {selectedSubjectIds.size === 1 && (
                                                         <button
                                                             onClick={handleEditSelectedSubject}
-                                                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors"
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 rounded-xl transition-all duration-200 active:scale-95"
                                                         >
                                                             <Pencil size={14} /> {t.bulkEdit}
                                                         </button>
@@ -1617,14 +1621,14 @@ const DashboardPage = () => {
                                                     <button
                                                         onClick={handleBulkArchiveSubjects}
                                                         disabled={selectedSubjectIds.size === 0}
-                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
                                                     >
                                                         <Archive size={14} /> {t.bulkArchive}
                                                     </button>
                                                     <button
                                                         onClick={handleBulkDeleteSubjects}
                                                         disabled={selectedSubjectIds.size === 0}
-                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 hover:shadow-md hover:shadow-red-600/20 rounded-xl shadow-sm transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
                                                     >
                                                         <Trash2 size={14} /> {t.bulkDelete}
                                                     </button>
@@ -1635,17 +1639,17 @@ const DashboardPage = () => {
                                                 <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">
                                                     {selectedTaskKeys.size === 1 ? t.tasksSelectedOne : `${selectedTaskKeys.size} ${t.tasksSelectedMany}`}
                                                 </span>
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-1.5">
                                                     <button
                                                         onClick={exitSelectionMode}
-                                                        className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                                        className="px-3 py-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 active:scale-95"
                                                     >
                                                         {t.cancelSelection}
                                                     </button>
                                                     {selectedTaskKeys.size === 1 && (
                                                         <button
                                                             onClick={handleEditSelectedTask}
-                                                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors"
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 rounded-xl transition-all duration-200 active:scale-95"
                                                         >
                                                             <Pencil size={14} /> {t.bulkEdit}
                                                         </button>
@@ -1653,14 +1657,14 @@ const DashboardPage = () => {
                                                     <button
                                                         onClick={handleBulkComplete}
                                                         disabled={selectedTaskKeys.size === 0}
-                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/40 rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
                                                     >
                                                         <Check size={14} /> {t.bulkComplete}
                                                     </button>
                                                     <button
                                                         onClick={handleBulkDelete}
                                                         disabled={selectedTaskKeys.size === 0}
-                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 hover:shadow-md hover:shadow-red-600/20 rounded-xl shadow-sm transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
                                                     >
                                                         <Trash2 size={14} /> {t.bulkDelete}
                                                     </button>

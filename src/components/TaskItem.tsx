@@ -223,7 +223,7 @@ export const TaskItem = memo(({
                 onTouchCancel={clearLongPressTimer}
                 className={`flex items-center gap-3 p-3 rounded-xl transition active:scale-[0.99] group no-hover:select-none no-hover:[-webkit-touch-callout:none] ${
                 selectionMode && isSelected
-                    ? "bg-blue-50 dark:bg-blue-900/20"
+                    ? "bg-blue-50 dark:bg-blue-900/20 ring-1 ring-inset ring-blue-200 dark:ring-blue-800"
                     : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
             }`}>
 
@@ -234,7 +234,7 @@ export const TaskItem = memo(({
                     aria-checked={selectionMode ? isSelected : task.completed}
                     aria-label={selectionMode ? t.ttSelectTask : (task.completed ? t.ttMarkIncomplete : t.ttMarkComplete)}
                     title={selectionMode ? t.ttSelectTask : (task.completed ? t.ttMarkIncomplete : t.ttMarkComplete)}
-                    className={`w-6 h-6 squared-full border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500
                         ${selectionMode
                             ? (isSelected
                                 ? "bg-blue-500 border-blue-500"
