@@ -74,6 +74,7 @@ const translations = {
         setPassword: "Crear contraseña",
         changePasswordDesc: "Actualiza la contraseña de tu cuenta",
         setPasswordDesc: "Tu cuenta usa Google — crea una contraseña para iniciar sesión también con tu email",
+        changePasswordDemoDesc: "Por motivos de seguridad, la contraseña de la cuenta de demostración no se puede cambiar.",
         demoWarning: "Por motivos de seguridad, la eliminación de cuenta está desactivada en el entorno de demostración.",
         btnDeleteDemo: "Borrar cuenta (Deshabilitado)",
         deleteWarning: "Esta acción es irreversible. Se borrarán todos tus datos y tareas.",
@@ -126,6 +127,7 @@ const translations = {
         setPassword: "Set a password",
         changePasswordDesc: "Update your account's password",
         setPasswordDesc: "Your account uses Google — set a password to also sign in with your email",
+        changePasswordDemoDesc: "For security reasons, the demo account's password cannot be changed.",
         demoWarning: "For security reasons, account deletion is disabled in the demo environment.",
         btnDeleteDemo: "Delete account (Disabled)",
         deleteWarning: "This action is irreversible. All your data and tasks will be deleted.",
@@ -174,6 +176,11 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
     const { language, toggleLanguage } = useLanguage(); // We extract the language and the toggle function
     const { colorblindMode, setColorblindMode, fontSize, setFontSize } = useAccessibility();
     const t = translations[language as keyof typeof translations];
+
+    // Shared demo-account check — gates both the password row and the
+    // delete-account row below, since neither is available for either
+    // seeded demo identity (see redcheck-backend's DemoAccountUtils).
+    const isDemoAccount = userEmail === 'demo-es@redcheck.com' || userEmail === 'demo-en@redcheck.com';
 
     // Diagnostic for "it's not vibrating" reports: a long, deliberate,
     // directly-clicked vibration plus the browser's own accepted/rejected
@@ -420,21 +427,26 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                         <button
                             type="button"
                             onClick={onOpenChangePassword}
-                            className="flex justify-between items-center p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left"
+                            disabled={isDemoAccount}
+                            className={`flex justify-between items-center p-3 rounded-xl border text-left transition-colors ${
+                                isDemoAccount
+                                    ? "border-gray-100 dark:border-gray-800 bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
+                                    : "border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            }`}
                         >
                             <div className="flex items-center gap-3">
-                                <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400">
+                                <div className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 ${isDemoAccount ? "text-gray-400 dark:text-gray-600" : "text-gray-500 dark:text-gray-400"}`}>
                                     <KeyRound size={16} />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{hasPassword ? t.changePassword : t.setPassword}</p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">{hasPassword ? t.changePasswordDesc : t.setPasswordDesc}</p>
+                                    <p className={`text-sm font-medium ${isDemoAccount ? "text-gray-500 dark:text-gray-500" : "text-gray-700 dark:text-gray-200"}`}>{hasPassword ? t.changePassword : t.setPassword}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">{isDemoAccount ? t.changePasswordDemoDesc : (hasPassword ? t.changePasswordDesc : t.setPasswordDesc)}</p>
                                 </div>
                             </div>
-                            <ChevronRight size={16} className="text-gray-400 dark:text-gray-500 shrink-0" />
+                            {!isDemoAccount && <ChevronRight size={16} className="text-gray-400 dark:text-gray-500 shrink-0" />}
                         </button>
 
-                        {userEmail === 'demo-es@redcheck.com' || userEmail === 'demo-en@redcheck.com' ? (
+                        {isDemoAccount ? (
                             <>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">
                                     {t.demoWarning}
