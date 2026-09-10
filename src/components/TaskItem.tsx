@@ -292,10 +292,19 @@ export const TaskItem = memo(({
                     );
                 })()}
 
-                {/* ACTION BUTTONS — hidden during selection mode, which uses
-                    the row's own checkbox/highlight instead */}
+                {/* ACTION BUTTONS — hidden during selection mode (which uses
+                    the row's own checkbox/highlight instead) and on touch
+                    devices entirely (2026-09-10): long-press-to-select +
+                    the bulk toolbar's own Edit/Delete (only one task
+                    selected → Edit shows too) replaced them there, so they
+                    no longer need to sit permanently next to every task on
+                    mobile. `can-hover:flex` (unlike the desktop-only
+                    `hidden sm:flex` pattern elsewhere) keys off actual
+                    hover capability, not screen width, matching why this
+                    is a touch-input problem — same reasoning as the row's
+                    own `no-hover:select-none` a few changes back. */}
                 {!selectionMode && (
-                    <div className="flex items-center gap-1 opacity-100 [@media(any-hover:hover)]:opacity-0 [@media(any-hover:hover)]:group-hover:opacity-100 transition-opacity duration-200">
+                    <div className="hidden can-hover:flex items-center gap-1 [@media(any-hover:hover)]:opacity-0 [@media(any-hover:hover)]:group-hover:opacity-100 transition-opacity duration-200">
                         <button type="button"
                             className="p-1.5 text-gray-500 hover:text-yellow-600 hover:bg-yellow-50 dark:hover:text-yellow-400 dark:hover:bg-yellow-900/30 rounded-lg transition"
                             onClick={() => {
