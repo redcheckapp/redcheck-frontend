@@ -1,4 +1,4 @@
-import { Check, Pencil, Archive, X, Plus, Repeat } from "lucide-react";
+import { Pencil, Archive, X, Plus, Repeat } from "lucide-react";
 import { TaskItem } from "./TaskItem";
 import { RecurrenceFieldset } from "./RecurrenceFieldset";
 import { Suspense, lazy, useRef, useState, memo } from "react";
@@ -8,6 +8,7 @@ import type { RecurrenceState } from "../utils/recurrenceUtils";
 import { triggerHapticFeedback } from "../utils/feedback";
 import { useCheckboxStyle } from "../context/CheckboxStyleContext";
 import { checkboxShapeClass } from "../utils/checkboxShapes";
+import { CHECKBOX_ICON_COMPONENTS } from "../utils/checkboxIcons";
 
 // Same gallery-style long-press-to-select as TaskItem.tsx/OverdueTaskRow.tsx,
 // applied to a subject's header instead of a task row (2026-09-10). Kept as
@@ -175,7 +176,11 @@ export const SubjectSection = memo(({
 
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
-    const { checkboxStyle } = useCheckboxStyle();
+    const { checkboxStyle, checkboxIcon } = useCheckboxStyle();
+    // Same personalized glyph as the task checkboxes (2026-09-10, per user
+    // request) — subjects have no "completed" checkbox of their own, but
+    // their selection checkbox still shares the app-wide look.
+    const CheckboxGlyph = CHECKBOX_ICON_COMPONENTS[checkboxIcon];
 
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
 
@@ -249,7 +254,7 @@ export const SubjectSection = memo(({
                                     : "border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 bg-white dark:bg-transparent"
                             }`}
                         >
-                            <Check size={12} color="white" className={`transition-all duration-200 ${isSubjectSelected ? "scale-100 opacity-100" : "scale-0 opacity-0"}`} />
+                            <CheckboxGlyph size={12} color="white" className={`transition-all duration-200 ${isSubjectSelected ? "scale-100 opacity-100" : "scale-0 opacity-0"}`} />
                         </button>
                     )}
                     <div className="flex flex-col">

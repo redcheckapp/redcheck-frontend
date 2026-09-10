@@ -1,5 +1,5 @@
 import { memo, useRef } from "react";
-import { Check, Pencil, X, Type, AlignLeft, Clock3, Flag } from "lucide-react";
+import { Pencil, X, Type, AlignLeft, Clock3, Flag } from "lucide-react";
 import type { SubjectWithTasks, TaskPriority } from "../types";
 import { AnimatedVisibility } from "./AnimatedVisibility";
 import { useLanguage } from "../context/LanguageContext";
@@ -91,7 +91,9 @@ export const OverdueTaskRow = memo(({
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
     const { checkboxStyle, checkboxIcon } = useCheckboxStyle();
-    const CheckboxGlyph = selectionMode ? Check : CHECKBOX_ICON_COMPONENTS[checkboxIcon];
+    // Selection checkbox shares the same personalized glyph as the
+    // completion checkbox (2026-09-10, per user request).
+    const CheckboxGlyph = CHECKBOX_ICON_COMPONENTS[checkboxIcon];
 
     const isEditing = openFormSubjectIdTaskId?.subjectId === subjectId && openFormSubjectIdTaskId?.taskId === task.id;
 

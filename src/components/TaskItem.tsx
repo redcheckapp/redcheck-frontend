@@ -1,5 +1,5 @@
 import { memo, useRef } from "react";
-import { Check, Pencil, X, Type, AlignLeft, Clock3, Flag } from "lucide-react";
+import { Pencil, X, Type, AlignLeft, Clock3, Flag } from "lucide-react";
 import type { SubjectWithTasks, TaskPriority } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import { getPriorityColor } from "../utils/priorityColors";
@@ -165,10 +165,11 @@ export const TaskItem = memo(({
     const t = translations[language as keyof typeof translations];
     const locale = language === 'es' ? 'es-ES' : 'en-US';
     const { checkboxStyle, checkboxIcon } = useCheckboxStyle();
-    // Selection mode always shows the plain Check glyph — that's the fixed
-    // "selected" indicator language (see checkboxShapeClass's note), not
-    // part of this personalization.
-    const CheckboxGlyph = selectionMode ? Check : CHECKBOX_ICON_COMPONENTS[checkboxIcon];
+    // The selection checkbox shows the same personalized glyph as the
+    // completion checkbox (2026-09-10, per user request) — shape and icon
+    // both carry over into selection mode rather than selection forcing
+    // its own fixed look.
+    const CheckboxGlyph = CHECKBOX_ICON_COMPONENTS[checkboxIcon];
 
     // See LONG_PRESS_MS above. Attached to the row itself (not just the
     // checkbox) so a hold anywhere on the task — title, deadline, even the
