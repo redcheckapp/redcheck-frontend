@@ -353,6 +353,12 @@ const DashboardPage = () => {
             } else {
                 next.add(key);
             }
+            // Deselecting the last remaining task exits selection mode on
+            // its own, same as a phone's photo-gallery multi-select — no
+            // need to hunt for the X/Cancel button once nothing is picked.
+            if (next.size === 0) {
+                setSelectionMode(false);
+            }
             return next;
         });
     };
