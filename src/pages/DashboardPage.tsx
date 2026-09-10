@@ -1726,7 +1726,11 @@ const DashboardPage = () => {
                                     updatedTask={updatedTask}
                                     handleChangeUpdateTask={handleChangeUpdateTask}
                                     setUpdatedTask={setUpdatedTask}
-                                    deletingTasks={deletingTasks} 
+                                    deletingTasks={deletingTasks}
+                                    selectionMode={selectionMode}
+                                    selectedTaskKeys={selectedTaskKeys}
+                                    onToggleSelectTask={handleToggleSelectTask}
+                                    onLongPressSelectTask={handleLongPressSelectTask}
                                 />
                             </div>
                         </div>
