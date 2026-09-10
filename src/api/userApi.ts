@@ -9,3 +9,7 @@ export const getUsername = async (): Promise<UserResponse> => {
 export const deleteUser = async (): Promise<void> => {
     await api.delete(`users/me`)
 }
+
+export const changePassword = async (currentPassword: string | null, newPassword: string): Promise<void> => {
+    await api.patch(`users/me/password`, { currentPassword, newPassword });
+}

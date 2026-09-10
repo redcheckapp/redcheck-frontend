@@ -58,6 +58,7 @@ export interface SubjectWithTasks extends SubjectResponse {
 export interface UserResponse {
     username: string;
     email: string;
+    hasPassword: boolean;
 }
 
 export interface SubjectRequest {

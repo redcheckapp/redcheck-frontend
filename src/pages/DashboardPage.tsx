@@ -36,6 +36,7 @@ const RoutinesView = lazy(() => import("../components/RoutinesView").then(m => (
 const CommandPalette = lazy(() => import("../components/CommandPalette").then(m => ({ default: m.CommandPalette })));
 const OnboardingTour = lazy(() => import("../components/OnboardingTour").then(m => ({ default: m.OnboardingTour })));
 const FeedbackModal = lazy(() => import("../components/FeedbackModal").then(m => ({ default: m.FeedbackModal })));
+const ChangePasswordModal = lazy(() => import("../components/ChangePasswordModal").then(m => ({ default: m.ChangePasswordModal })));
 
 // Soonest deadline first — mirrors sortTasksByPriority's shape (copy, stable
 // for equal keys) but lives here rather than in priorityColors.ts since it
@@ -277,6 +278,7 @@ const DashboardPage = () => {
     const [openFormNewSubject, setOpenFormNewSubject] = useState<boolean>(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+    const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
     const [showCalendar, setShowCalendar] = useState(true);
     const [showTrash, setShowTrash] = useState(false);
@@ -303,6 +305,12 @@ const DashboardPage = () => {
     const handleOpenFeedback = () => {
         setIsSettingsOpen(false);
         setShowFeedbackModal(true);
+    };
+
+    // Same close-Settings-then-open pattern as handleOpenFeedback above.
+    const handleOpenChangePassword = () => {
+        setIsSettingsOpen(false);
+        setShowChangePasswordModal(true);
     };
 
     // Selecting a task result in the command palette surfaces it the same
@@ -505,6 +513,7 @@ const DashboardPage = () => {
     const subjectDeleteTimeoutsRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
     const [username, setUsername] = useState("");
     const [userEmail, setUserEmail] = useState("");
+    const [hasPassword, setHasPassword] = useState(true);
     const [updatedSubject, setUpdatedSubject] = useState({ name: "", description: "" });
     const [newTask, setNewTask] = useState<{ title: string; description: string; deadline: string; priority: TaskPriority; recurrence: RecurrenceState }>(NEW_TASK_INITIAL);
     const [updatedTask, setUpdatedTask] = useState<{ title: string; description: string; deadline: string; priority: TaskPriority }>({ title: "", description: "", deadline: "", priority: "MEDIUM" });
@@ -827,6 +836,7 @@ const DashboardPage = () => {
                 const profile = await getUsername();
                 setUsername(profile.username);
                 setUserEmail(profile.email);
+                setHasPassword(profile.hasPassword);
                 await refreshData();
                 if (localStorage.getItem("rc_onboarding_seen") !== "true") {
                     setShowOnboarding(true);
@@ -954,7 +964,7 @@ const DashboardPage = () => {
             }
 
             if (e.key !== "Escape") return;
-            if (isSettingsOpen || isAiModalOpen || paletteOpen || showFeedbackModal) return;
+            if (isSettingsOpen || isAiModalOpen || paletteOpen || showFeedbackModal || showChangePasswordModal) return;
 
             if (mobileSidebarOpen) {
                 setMobileSidebarOpen(false);
@@ -984,6 +994,7 @@ const DashboardPage = () => {
         isAiModalOpen,
         paletteOpen,
         showFeedbackModal,
+        showChangePasswordModal,
         mobileSidebarOpen,
         showTrash,
         showRoutines,
@@ -1728,6 +1739,8 @@ const DashboardPage = () => {
                         onClose={() => setIsSettingsOpen(false)}
                         handleDeleteAccount={handleDeleteAccount}
                         userEmail={userEmail}
+                        hasPassword={hasPassword}
+                        onOpenChangePassword={handleOpenChangePassword}
                         remindersEnabled={remindersEnabled}
                         onToggleReminders={handleToggleReminders}
                         taskFeedbackEnabled={taskFeedbackEnabled}
@@ -1774,6 +1787,10 @@ const DashboardPage = () => {
 
                 <Suspense fallback={null}>
                     <FeedbackModal isOpen={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} />
+                </Suspense>
+
+                <Suspense fallback={null}>
+                    <ChangePasswordModal isOpen={showChangePasswordModal} onClose={() => setShowChangePasswordModal(false)} hasPassword={hasPassword} />
                 </Suspense>
             </div>
 
