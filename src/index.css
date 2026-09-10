@@ -40,28 +40,47 @@ body.cb-protanopia { filter: saturate(1.5) hue-rotate(-20deg) contrast(1.05); }
 body.cb-deuteranopia { filter: saturate(1.5) hue-rotate(20deg) contrast(1.05); }
 body.cb-tritanopia { filter: saturate(1.4) hue-rotate(90deg) contrast(1.05); }
 
-/* 3c. Font size accessibility setting — 5 steps, scaling the same root
-   font-size rule #3 above already uses for its desktop compact-scale, so
-   this stays proportional to it instead of fighting it: ×0.875/0.9375/
-   1/1.0625/1.125 of whatever the current breakpoint's base is (100% mobile
-   / 80% desktop) — small-medium and medium-large sit exactly halfway
-   between their neighbors. No class (`medium`) intentionally means no
-   override at all, so the default really is "whatever size already
-   existed" per the user's request, not a new baseline. The desktop values
-   happen to land on clean round numbers (70/75/80/85/90%), which is a nice
-   side effect of the halfway-point math, not a coincidence to preserve if
-   the base 80% desktop scale ever changes — recompute from the ratios
-   above instead of hand-editing these numbers. */
-html.text-scale-small { font-size: 87.5%; }
-html.text-scale-small-medium { font-size: 93.75%; }
-html.text-scale-medium-large { font-size: 106.25%; }
-html.text-scale-large { font-size: 112.5%; }
-@media (min-width: 640px) {
-  html.text-scale-small { font-size: 70%; }
-  html.text-scale-small-medium { font-size: 75%; }
-  html.text-scale-medium-large { font-size: 85%; }
-  html.text-scale-large { font-size: 90%; }
+/* 3c. Font size accessibility setting — 5 steps. Used to scale the same
+   root font-size rule #3 above uses for its desktop compact-scale — but
+   since nearly every Tailwind spacing/sizing utility is rem-based too,
+   that resized the WHOLE interface (padding, icons, card widths...), not
+   just text (reported as a bug, 2026-09-10 — the user only wanted glyph
+   size to change, not layout). Fixed by decoupling: root font-size (rule
+   #3, and therefore every *non-text* rem utility) now stays fixed
+   regardless of this setting. Only Tailwind's own `--text-*` theme tokens
+   are redefined below — these back every `text-xs` through `text-3xl`
+   utility class this codebase actually uses (checked: nothing goes past
+   3xl) — multiplying Tailwind v4's real default type-scale values
+   (`node_modules/tailwindcss/theme.css`) by a `--rc-font-scale` custom
+   property the classes below set on `html`, instead of touching
+   `font-size` itself. Line-height needs no override of its own: Tailwind
+   v4's `--text-*--line-height` tokens are unitless ratios (e.g.
+   `calc(1.25 / 0.875)`), so they scale with the new font-size
+   automatically. A `text-[Npx]` arbitrary value (a few tiny calendar-chip
+   labels use these) bypasses the theme scale entirely and was never
+   affected by root-font-size scaling either — not a regression, just a
+   pre-existing, unrelated limit on what this setting can reach. Ratios
+   are unchanged from before — ×0.875/0.9375/1/1.0625/1.125, small-medium
+   and medium-large exactly halfway between their neighbors, no `medium`
+   override (existing size stays existing size) — but a flat `calc()`
+   multiplier on a rem value scales by the same percentage regardless of
+   the root's own current font-size, so one set of ratios now covers both
+   mobile and desktop; the old implementation's separate desktop-breakpoint
+   percentage table is gone, not needed anymore. */
+@theme {
+  --text-xs: calc(0.75rem * var(--rc-font-scale, 1));
+  --text-sm: calc(0.875rem * var(--rc-font-scale, 1));
+  --text-base: calc(1rem * var(--rc-font-scale, 1));
+  --text-lg: calc(1.125rem * var(--rc-font-scale, 1));
+  --text-xl: calc(1.25rem * var(--rc-font-scale, 1));
+  --text-2xl: calc(1.5rem * var(--rc-font-scale, 1));
+  --text-3xl: calc(1.875rem * var(--rc-font-scale, 1));
 }
+
+html.text-scale-small { --rc-font-scale: 0.875; }
+html.text-scale-small-medium { --rc-font-scale: 0.9375; }
+html.text-scale-medium-large { --rc-font-scale: 1.0625; }
+html.text-scale-large { --rc-font-scale: 1.125; }
 
 /* 3d. FontSizeSlider.tsx's drag control — a native <input type="range">
    with its default track/thumb fully stripped (a hand-drawn track/fill/
