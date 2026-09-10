@@ -51,6 +51,7 @@ const translations = {
         analysisEngine: "Motor de análisis",
         dailyAnalysisTitle: "Análisis Diario de Tareas",
         dailyAnalysisSub: "Genera un resumen de tus prioridades para hoy.",
+        dailyAnalysisNoTasks: "Añade alguna tarea pendiente para poder generar un plan.",
         aiConsulting: "Consultando a SmartCheck...",
         riskAnalysisTitle: "Analizar riesgos",
         riskAnalysisSub: "Identifica posibles bloqueos o retrasos.",
@@ -73,6 +74,7 @@ const translations = {
         analysisEngine: "Analysis Engine",
         dailyAnalysisTitle: "Daily Task Analysis",
         dailyAnalysisSub: "Generate a summary of your priorities for today.",
+        dailyAnalysisNoTasks: "Add a pending task first to generate a plan.",
         aiConsulting: "Consulting SmartCheck...",
         riskAnalysisTitle: "Analyze Risks",
         riskAnalysisSub: "Identify potential blockers or delays.",
@@ -369,6 +371,8 @@ export const Sidebar = ({
                         onClick={onAiPlanClick}
                         comingSoon={false}
                         isLoading={isAiLoading}
+                        disabled={totalPending === 0}
+                        disabledMessage={t.dailyAnalysisNoTasks}
                     />
 
                     {/* Persistent access to the last generated plan — stays

@@ -9,6 +9,11 @@ interface SmartCheckCardProps {
   onClick: () => void;
   comingSoon?: boolean;
   isLoading?: boolean; // We add the loading property
+  // Distinct from comingSoon — this isn't "not built yet", it's "not
+  // available right now" (e.g. no pending tasks to analyze). Swaps the
+  // subtitle for disabledMessage instead of a "coming soon" badge.
+  disabled?: boolean;
+  disabledMessage?: string;
 }
 
 // --- Translation dictionary for the SmartCheckButton ---
@@ -23,20 +28,21 @@ const translations = {
     }
 };
 
-export const SmartCheckButton = ({ icon, title, subtitle, onClick, comingSoon, isLoading }: SmartCheckCardProps) => {
+export const SmartCheckButton = ({ icon, title, subtitle, onClick, comingSoon, isLoading, disabled, disabledMessage }: SmartCheckCardProps) => {
   const { language } = useLanguage();
   const t = translations[language as keyof typeof translations];
 
   return (
-    <button 
-      onClick={comingSoon || isLoading ? undefined : onClick}
-      disabled={comingSoon || isLoading}
+    <button
+      onClick={comingSoon || isLoading || disabled ? undefined : onClick}
+      disabled={comingSoon || isLoading || disabled}
+      title={disabled ? disabledMessage : undefined}
       className={`w-full flex flex-col items-center justify-center p-4 mb-4 rounded-xl transition-all duration-300 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500
         ${isLoading
-            ? 'bg-red-50/50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 shadow-inner cursor-wait' 
+            ? 'bg-red-50/50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 shadow-inner cursor-wait'
             : 'bg-zinc-50 dark:bg-gray-800 border border-zinc-200 dark:border-gray-700 hover:bg-zinc-100 dark:hover:bg-gray-700 shadow-sm hover:shadow-md'
         }
-        ${comingSoon ? 'opacity-70 cursor-not-allowed' : ''}
+        ${comingSoon || disabled ? 'opacity-70 cursor-not-allowed' : ''}
       `}
     >
       {/* 1. Icon or Spinner */}
@@ -53,10 +59,13 @@ export const SmartCheckButton = ({ icon, title, subtitle, onClick, comingSoon, i
         {isLoading ? t.analyzing : title}
       </h3>
 
-      {/* 3. Subtitle (hidden while loading for a more minimal look) */}
+      {/* 3. Subtitle (hidden while loading for a more minimal look) —
+          swapped for disabledMessage when disabled, e.g. "no pending
+          tasks to analyze", so the reason is visible without needing to
+          hover for the title tooltip. */}
       {!isLoading && (
         <p className="text-zinc-500 dark:text-gray-400 text-xs leading-snug m-0 transition-colors duration-300 animate-in fade-in">
-          {subtitle}
+          {disabled && disabledMessage ? disabledMessage : subtitle}
         </p>
       )}
 

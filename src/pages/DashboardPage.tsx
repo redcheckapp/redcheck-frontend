@@ -58,6 +58,7 @@ const translations = {
         alertAiReady: "¡Tu plan de hoy ya está listo!",
         alertAiTimeout: "SmartCheck tardó demasiado en responder. Inténtalo de nuevo.",
         alertAiError: "Error al obtener el análisis.",
+        alertAiNoTasks: "Añade alguna tarea pendiente antes de pedir un plan.",
         alertRecurringCreated: "Tarea recurrente creada. Aparecerá según su periodicidad a partir de mañana.",
         errCreateTask: "Error al crear la tarea",
         errCustomDaysRequired: "Selecciona al menos un día de la semana",
@@ -162,6 +163,7 @@ const translations = {
         alertAiReady: "Your plan for today is ready!",
         alertAiTimeout: "SmartCheck took too long to respond. Please try again.",
         alertAiError: "Error fetching analysis.",
+        alertAiNoTasks: "Add a pending task before requesting a plan.",
         alertRecurringCreated: "Recurring task created. It will appear according to its periodicity starting tomorrow.",
         errCreateTask: "Error creating task",
         errCustomDaysRequired: "Select at least one day of the week",
@@ -713,6 +715,17 @@ const DashboardPage = () => {
     const [aiNotificationReady, setAiNotificationReady] = useState(false);
     
     const handleGenerateAiPlan = async () => {
+        // Guards every entry point (SmartCheckButton, command palette) at
+        // the one place they all funnel through — asking the engine to
+        // prioritize an empty task list used to leave it (and the polling
+        // loop below) hanging with nothing to ever return (2026-09-10).
+        // The button/palette action are also hidden/disabled when there
+        // are no pending tasks, but this stays as the real guard since
+        // the backend can't be trusted to only ever be called from there.
+        if (totalPending === 0) {
+            toast.error(t.alertAiNoTasks);
+            return;
+        }
         setIsAiLoading(true);
         const toastId = toast.loading(t.alertAiAnalyzing);
         try {
@@ -1311,7 +1324,7 @@ const DashboardPage = () => {
                 }
             },
         },
-        ...(!isAiLoading ? [{
+        ...(!isAiLoading && totalPending > 0 ? [{
             id: "generate-plan",
             label: t.actionGeneratePlan,
             icon: Sparkles,
