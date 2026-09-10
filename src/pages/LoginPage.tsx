@@ -34,6 +34,7 @@ const translations = {
         errCreds: "Correo/usuario o contraseña incorrectos",
         errDemo: "Error al acceder a la cuenta de demostración. Asegúrate de que el backend la ha inicializado.",
         errGoogle: "No se pudo iniciar sesión con Google. Inténtalo de nuevo.",
+        forgotPassword: "¿Olvidaste tu contraseña?",
         orContinueWith: "o continúa con",
         tags: ["Agenda", "Inteligente", "Interactiva"],
         copyright: "© 2026 RedCheck. Desarrollado por Francisco Javier Molina Cuenca. Todos los derechos reservados."
@@ -52,6 +53,7 @@ const translations = {
         errCreds: "Incorrect email/username or password",
         errDemo: "Error accessing demo account. Make sure the backend initialized it.",
         errGoogle: "Couldn't sign in with Google. Please try again.",
+        forgotPassword: "Forgot your password?",
         orContinueWith: "or continue with",
         tags: ["AI-Powered", "Smart", "Planner"],
         copyright: "© 2026 RedCheck. Developed by Francisco Javier Molina Cuenca. All rights reserved."
@@ -179,9 +181,14 @@ const LoginPage = () => {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label htmlFor="login-password" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
-                            {t.password}
-                        </label>
+                        <div className="flex items-center justify-between">
+                            <label htmlFor="login-password" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
+                                {t.password}
+                            </label>
+                            <Link to="/forgot-password" className="text-xs font-semibold text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:underline transition-colors duration-300">
+                                {t.forgotPassword}
+                            </Link>
+                        </div>
                         <input
                             id="login-password"
                             type="password"

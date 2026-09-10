@@ -12,6 +12,8 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 // demand instead of being bundled into the initial download.
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
@@ -48,7 +50,7 @@ const RouteFallback = () => {
 };
 
 // Routes that show the particle background.
-const PARTICLE_ROUTES = ["/", "/login", "/register", "/terms", "/privacy"];
+const PARTICLE_ROUTES = ["/", "/login", "/register", "/forgot-password", "/reset-password", "/terms", "/privacy"];
 
 const AppShell = () => {
     const location = useLocation();
@@ -78,6 +80,8 @@ const AppShell = () => {
                 <Routes>
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
                     <Route path="/dashboard" element={<DashboardPage />} />
                     <Route path="/" element={<LoginPage />} />
                     <Route path="/terms" element={<TermsPage />} />

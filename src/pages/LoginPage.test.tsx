@@ -49,6 +49,12 @@ describe("LoginPage", () => {
         expect(registerLink).toHaveAttribute("href", "/register");
     });
 
+    it("has a link to the forgot-password page", () => {
+        renderLoginPage();
+        const forgotPasswordLink = screen.getByRole("link", { name: /forgot your password\?|¿olvidaste tu contraseña\?/i });
+        expect(forgotPasswordLink).toHaveAttribute("href", "/forgot-password");
+    });
+
     it("does not render the Google sign-in section when no client id is configured", () => {
         renderLoginPage();
         expect(screen.queryByText(/or continue with|o continúa con/i)).not.toBeInTheDocument();
