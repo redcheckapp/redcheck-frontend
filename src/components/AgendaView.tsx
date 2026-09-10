@@ -954,7 +954,14 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                     the three buttons (translateX in multiples of its own width,
                     since it's sized to exactly 1/3 of the row) instead of each
                     button getting its own background flipped on/off — reads as
-                    a single continuous selection rather than a state swap. */}
+                    a single continuous selection rather than a state swap. The
+                    pill's width/position math hardcodes "each button is exactly
+                    1/3 of the row", so all three buttons must stay `flex-1`
+                    (equal width) at every breakpoint — a `sm:flex-initial`
+                    content-sized variant here once let "Week"/"Month" (longer
+                    labels) render wider than "Day", desyncing the pill from the
+                    real button boxes and leaving it visibly off-center behind
+                    whichever label wasn't exactly 1/3 (fixed 2026-09-10). */}
                 <div className="relative flex w-full sm:w-auto bg-white dark:bg-gray-900 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300">
                     <div
                         aria-hidden="true"
@@ -968,7 +975,7 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                         <button
                             key={v}
                             onClick={() => changeView(v)}
-                            className={`relative z-10 flex-1 sm:flex-initial px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg transition-colors ${view === v ? "text-red-700 dark:text-red-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}
+                            className={`relative z-10 flex-1 px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg transition-colors ${view === v ? "text-red-700 dark:text-red-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}
                         >
                             {v === "day" ? t.btnDay : v === "week" ? t.btnWeek : t.btnMonth}
                         </button>
