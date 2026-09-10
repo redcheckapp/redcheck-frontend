@@ -346,7 +346,7 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                                             }`}
                                         >
                                             <span className={`w-6 h-6 border-2 border-red-500 bg-red-500 flex items-center justify-center ${checkboxShapeClass(value)}`}>
-                                                <PreviewIcon size={12} color="white" fill="white" />
+                                                <PreviewIcon size={12} color="white" />
                                             </span>
                                             {t[labelKey]}
                                         </button>
@@ -385,7 +385,7 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                                             }`}
                                         >
                                             <span className={`w-6 h-6 border-2 border-red-500 bg-red-500 flex items-center justify-center ${checkboxShapeClass(checkboxStyle)}`}>
-                                                <OptionIcon size={12} color="white" fill="white" />
+                                                <OptionIcon size={12} color="white" />
                                             </span>
                                             {t[labelKey]}
                                         </button>

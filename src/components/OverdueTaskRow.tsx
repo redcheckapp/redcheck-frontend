@@ -177,7 +177,6 @@ export const OverdueTaskRow = memo(({
                     <CheckboxGlyph
                         size={12}
                         color="white"
-                        fill="white"
                         className={`transition-all duration-200 ${(selectionMode ? isSelected : task.completed) ? "scale-100 opacity-100" : "scale-0 opacity-0"}`}
                     />
                 </button>
