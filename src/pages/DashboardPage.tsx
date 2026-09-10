@@ -1595,7 +1595,7 @@ const DashboardPage = () => {
                                 {subjects.length > 0 && (
                                     <div className={`flex items-center justify-between mb-4 min-h-[36px] transition-colors duration-300 ${
                                         subjectSelectionMode || selectionMode
-                                            ? "bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm px-4 py-2 animate-soft-fade"
+                                            ? "sticky top-0 z-10 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm px-4 py-2 animate-soft-fade"
                                             : ""
                                     }`}>
                                         {subjectSelectionMode ? (
