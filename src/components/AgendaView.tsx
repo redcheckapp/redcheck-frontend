@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef, memo, lazy, Suspense, type TouchEvent, type KeyboardEvent, type DragEvent, type CSSProperties } from "react";
+import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, memo, lazy, Suspense, type TouchEvent, type KeyboardEvent, type DragEvent, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
 import { ChevronLeft, ChevronRight, Clock, CalendarDays, Plus, Check } from "lucide-react";
@@ -302,6 +302,37 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
     const t = translations[language as keyof typeof translations];
 
     const [view, setView] = useState<ViewMode>("month");
+
+    // The Day/Week/Month sliding pill (below) is measured directly off the
+    // real button DOM nodes rather than assumed to be an even 1/3 split —
+    // a `calc()`-based guess drifted out of sync with flexbox's own
+    // fractional-pixel rounding (see the JSX comment at the pill itself).
+    const viewSelectorRef = useRef<HTMLDivElement>(null);
+    const viewButtonRefs = useRef<Partial<Record<ViewMode, HTMLButtonElement | null>>>({});
+    const [pillRect, setPillRect] = useState<{ left: number; width: number } | null>(null);
+
+    const measurePill = useCallback(() => {
+        const button = viewButtonRefs.current[view];
+        if (!button) return;
+        setPillRect({ left: button.offsetLeft, width: button.offsetWidth });
+    }, [view]);
+
+    // Runs before paint (not useEffect) so switching views never flashes the
+    // pill at its previous size/position for a frame.
+    useLayoutEffect(() => {
+        measurePill();
+    }, [measurePill]);
+
+    // Button widths depend on layout (breakpoint, font-size accessibility
+    // setting, window resize) that can change without `view` changing, so a
+    // ResizeObserver on the row keeps the pill accurate even then.
+    useEffect(() => {
+        const el = viewSelectorRef.current;
+        if (!el || typeof ResizeObserver === "undefined") return;
+        const observer = new ResizeObserver(() => measurePill());
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [measurePill]);
 
     const [currentDate, setCurrentDate] = useState(new Date());
     const [records, setRecords] = useState<Record<string, ProgressRecord>>({});
@@ -951,29 +982,35 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                 </div>
 
                 {/* Sliding pill: one animated background layer that glides between
-                    the three buttons (translateX in multiples of its own width,
-                    since it's sized to exactly 1/3 of the row) instead of each
-                    button getting its own background flipped on/off — reads as
-                    a single continuous selection rather than a state swap. The
-                    pill's width/position math hardcodes "each button is exactly
-                    1/3 of the row", so all three buttons must stay `flex-1`
-                    (equal width) at every breakpoint — a `sm:flex-initial`
-                    content-sized variant here once let "Week"/"Month" (longer
-                    labels) render wider than "Day", desyncing the pill from the
-                    real button boxes and leaving it visibly off-center behind
-                    whichever label wasn't exactly 1/3 (fixed 2026-09-10). */}
-                <div className="relative flex w-full sm:w-auto bg-white dark:bg-gray-900 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300">
+                    the three buttons instead of each button getting its own
+                    background flipped on/off — reads as a single continuous
+                    selection rather than a state swap. Its `left`/`width` are
+                    measured off the real button DOM node (`measurePill`
+                    above), never assumed from a `calc()`-based "each button is
+                    exactly 1/3" guess — that approach (tried first,
+                    2026-09-10) still drifted a pixel or two out of sync with
+                    flexbox's own fractional-width rounding, which reads as
+                    the pill's edges landing asymmetrically around the label
+                    even with all three buttons genuinely equal-width. Kept
+                    the buttons `flex-1` regardless (equal width still looks
+                    cleaner and keeps the three measured widths close), but
+                    the pill no longer trusts that assumption for its own
+                    geometry. `opacity-0` until the first real measurement
+                    lands (`pillRect` starts `null`) avoids a flash at (0,0)
+                    on mount. */}
+                <div ref={viewSelectorRef} className="relative flex w-full sm:w-auto bg-white dark:bg-gray-900 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-300">
                     <div
                         aria-hidden="true"
-                        className="absolute top-1 bottom-1 left-1 rounded-lg bg-red-50 dark:bg-red-900/30 shadow-sm transition-transform duration-300 ease-out"
+                        className={`absolute top-1 bottom-1 rounded-lg bg-red-50 dark:bg-red-900/30 shadow-sm transition-all duration-300 ease-out ${pillRect ? "opacity-100" : "opacity-0"}`}
                         style={{
-                            width: "calc((100% - 0.5rem) / 3)",
-                            transform: `translateX(${VIEW_ORDER.indexOf(view) * 100}%)`,
+                            left: pillRect?.left ?? 0,
+                            width: pillRect?.width ?? 0,
                         }}
                     />
                     {VIEW_ORDER.map((v) => (
                         <button
                             key={v}
+                            ref={(el) => { viewButtonRefs.current[v] = el; }}
                             onClick={() => changeView(v)}
                             className={`relative z-10 flex-1 px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold rounded-lg transition-colors ${view === v ? "text-red-700 dark:text-red-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}
                         >
