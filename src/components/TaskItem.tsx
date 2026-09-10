@@ -221,7 +221,7 @@ export const TaskItem = memo(({
                 onTouchMove={handleRowTouchMove}
                 onTouchEnd={clearLongPressTimer}
                 onTouchCancel={clearLongPressTimer}
-                className={`flex items-center gap-3 p-3 rounded-xl transition active:scale-[0.99] group ${
+                className={`flex items-center gap-3 p-3 rounded-xl transition active:scale-[0.99] group no-hover:select-none no-hover:[-webkit-touch-callout:none] ${
                 selectionMode && isSelected
                     ? "bg-blue-50 dark:bg-blue-900/20"
                     : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
