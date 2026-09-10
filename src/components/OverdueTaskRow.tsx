@@ -7,6 +7,7 @@ import { getPriorityColor } from "../utils/priorityColors";
 import { triggerHapticFeedback } from "../utils/feedback";
 import { useCheckboxStyle } from "../context/CheckboxStyleContext";
 import { checkboxShapeClass } from "../utils/checkboxShapes";
+import { CHECKBOX_ICON_COMPONENTS } from "../utils/checkboxIcons";
 
 type Task = SubjectWithTasks["tasks"][0];
 
@@ -89,7 +90,8 @@ export const OverdueTaskRow = memo(({
 
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
-    const { checkboxStyle } = useCheckboxStyle();
+    const { checkboxStyle, checkboxIcon } = useCheckboxStyle();
+    const CheckboxGlyph = selectionMode ? Check : CHECKBOX_ICON_COMPONENTS[checkboxIcon];
 
     const isEditing = openFormSubjectIdTaskId?.subjectId === subjectId && openFormSubjectIdTaskId?.taskId === task.id;
 
@@ -161,7 +163,7 @@ export const OverdueTaskRow = memo(({
                     aria-label={selectionMode ? t.ttSelectTask : (task.completed ? t.ttMarkIncomplete : t.ttMarkComplete)}
                     title={selectionMode ? t.ttSelectTask : (task.completed ? t.ttMarkIncomplete : t.ttMarkComplete)}
                     className={`w-6 h-6 border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 ${
-                        selectionMode ? "rounded-full" : checkboxShapeClass(checkboxStyle)
+                        checkboxShapeClass(checkboxStyle)
                     } ${
                         selectionMode
                             ? (isSelected
@@ -172,9 +174,10 @@ export const OverdueTaskRow = memo(({
                                 : "border-red-300 dark:border-red-500/50 hover:border-red-500 dark:hover:border-red-400 bg-white dark:bg-transparent")
                     }`}
                 >
-                    <Check
+                    <CheckboxGlyph
                         size={12}
                         color="white"
+                        fill="white"
                         className={`transition-all duration-200 ${(selectionMode ? isSelected : task.completed) ? "scale-100 opacity-100" : "scale-0 opacity-0"}`}
                     />
                 </button>

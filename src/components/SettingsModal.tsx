@@ -1,10 +1,11 @@
-import { X, Trash2, Moon, Sun, MessageSquarePlus, ChevronRight, KeyRound, Check } from "lucide-react";
+import { X, Trash2, Moon, Sun, MessageSquarePlus, ChevronRight, KeyRound } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useAccessibility, type ColorblindMode } from "../context/AccessibilityContext";
-import { useCheckboxStyle, type CheckboxStyle } from "../context/CheckboxStyleContext";
+import { useCheckboxStyle, type CheckboxStyle, type CheckboxIcon } from "../context/CheckboxStyleContext";
 import { checkboxShapeClass } from "../utils/checkboxShapes";
+import { CHECKBOX_ICON_COMPONENTS } from "../utils/checkboxIcons";
 import { ModalOverlay } from "./ModalOverlay";
 import { FontSizeSlider } from "./FontSizeSlider";
 import { triggerHapticFeedback } from "../utils/feedback";
@@ -44,6 +45,14 @@ const translations = {
         checkboxLegacy: "Clásico",
         checkboxSoft: "Suave",
         checkboxCircle: "Círculo",
+        checkboxIcon: "Icono de check",
+        checkboxIconDesc: "Elige qué aparece dentro al completar una tarea",
+        iconCheck: "Check",
+        iconStar: "Estrella",
+        iconHeart: "Corazón",
+        iconFlame: "Llama",
+        iconPartyPopper: "Fiesta",
+        iconSkull: "Sorpresa",
         notifications: "Notificaciones y comportamiento",
         reminders: "Recordatorios de tareas",
         remindersDesc: "Avisa cuando una tarea esté por vencer (solo con la app abierta)",
@@ -102,6 +111,14 @@ const translations = {
         checkboxLegacy: "Classic",
         checkboxSoft: "Soft",
         checkboxCircle: "Circle",
+        checkboxIcon: "Check icon",
+        checkboxIconDesc: "Choose what shows up when you complete a task",
+        iconCheck: "Check",
+        iconStar: "Star",
+        iconHeart: "Heart",
+        iconFlame: "Flame",
+        iconPartyPopper: "Party",
+        iconSkull: "Surprise",
         notifications: "Notifications & behavior",
         reminders: "Task reminders",
         remindersDesc: "Get notified when a task is about to be due (app must be open)",
@@ -179,6 +196,19 @@ const CHECKBOX_STYLE_OPTIONS: { value: CheckboxStyle; labelKey: "checkboxLegacy"
     { value: "circle", labelKey: "checkboxCircle" },
 ];
 
+// "skull" is the deliberate easter egg — labeled "Sorpresa"/"Surprise"
+// rather than naming it outright, so browsing the grid is a small reveal
+// rather than a spoiler (the preview swatch still shows it plainly, this
+// is a wink, not a real secret).
+const CHECKBOX_ICON_OPTIONS: { value: CheckboxIcon; labelKey: "iconCheck" | "iconStar" | "iconHeart" | "iconFlame" | "iconPartyPopper" | "iconSkull" }[] = [
+    { value: "check", labelKey: "iconCheck" },
+    { value: "star", labelKey: "iconStar" },
+    { value: "heart", labelKey: "iconHeart" },
+    { value: "flame", labelKey: "iconFlame" },
+    { value: "party-popper", labelKey: "iconPartyPopper" },
+    { value: "skull", labelKey: "iconSkull" },
+];
+
 // Shared by both chip groups below — same "chip button" language
 // FeedbackModal's category picker already established, reused here rather
 // than introducing a different selection control.
@@ -193,7 +223,7 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
     const { theme, toggleTheme } = useTheme();
     const { language, toggleLanguage } = useLanguage(); // We extract the language and the toggle function
     const { colorblindMode, setColorblindMode, fontSize, setFontSize } = useAccessibility();
-    const { checkboxStyle, setCheckboxStyle } = useCheckboxStyle();
+    const { checkboxStyle, setCheckboxStyle, checkboxIcon, setCheckboxIcon } = useCheckboxStyle();
     const t = translations[language as keyof typeof translations];
 
     // Shared demo-account check — gates both the password row and the
@@ -286,34 +316,81 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                             checkbox actually had before selection-mode work
                             introduced a rounded one), so a returning user
                             sees no change unless they opt into one of the
-                            alternatives. Only affects the task-completion
-                            checkbox — the blue circle used for multi-select
-                            (tasks and subjects) is a separate, fixed
-                            "selected" indicator, not part of this. */}
+                            alternatives. Applies to every checkbox-shaped
+                            control in the app (task completion, task
+                            multi-select, subject multi-select) — they all
+                            share one shape on purpose, so a square-style
+                            user never sees a clashing round one mid-flow
+                            (2026-09-10, fixed after exactly that report).
+                            Each swatch previews the currently-chosen icon
+                            too, so the two pickers read as one combined
+                            preview rather than two disconnected ones. */}
                         <div className="flex flex-col gap-2 p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 transition-colors">
                             <div>
                                 <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{t.checkboxStyle}</p>
                                 <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">{t.checkboxStyleDesc}</p>
                             </div>
                             <div className="grid grid-cols-3 gap-2 mt-1">
-                                {CHECKBOX_STYLE_OPTIONS.map(({ value, labelKey }) => (
-                                    <button
-                                        key={value}
-                                        type="button"
-                                        onClick={() => setCheckboxStyle(value)}
-                                        aria-pressed={checkboxStyle === value}
-                                        className={`flex flex-col items-center gap-2 py-3 rounded-xl border text-xs font-medium transition-all active:scale-95 ${
-                                            checkboxStyle === value
-                                                ? "bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-800 text-red-700 dark:text-red-400"
-                                                : "bg-white dark:bg-gray-800 border-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                        }`}
-                                    >
-                                        <span className={`w-6 h-6 border-2 border-red-500 bg-red-500 flex items-center justify-center ${checkboxShapeClass(value)}`}>
-                                            <Check size={12} color="white" />
-                                        </span>
-                                        {t[labelKey]}
-                                    </button>
-                                ))}
+                                {CHECKBOX_STYLE_OPTIONS.map(({ value, labelKey }) => {
+                                    const PreviewIcon = CHECKBOX_ICON_COMPONENTS[checkboxIcon];
+                                    return (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            onClick={() => setCheckboxStyle(value)}
+                                            aria-pressed={checkboxStyle === value}
+                                            className={`flex flex-col items-center gap-2 py-3 rounded-xl border text-xs font-medium transition-all active:scale-95 ${
+                                                checkboxStyle === value
+                                                    ? "bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-800 text-red-700 dark:text-red-400"
+                                                    : "bg-white dark:bg-gray-800 border-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                            }`}
+                                        >
+                                            <span className={`w-6 h-6 border-2 border-red-500 bg-red-500 flex items-center justify-center ${checkboxShapeClass(value)}`}>
+                                                <PreviewIcon size={12} color="white" fill="white" />
+                                            </span>
+                                            {t[labelKey]}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Check icon (New) — the glyph shown inside a
+                            checked completion checkbox, independent of the
+                            shape above. Defaults to "check" (unchanged
+                            look). "skull" is a deliberate easter egg,
+                            labeled "Sorpresa"/"Surprise" rather than named
+                            outright. Selection-mode checkboxes always keep
+                            the plain Check regardless of this — that glyph
+                            means "selected", not "completed", so it isn't
+                            part of this personalization. */}
+                        <div className="flex flex-col gap-2 p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 transition-colors">
+                            <div>
+                                <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{t.checkboxIcon}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">{t.checkboxIconDesc}</p>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 mt-1">
+                                {CHECKBOX_ICON_OPTIONS.map(({ value, labelKey }) => {
+                                    const OptionIcon = CHECKBOX_ICON_COMPONENTS[value];
+                                    return (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            onClick={() => setCheckboxIcon(value)}
+                                            aria-pressed={checkboxIcon === value}
+                                            className={`flex flex-col items-center gap-2 py-3 rounded-xl border text-xs font-medium transition-all active:scale-95 ${
+                                                checkboxIcon === value
+                                                    ? "bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-800 text-red-700 dark:text-red-400"
+                                                    : "bg-white dark:bg-gray-800 border-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                            }`}
+                                        >
+                                            <span className={`w-6 h-6 border-2 border-red-500 bg-red-500 flex items-center justify-center ${checkboxShapeClass(checkboxStyle)}`}>
+                                                <OptionIcon size={12} color="white" fill="white" />
+                                            </span>
+                                            {t[labelKey]}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>

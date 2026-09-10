@@ -6,6 +6,8 @@ import type { SubjectWithTasks, TaskPriority } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import type { RecurrenceState } from "../utils/recurrenceUtils";
 import { triggerHapticFeedback } from "../utils/feedback";
+import { useCheckboxStyle } from "../context/CheckboxStyleContext";
+import { checkboxShapeClass } from "../utils/checkboxShapes";
 
 // Same gallery-style long-press-to-select as TaskItem.tsx/OverdueTaskRow.tsx,
 // applied to a subject's header instead of a task row (2026-09-10). Kept as
@@ -173,6 +175,7 @@ export const SubjectSection = memo(({
 
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
+    const { checkboxStyle } = useCheckboxStyle();
 
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
 
@@ -240,7 +243,7 @@ export const SubjectSection = memo(({
                             aria-checked={isSubjectSelected}
                             aria-label={t.ttSelectSubject}
                             title={t.ttSelectSubject}
-                            className={`w-6 h-6 mt-0.5 shrink-0 rounded-full border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-500 ${
+                            className={`w-6 h-6 mt-0.5 shrink-0 ${checkboxShapeClass(checkboxStyle)} border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-500 ${
                                 isSubjectSelected
                                     ? "bg-blue-500 border-blue-500"
                                     : "border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 bg-white dark:bg-transparent"

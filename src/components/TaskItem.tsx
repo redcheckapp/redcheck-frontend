@@ -6,6 +6,7 @@ import { getPriorityColor } from "../utils/priorityColors";
 import { triggerHapticFeedback } from "../utils/feedback";
 import { useCheckboxStyle } from "../context/CheckboxStyleContext";
 import { checkboxShapeClass } from "../utils/checkboxShapes";
+import { CHECKBOX_ICON_COMPONENTS } from "../utils/checkboxIcons";
 
 type Task = SubjectWithTasks["tasks"][0];
 
@@ -163,7 +164,11 @@ export const TaskItem = memo(({
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
     const locale = language === 'es' ? 'es-ES' : 'en-US';
-    const { checkboxStyle } = useCheckboxStyle();
+    const { checkboxStyle, checkboxIcon } = useCheckboxStyle();
+    // Selection mode always shows the plain Check glyph — that's the fixed
+    // "selected" indicator language (see checkboxShapeClass's note), not
+    // part of this personalization.
+    const CheckboxGlyph = selectionMode ? Check : CHECKBOX_ICON_COMPONENTS[checkboxIcon];
 
     // See LONG_PRESS_MS above. Attached to the row itself (not just the
     // checkbox) so a hold anywhere on the task — title, deadline, even the
@@ -238,7 +243,7 @@ export const TaskItem = memo(({
                     aria-label={selectionMode ? t.ttSelectTask : (task.completed ? t.ttMarkIncomplete : t.ttMarkComplete)}
                     title={selectionMode ? t.ttSelectTask : (task.completed ? t.ttMarkIncomplete : t.ttMarkComplete)}
                     className={`w-6 h-6 border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500
-                        ${selectionMode ? "rounded-full" : checkboxShapeClass(checkboxStyle)}
+                        ${checkboxShapeClass(checkboxStyle)}
                         ${selectionMode
                             ? (isSelected
                                 ? "bg-blue-500 border-blue-500"
@@ -247,9 +252,10 @@ export const TaskItem = memo(({
                                 ? "bg-red-500 border-red-500"
                                 : "border-gray-300 dark:border-gray-600 hover:border-red-400 dark:hover:border-red-500")
                         }`}>
-                    <Check
+                    <CheckboxGlyph
                         size={12}
                         color="white"
+                        fill="white"
                         className={`transition-all duration-200 ${(selectionMode ? isSelected : task.completed) ? "scale-100 opacity-100" : "scale-0 opacity-0"}`}
                     />
                 </button>
