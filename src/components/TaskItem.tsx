@@ -4,6 +4,8 @@ import type { SubjectWithTasks, TaskPriority } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import { getPriorityColor } from "../utils/priorityColors";
 import { triggerHapticFeedback } from "../utils/feedback";
+import { useCheckboxStyle } from "../context/CheckboxStyleContext";
+import { checkboxShapeClass } from "../utils/checkboxShapes";
 
 type Task = SubjectWithTasks["tasks"][0];
 
@@ -161,6 +163,7 @@ export const TaskItem = memo(({
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
     const locale = language === 'es' ? 'es-ES' : 'en-US';
+    const { checkboxStyle } = useCheckboxStyle();
 
     // See LONG_PRESS_MS above. Attached to the row itself (not just the
     // checkbox) so a hold anywhere on the task — title, deadline, even the
@@ -234,7 +237,8 @@ export const TaskItem = memo(({
                     aria-checked={selectionMode ? isSelected : task.completed}
                     aria-label={selectionMode ? t.ttSelectTask : (task.completed ? t.ttMarkIncomplete : t.ttMarkComplete)}
                     title={selectionMode ? t.ttSelectTask : (task.completed ? t.ttMarkIncomplete : t.ttMarkComplete)}
-                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500
+                    className={`w-6 h-6 border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500
+                        ${selectionMode ? "rounded-full" : checkboxShapeClass(checkboxStyle)}
                         ${selectionMode
                             ? (isSelected
                                 ? "bg-blue-500 border-blue-500"

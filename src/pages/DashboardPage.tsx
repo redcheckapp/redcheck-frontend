@@ -1600,73 +1600,91 @@ const DashboardPage = () => {
                                     }`}>
                                         {subjectSelectionMode ? (
                                             <>
-                                                <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+                                                <span className="text-sm font-semibold text-gray-600 dark:text-gray-300 truncate min-w-0 mr-2">
                                                     {selectedSubjectIds.size === 1 ? t.subjectsSelectedOne : `${selectedSubjectIds.size} ${t.subjectsSelectedMany}`}
                                                 </span>
-                                                <div className="flex items-center gap-1.5">
+                                                <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                                                     <button
                                                         onClick={exitSubjectSelectionMode}
-                                                        className="px-3 py-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 active:scale-95"
+                                                        title={t.cancelSelection}
+                                                        aria-label={t.cancelSelection}
+                                                        className="px-2.5 sm:px-3 py-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 active:scale-95"
                                                     >
-                                                        {t.cancelSelection}
+                                                        <X size={14} className="sm:hidden" />
+                                                        <span className="hidden sm:inline">{t.cancelSelection}</span>
                                                     </button>
                                                     {selectedSubjectIds.size === 1 && (
                                                         <button
                                                             onClick={handleEditSelectedSubject}
-                                                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 rounded-xl transition-all duration-200 active:scale-95"
+                                                            title={t.bulkEdit}
+                                                            aria-label={t.bulkEdit}
+                                                            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-sm font-medium text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 rounded-xl transition-all duration-200 active:scale-95"
                                                         >
-                                                            <Pencil size={14} /> {t.bulkEdit}
+                                                            <Pencil size={14} /> <span className="hidden sm:inline">{t.bulkEdit}</span>
                                                         </button>
                                                     )}
                                                     <button
                                                         onClick={handleBulkArchiveSubjects}
                                                         disabled={selectedSubjectIds.size === 0}
-                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+                                                        title={t.bulkArchive}
+                                                        aria-label={t.bulkArchive}
+                                                        className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
                                                     >
-                                                        <Archive size={14} /> {t.bulkArchive}
+                                                        <Archive size={14} /> <span className="hidden sm:inline">{t.bulkArchive}</span>
                                                     </button>
                                                     <button
                                                         onClick={handleBulkDeleteSubjects}
                                                         disabled={selectedSubjectIds.size === 0}
-                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 hover:shadow-md hover:shadow-red-600/20 rounded-xl shadow-sm transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+                                                        title={t.bulkDelete}
+                                                        aria-label={t.bulkDelete}
+                                                        className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 hover:shadow-md hover:shadow-red-600/20 rounded-xl shadow-sm transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
                                                     >
-                                                        <Trash2 size={14} /> {t.bulkDelete}
+                                                        <Trash2 size={14} /> <span className="hidden sm:inline">{t.bulkDelete}</span>
                                                     </button>
                                                 </div>
                                             </>
                                         ) : selectionMode ? (
                                             <>
-                                                <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+                                                <span className="text-sm font-semibold text-gray-600 dark:text-gray-300 truncate min-w-0 mr-2">
                                                     {selectedTaskKeys.size === 1 ? t.tasksSelectedOne : `${selectedTaskKeys.size} ${t.tasksSelectedMany}`}
                                                 </span>
-                                                <div className="flex items-center gap-1.5">
+                                                <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                                                     <button
                                                         onClick={exitSelectionMode}
-                                                        className="px-3 py-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 active:scale-95"
+                                                        title={t.cancelSelection}
+                                                        aria-label={t.cancelSelection}
+                                                        className="px-2.5 sm:px-3 py-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 active:scale-95"
                                                     >
-                                                        {t.cancelSelection}
+                                                        <X size={14} className="sm:hidden" />
+                                                        <span className="hidden sm:inline">{t.cancelSelection}</span>
                                                     </button>
                                                     {selectedTaskKeys.size === 1 && (
                                                         <button
                                                             onClick={handleEditSelectedTask}
-                                                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 rounded-xl transition-all duration-200 active:scale-95"
+                                                            title={t.bulkEdit}
+                                                            aria-label={t.bulkEdit}
+                                                            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-sm font-medium text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 rounded-xl transition-all duration-200 active:scale-95"
                                                         >
-                                                            <Pencil size={14} /> {t.bulkEdit}
+                                                            <Pencil size={14} /> <span className="hidden sm:inline">{t.bulkEdit}</span>
                                                         </button>
                                                     )}
                                                     <button
                                                         onClick={handleBulkComplete}
                                                         disabled={selectedTaskKeys.size === 0}
-                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/40 rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+                                                        title={t.bulkComplete}
+                                                        aria-label={t.bulkComplete}
+                                                        className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-sm font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/40 rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
                                                     >
-                                                        <Check size={14} /> {t.bulkComplete}
+                                                        <Check size={14} /> <span className="hidden sm:inline">{t.bulkComplete}</span>
                                                     </button>
                                                     <button
                                                         onClick={handleBulkDelete}
                                                         disabled={selectedTaskKeys.size === 0}
-                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 hover:shadow-md hover:shadow-red-600/20 rounded-xl shadow-sm transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+                                                        title={t.bulkDelete}
+                                                        aria-label={t.bulkDelete}
+                                                        className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 hover:shadow-md hover:shadow-red-600/20 rounded-xl shadow-sm transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
                                                     >
-                                                        <Trash2 size={14} /> {t.bulkDelete}
+                                                        <Trash2 size={14} /> <span className="hidden sm:inline">{t.bulkDelete}</span>
                                                     </button>
                                                 </div>
                                             </>

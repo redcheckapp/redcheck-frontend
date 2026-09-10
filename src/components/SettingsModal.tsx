@@ -1,8 +1,10 @@
-import { X, Trash2, Moon, Sun, MessageSquarePlus, ChevronRight, KeyRound } from "lucide-react";
+import { X, Trash2, Moon, Sun, MessageSquarePlus, ChevronRight, KeyRound, Check } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useAccessibility, type ColorblindMode } from "../context/AccessibilityContext";
+import { useCheckboxStyle, type CheckboxStyle } from "../context/CheckboxStyleContext";
+import { checkboxShapeClass } from "../utils/checkboxShapes";
 import { ModalOverlay } from "./ModalOverlay";
 import { FontSizeSlider } from "./FontSizeSlider";
 import { triggerHapticFeedback } from "../utils/feedback";
@@ -37,6 +39,11 @@ const translations = {
         language: "Idioma",
         langDesc: "Cambiar el idioma de la aplicación",
         ttLanguage: "Cambiar idioma",
+        checkboxStyle: "Estilo de check",
+        checkboxStyleDesc: "Elige cómo se ve la casilla para completar tareas",
+        checkboxLegacy: "Clásico",
+        checkboxSoft: "Suave",
+        checkboxCircle: "Círculo",
         notifications: "Notificaciones y comportamiento",
         reminders: "Recordatorios de tareas",
         remindersDesc: "Avisa cuando una tarea esté por vencer (solo con la app abierta)",
@@ -90,6 +97,11 @@ const translations = {
         language: "Language",
         langDesc: "Change application language",
         ttLanguage: "Change language",
+        checkboxStyle: "Checkbox style",
+        checkboxStyleDesc: "Choose how the task-completion checkbox looks",
+        checkboxLegacy: "Classic",
+        checkboxSoft: "Soft",
+        checkboxCircle: "Circle",
         notifications: "Notifications & behavior",
         reminders: "Task reminders",
         remindersDesc: "Get notified when a task is about to be due (app must be open)",
@@ -161,6 +173,12 @@ const COLORBLIND_OPTIONS: { value: ColorblindMode; labelKey: "cbNone" | "cbProta
     { value: "tritanopia", labelKey: "cbTritanopia" },
 ];
 
+const CHECKBOX_STYLE_OPTIONS: { value: CheckboxStyle; labelKey: "checkboxLegacy" | "checkboxSoft" | "checkboxCircle" }[] = [
+    { value: "legacy", labelKey: "checkboxLegacy" },
+    { value: "soft", labelKey: "checkboxSoft" },
+    { value: "circle", labelKey: "checkboxCircle" },
+];
+
 // Shared by both chip groups below — same "chip button" language
 // FeedbackModal's category picker already established, reused here rather
 // than introducing a different selection control.
@@ -175,6 +193,7 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
     const { theme, toggleTheme } = useTheme();
     const { language, toggleLanguage } = useLanguage(); // We extract the language and the toggle function
     const { colorblindMode, setColorblindMode, fontSize, setFontSize } = useAccessibility();
+    const { checkboxStyle, setCheckboxStyle } = useCheckboxStyle();
     const t = translations[language as keyof typeof translations];
 
     // Shared demo-account check — gates both the password row and the
@@ -260,6 +279,42 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                             >
                                 {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
                             </button>
+                        </div>
+
+                        {/* Checkbox style (New) — purely cosmetic, defaults
+                            to "legacy" (the sharp square every task
+                            checkbox actually had before selection-mode work
+                            introduced a rounded one), so a returning user
+                            sees no change unless they opt into one of the
+                            alternatives. Only affects the task-completion
+                            checkbox — the blue circle used for multi-select
+                            (tasks and subjects) is a separate, fixed
+                            "selected" indicator, not part of this. */}
+                        <div className="flex flex-col gap-2 p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 transition-colors">
+                            <div>
+                                <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{t.checkboxStyle}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">{t.checkboxStyleDesc}</p>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 mt-1">
+                                {CHECKBOX_STYLE_OPTIONS.map(({ value, labelKey }) => (
+                                    <button
+                                        key={value}
+                                        type="button"
+                                        onClick={() => setCheckboxStyle(value)}
+                                        aria-pressed={checkboxStyle === value}
+                                        className={`flex flex-col items-center gap-2 py-3 rounded-xl border text-xs font-medium transition-all active:scale-95 ${
+                                            checkboxStyle === value
+                                                ? "bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-800 text-red-700 dark:text-red-400"
+                                                : "bg-white dark:bg-gray-800 border-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        }`}
+                                    >
+                                        <span className={`w-6 h-6 border-2 border-red-500 bg-red-500 flex items-center justify-center ${checkboxShapeClass(value)}`}>
+                                            <Check size={12} color="white" />
+                                        </span>
+                                        {t[labelKey]}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
 

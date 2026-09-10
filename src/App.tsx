@@ -5,6 +5,7 @@ import { Check } from "lucide-react";
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { AccessibilityProvider } from './context/AccessibilityContext';
+import { CheckboxStyleProvider } from './context/CheckboxStyleContext';
 import { ConfirmProvider } from './context/ConfirmContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
@@ -107,9 +108,11 @@ const App = () => {
             <LanguageProvider>
                 <ThemeProvider>
                     <AccessibilityProvider>
-                        <BrowserRouter>
-                            <AppShell />
-                        </BrowserRouter>
+                        <CheckboxStyleProvider>
+                            <BrowserRouter>
+                                <AppShell />
+                            </BrowserRouter>
+                        </CheckboxStyleProvider>
                     </AccessibilityProvider>
                 </ThemeProvider>
             </LanguageProvider>
