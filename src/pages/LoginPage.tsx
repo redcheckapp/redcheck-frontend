@@ -10,6 +10,14 @@ import { useTheme } from "../context/ThemeContext";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
+// Temporarily disabled: the Google Cloud project's OAuth consent screen is
+// stuck showing "requires verification" even after removing the sensitive
+// Calendar scopes that triggered it (see redcheck-backend/frontend CLAUDE.md,
+// "Sign in with Google"). All the code/config stays in place — flip this back
+// to true (and restore LoginPage.test.tsx's matching assertion) once that
+// clears and real sign-ins work again.
+const GOOGLE_SIGN_IN_ENABLED = false;
+
 // --- Translation dictionary ---
 const translations = {
     es: {
@@ -209,7 +217,7 @@ const LoginPage = () => {
                     </button>
                 </form>
 
-                {GOOGLE_CLIENT_ID && (
+                {GOOGLE_SIGN_IN_ENABLED && GOOGLE_CLIENT_ID && (
                     <div className="mt-6">
                         <div className="flex items-center gap-3">
                             <div className="flex-1 h-px bg-gray-100 dark:bg-gray-800 transition-colors duration-300" />

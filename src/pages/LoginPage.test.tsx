@@ -54,7 +54,12 @@ describe("LoginPage", () => {
         expect(screen.queryByText(/or continue with|o continúa con/i)).not.toBeInTheDocument();
     });
 
-    it("renders the Google sign-in section once a client id is configured", async () => {
+    // GOOGLE_SIGN_IN_ENABLED is temporarily hardcoded to false in LoginPage.tsx
+    // (Google Cloud's OAuth consent screen is stuck on "requires verification"
+    // — see that file's comment), so the section stays hidden even with a
+    // client id configured. Once that's flipped back to true, this test
+    // should go back to asserting the section IS rendered here.
+    it("does not render the Google sign-in section even with a client id configured, while sign-in is disabled", async () => {
         vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "test-client-id.apps.googleusercontent.com");
         vi.resetModules();
 
@@ -77,7 +82,7 @@ describe("LoginPage", () => {
             </MemoryRouter>
         );
 
-        expect(screen.getByText(/or continue with|o continúa con/i)).toBeInTheDocument();
+        expect(screen.queryByText(/or continue with|o continúa con/i)).not.toBeInTheDocument();
 
         vi.unstubAllEnvs();
         vi.resetModules();
