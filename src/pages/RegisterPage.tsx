@@ -4,6 +4,7 @@ import { register } from "../api/registerApi";
 import { Check, Loader2 } from "lucide-react";
 import { PageTransition } from "../components/PageTransition";
 import { AuthFloatingNav } from "../components/AuthFloatingNav";
+import { PasswordInput } from "../components/PasswordInput";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the language context
 
 // --- Translation dictionary for the Register page ---
@@ -143,13 +144,11 @@ const RegisterPage = () => {
                         <label htmlFor="register-password" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
                             {t.password}
                         </label>
-                        <input
+                        <PasswordInput
                             id="register-password"
-                            type="password"
                             name="password"
                             value={form.password}
                             onChange={handleChange}
-                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
                             required
                         />
                     </div>

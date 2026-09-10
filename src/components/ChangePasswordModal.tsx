@@ -4,6 +4,7 @@ import { X, KeyRound, Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useLanguage } from "../context/LanguageContext";
 import { ModalOverlay } from "./ModalOverlay";
+import { PasswordInput } from "./PasswordInput";
 import { changePassword } from "../api/userApi";
 
 interface ChangePasswordModalProps {
@@ -31,6 +32,7 @@ const translations = {
         errMismatch: "Las contraseñas no coinciden.",
         errTooShort: "La nueva contraseña debe tener al menos 8 caracteres.",
         errWrongCurrent: "La contraseña actual es incorrecta.",
+        errSameAsCurrent: "La nueva contraseña debe ser distinta de la actual.",
         errGeneric: "No se pudo actualizar la contraseña. Inténtalo de nuevo.",
         successChange: "Contraseña actualizada.",
         successSet: "Contraseña creada."
@@ -49,6 +51,7 @@ const translations = {
         errMismatch: "The passwords don't match.",
         errTooShort: "The new password must be at least 8 characters long.",
         errWrongCurrent: "Your current password is incorrect.",
+        errSameAsCurrent: "The new password must be different from the current one.",
         errGeneric: "Couldn't update your password. Please try again.",
         successChange: "Password updated.",
         successSet: "Password created."
@@ -89,6 +92,10 @@ export const ChangePasswordModal = ({ isOpen, onClose, hasPassword }: ChangePass
             toast.error(t.errMismatch);
             return;
         }
+        if (hasPassword && newPassword === currentPassword) {
+            toast.error(t.errSameAsCurrent);
+            return;
+        }
 
         setSubmitting(true);
         try {
@@ -99,6 +106,8 @@ export const ChangePasswordModal = ({ isOpen, onClose, hasPassword }: ChangePass
             console.error("Error changing password:", error);
             if (isAxiosError(error) && error.response?.status === 400) {
                 toast.error(t.errWrongCurrent);
+            } else if (isAxiosError(error) && error.response?.status === 409) {
+                toast.error(t.errSameAsCurrent);
             } else {
                 toast.error(t.errGeneric);
             }
@@ -107,7 +116,6 @@ export const ChangePasswordModal = ({ isOpen, onClose, hasPassword }: ChangePass
         }
     };
 
-    const fieldClass = "w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300";
     const labelClass = "text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider";
 
     return (
@@ -135,42 +143,36 @@ export const ChangePasswordModal = ({ isOpen, onClose, hasPassword }: ChangePass
                         {hasPassword && (
                             <label className="flex flex-col gap-1.5">
                                 <span className={labelClass}>{t.lblCurrent}</span>
-                                <input
-                                    type="password"
+                                <PasswordInput
                                     value={currentPassword}
                                     onChange={(e) => setCurrentPassword(e.target.value)}
                                     autoComplete="current-password"
                                     autoFocus
                                     required
-                                    className={fieldClass}
                                 />
                             </label>
                         )}
 
                         <label className="flex flex-col gap-1.5">
                             <span className={labelClass}>{t.lblNew}</span>
-                            <input
-                                type="password"
+                            <PasswordInput
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
                                 autoComplete="new-password"
                                 minLength={NEW_PASSWORD_MIN_LENGTH}
                                 autoFocus={!hasPassword}
                                 required
-                                className={fieldClass}
                             />
                         </label>
 
                         <label className="flex flex-col gap-1.5">
                             <span className={labelClass}>{t.lblConfirm}</span>
-                            <input
-                                type="password"
+                            <PasswordInput
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 autoComplete="new-password"
                                 minLength={NEW_PASSWORD_MIN_LENGTH}
                                 required
-                                className={fieldClass}
                             />
                         </label>
 

@@ -5,6 +5,7 @@ import { Loader2, KeyRound, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { resetPassword } from "../api/authApi";
 import { PageTransition } from "../components/PageTransition";
 import { AuthFloatingNav } from "../components/AuthFloatingNav";
+import { PasswordInput } from "../components/PasswordInput";
 import { useLanguage } from "../context/LanguageContext";
 
 // --- Translation dictionary ---
@@ -140,15 +141,13 @@ const ResetPasswordPage = () => {
                         <label htmlFor="reset-new-password" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
                             {t.newPassword}
                         </label>
-                        <input
+                        <PasswordInput
                             id="reset-new-password"
-                            type="password"
                             autoComplete="new-password"
                             autoFocus
                             minLength={NEW_PASSWORD_MIN_LENGTH}
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
-                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
                             required
                         />
                     </div>
@@ -157,14 +156,12 @@ const ResetPasswordPage = () => {
                         <label htmlFor="reset-confirm-password" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors duration-300">
                             {t.confirmPassword}
                         </label>
-                        <input
+                        <PasswordInput
                             id="reset-confirm-password"
-                            type="password"
                             autoComplete="new-password"
                             minLength={NEW_PASSWORD_MIN_LENGTH}
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
-                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:bg-white dark:focus:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/30 focus:border-red-400 dark:focus:border-red-500 transition-all duration-300"
                             required
                         />
                     </div>
