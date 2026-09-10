@@ -125,6 +125,13 @@ const translations = {
         bulkDeletedToast: "Tareas eliminadas.",
         taskDeletedToast: "Tarea eliminada.",
         subjectDeletedToast: "Asignatura eliminada.",
+        subjectsSelectedOne: "1 asignatura seleccionada",
+        subjectsSelectedMany: "asignaturas seleccionadas",
+        bulkArchive: "Archivar",
+        confirmBulkDeleteSubjectsTitle: "¿Borrar asignaturas seleccionadas?",
+        confirmBulkDeleteSubjects: "¿Seguro que quieres eliminar las asignaturas seleccionadas? Sus tareas también se eliminarán.",
+        bulkArchivedSubjectsToast: "Asignaturas archivadas.",
+        bulkDeletedSubjectsToast: "Asignaturas eliminadas.",
         undoBtn: "Deshacer",
         palettePlaceholder: "Buscar asignaturas, tareas o escribe un comando...",
         paletteSubjectsGroup: "Asignaturas",
@@ -222,6 +229,13 @@ const translations = {
         bulkDeletedToast: "Tasks deleted.",
         taskDeletedToast: "Task deleted.",
         subjectDeletedToast: "Subject deleted.",
+        subjectsSelectedOne: "1 subject selected",
+        subjectsSelectedMany: "subjects selected",
+        bulkArchive: "Archive",
+        confirmBulkDeleteSubjectsTitle: "Delete selected subjects?",
+        confirmBulkDeleteSubjects: "Are you sure you want to delete the selected subjects? Their tasks will be deleted too.",
+        bulkArchivedSubjectsToast: "Subjects archived.",
+        bulkDeletedSubjectsToast: "Subjects deleted.",
         undoBtn: "Undo",
         palettePlaceholder: "Search subjects, tasks, or type a command...",
         paletteSubjectsGroup: "Subjects",
@@ -342,6 +356,15 @@ const DashboardPage = () => {
     // rather than per-subject state, since a selection can span subjects.
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedTaskKeys, setSelectedTaskKeys] = useState<Set<string>>(new Set());
+    // Subject-level counterpart of the above (2026-09-10) — same
+    // long-press/multi-select/bulk-toolbar system, applied to subjects
+    // instead of tasks. Kept as an entirely separate mode/state rather than
+    // reusing selectionMode/selectedTaskKeys: a subject's identity is just
+    // its own id (no "subjectId:taskId" compound key needed), and the two
+    // modes are mutually exclusive by construction (each entry point exits
+    // the other first) rather than needing to coexist.
+    const [subjectSelectionMode, setSubjectSelectionMode] = useState(false);
+    const [selectedSubjectIds, setSelectedSubjectIds] = useState<Set<number>>(new Set());
     const [archivedPopoverOpen, setArchivedPopoverOpen] = useState(false);
 
     const taskKey = (subjectId: number, taskId: number) => `${subjectId}:${taskId}`;
@@ -410,8 +433,96 @@ const DashboardPage = () => {
     // the long-pressed task already selected, same as the photo-gallery
     // pattern it's modeled on.
     const handleLongPressSelectTask = (subjectId: number, taskId: number) => {
+        exitSubjectSelectionMode();
         setSelectionMode(true);
         setSelectedTaskKeys(new Set([taskKey(subjectId, taskId)]));
+    };
+
+    // --- Subject selection (2026-09-10) — same system as tasks above,
+    // applied to subjects: mobile-only long-press entry, tap-anywhere-on-
+    // the-header toggling, auto-exit on deselecting the last one, and a
+    // bulk toolbar (Archive/Delete for any count, Edit for exactly one).
+    const handleToggleSelectSubject = (subjectId: number) => {
+        setSelectedSubjectIds(prev => {
+            const next = new Set(prev);
+            if (next.has(subjectId)) {
+                next.delete(subjectId);
+            } else {
+                next.add(subjectId);
+            }
+            if (next.size === 0) {
+                setSubjectSelectionMode(false);
+            }
+            return next;
+        });
+    };
+
+    const exitSubjectSelectionMode = () => {
+        setSubjectSelectionMode(false);
+        setSelectedSubjectIds(new Set());
+    };
+
+    // Toolbar-only action — editing only makes sense for a single subject.
+    // Reuses the same inline-edit-form mechanism the header's own
+    // (selection-mode-hidden) pencil icon uses.
+    const handleEditSelectedSubject = () => {
+        const [subjectId] = Array.from(selectedSubjectIds);
+        if (subjectId === undefined) return;
+        const subject = subjects.find(s => s.id === subjectId);
+        if (!subject) return;
+
+        exitSubjectSelectionMode();
+        setUpdatedSubject({ name: subject.name, description: subject.description || "" });
+        setOpenFormUpdateSubject(subjectId);
+    };
+
+    const handleLongPressSelectSubject = (subjectId: number) => {
+        exitSelectionMode();
+        setSubjectSelectionMode(true);
+        setSelectedSubjectIds(new Set([subjectId]));
+    };
+
+    // Calls the raw API functions directly (not handleArchiveSubject),
+    // same reasoning as handleBulkComplete/handleBulkDelete below not
+    // calling handleToggleTask/handleDeleteTask: those per-subject
+    // handlers have their own single-item toast, which would fire once per
+    // subject if just fanned out — this does one bulk toast instead.
+    const handleBulkArchiveSubjects = async () => {
+        const ids = Array.from(selectedSubjectIds);
+        try {
+            await Promise.all(ids.map(id => {
+                const subject = subjects.find(s => s.id === id);
+                const isCurrentlyArchived = subject?.archived || false;
+                return archiveSubject(id, !isCurrentlyArchived);
+            }));
+            toast.success(t.bulkArchivedSubjectsToast);
+            exitSubjectSelectionMode();
+            await refreshData();
+        } catch (err) {
+            console.error("Error archiving selected subjects:", err);
+            toast.error(t.errGeneric);
+        }
+    };
+
+    const handleBulkDeleteSubjects = async () => {
+        if (!(await confirm({ title: t.confirmBulkDeleteSubjectsTitle, message: t.confirmBulkDeleteSubjects }))) return;
+        const ids = Array.from(selectedSubjectIds);
+        try {
+            await Promise.all(ids.map(id => deleteSubject(id)));
+            showUndoToast(t.bulkDeletedSubjectsToast, async () => {
+                try {
+                    await Promise.all(ids.map(id => restoreSubject(id)));
+                    await refreshData();
+                } catch {
+                    toast.error(t.errGeneric);
+                }
+            });
+            exitSubjectSelectionMode();
+            await refreshData();
+        } catch (err) {
+            console.error("Error deleting selected subjects:", err);
+            toast.error(t.errGeneric);
+        }
     };
 
     const handleBulkComplete = async () => {
@@ -1024,6 +1135,8 @@ const DashboardPage = () => {
                 setOpenFormSubjectIdTaskId(null);
             } else if (selectionMode) {
                 exitSelectionMode();
+            } else if (subjectSelectionMode) {
+                exitSubjectSelectionMode();
             } else if (searchQuery) {
                 setSearchQuery("");
             }
@@ -1045,6 +1158,7 @@ const DashboardPage = () => {
         openFormUpdateSubject,
         openFormSubjectIdTaskId,
         selectionMode,
+        subjectSelectionMode,
         searchQuery
     ]);
 
@@ -1474,10 +1588,49 @@ const DashboardPage = () => {
                                     )}
                                 </div>
 
-                                {/* Bulk task actions toggle / active selection toolbar */}
+                                {/* Bulk task/subject actions toggle / active selection toolbar —
+                                    subjectSelectionMode and selectionMode are mutually exclusive
+                                    (each entry point exits the other), so this 3-way branch never
+                                    has to decide between two active toolbars at once. */}
                                 {subjects.length > 0 && (
                                     <div className="flex items-center justify-between mb-4 min-h-[36px]">
-                                        {selectionMode ? (
+                                        {subjectSelectionMode ? (
+                                            <>
+                                                <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+                                                    {selectedSubjectIds.size === 1 ? t.subjectsSelectedOne : `${selectedSubjectIds.size} ${t.subjectsSelectedMany}`}
+                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={exitSubjectSelectionMode}
+                                                        className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                                    >
+                                                        {t.cancelSelection}
+                                                    </button>
+                                                    {selectedSubjectIds.size === 1 && (
+                                                        <button
+                                                            onClick={handleEditSelectedSubject}
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors"
+                                                        >
+                                                            <Pencil size={14} /> {t.bulkEdit}
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={handleBulkArchiveSubjects}
+                                                        disabled={selectedSubjectIds.size === 0}
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                                                    >
+                                                        <Archive size={14} /> {t.bulkArchive}
+                                                    </button>
+                                                    <button
+                                                        onClick={handleBulkDeleteSubjects}
+                                                        disabled={selectedSubjectIds.size === 0}
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                                                    >
+                                                        <Trash2 size={14} /> {t.bulkDelete}
+                                                    </button>
+                                                </div>
+                                            </>
+                                        ) : selectionMode ? (
                                             <>
                                                 <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">
                                                     {selectedTaskKeys.size === 1 ? t.tasksSelectedOne : `${selectedTaskKeys.size} ${t.tasksSelectedMany}`}
@@ -1568,7 +1721,7 @@ const DashboardPage = () => {
                                                     would just be redundant chrome cramped next to the
                                                     priority-sort button above. */}
                                                 <button
-                                                    onClick={() => setSelectionMode(true)}
+                                                    onClick={() => { exitSubjectSelectionMode(); setSelectionMode(true); }}
                                                     className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
                                                 >
                                                     <CheckSquare size={16} /> {t.selectTasks}
@@ -1641,6 +1794,10 @@ const DashboardPage = () => {
                                                     selectedTaskKeys={selectedTaskKeys}
                                                     onToggleSelectTask={handleToggleSelectTask}
                                                     onLongPressSelectTask={handleLongPressSelectTask}
+                                                    subjectSelectionMode={subjectSelectionMode}
+                                                    isSubjectSelected={selectedSubjectIds.has(subject.id)}
+                                                    onToggleSelectSubject={handleToggleSelectSubject}
+                                                    onLongPressSelectSubject={handleLongPressSelectSubject}
                                                 />
                                             </div>
                                         );

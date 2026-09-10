@@ -1,10 +1,18 @@
-import { Pencil, Archive, X, Plus, Repeat } from "lucide-react";
+import { Check, Pencil, Archive, X, Plus, Repeat } from "lucide-react";
 import { TaskItem } from "./TaskItem";
 import { RecurrenceFieldset } from "./RecurrenceFieldset";
-import { Suspense, lazy, useState, memo } from "react";
+import { Suspense, lazy, useRef, useState, memo } from "react";
 import type { SubjectWithTasks, TaskPriority } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import type { RecurrenceState } from "../utils/recurrenceUtils";
+import { triggerHapticFeedback } from "../utils/feedback";
+
+// Same gallery-style long-press-to-select as TaskItem.tsx/OverdueTaskRow.tsx,
+// applied to a subject's header instead of a task row (2026-09-10). Kept as
+// its own copy rather than a shared hook — see OverdueTaskRow.tsx's note on
+// why this codebase hand-rolls each touch gesture separately.
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_MOVE_THRESHOLD_PX = 10;
 
 // Only needed once the user opens the recurring-routines modal for a subject.
 const RecurringTasksModal = lazy(() => import("./RecurringTasksModal").then(m => ({ default: m.RecurringTasksModal })));
@@ -41,6 +49,10 @@ interface SubjectSectionProps {
     selectedTaskKeys?: Set<string>;
     onToggleSelectTask?: (subjectId: number, taskId: number) => void;
     onLongPressSelectTask?: (subjectId: number, taskId: number) => void;
+    subjectSelectionMode?: boolean;
+    isSubjectSelected?: boolean;
+    onToggleSelectSubject?: (subjectId: number) => void;
+    onLongPressSelectSubject?: (subjectId: number) => void;
 }
 
 // --- Translation dictionary for SubjectSection ---
@@ -50,6 +62,7 @@ const translations = {
         ttEditSubject: "Editar asignatura",
         ttArchive: "Archivar asignatura",
         ttDelete: "Eliminar asignatura",
+        ttSelectSubject: "Seleccionar asignatura",
         editSubjectTitle: "Editar asignatura",
         lblName: "Nombre",
         lblDesc: "Descripción",
@@ -86,6 +99,7 @@ const translations = {
         ttEditSubject: "Edit subject",
         ttArchive: "Archive subject",
         ttDelete: "Delete subject",
+        ttSelectSubject: "Select subject",
         editSubjectTitle: "Edit subject",
         lblName: "Name",
         lblDesc: "Description",
@@ -150,37 +164,120 @@ export const SubjectSection = memo(({
     selectionMode,
     selectedTaskKeys,
     onToggleSelectTask,
-    onLongPressSelectTask
+    onLongPressSelectTask,
+    subjectSelectionMode,
+    isSubjectSelected,
+    onToggleSelectSubject,
+    onLongPressSelectSubject
 }: SubjectSectionProps) => {
 
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
 
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
-    
+
     const normalTasks = subject.tasks.filter((task) => !task.overdue);
+
+    const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const longPressStartRef = useRef<{ x: number; y: number } | null>(null);
+
+    const clearLongPressTimer = () => {
+        if (longPressTimerRef.current) {
+            clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+        }
+        longPressStartRef.current = null;
+    };
+
+    const handleHeaderTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+        if (subjectSelectionMode || !onLongPressSelectSubject) return;
+        const touch = e.touches[0];
+        longPressStartRef.current = { x: touch.clientX, y: touch.clientY };
+        longPressTimerRef.current = setTimeout(() => {
+            longPressTimerRef.current = null;
+            if (localStorage.getItem("taskFeedbackEnabled") !== "false") {
+                triggerHapticFeedback();
+            }
+            onLongPressSelectSubject(subject.id);
+        }, LONG_PRESS_MS);
+    };
+
+    const handleHeaderTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+        const start = longPressStartRef.current;
+        if (!start || !longPressTimerRef.current) return;
+        const touch = e.touches[0];
+        const deltaX = Math.abs(touch.clientX - start.x);
+        const deltaY = Math.abs(touch.clientY - start.y);
+        if (deltaX > LONG_PRESS_MOVE_THRESHOLD_PX || deltaY > LONG_PRESS_MOVE_THRESHOLD_PX) {
+            clearLongPressTimer();
+        }
+    };
 
     return (
         <div key={subject.id} className="group/section">
-            
-            <div className="group/header flex items-start justify-between gap-4 mb-3 border-b border-gray-100 dark:border-gray-800 pb-2 transition-colors duration-300">
-                <div className="flex flex-col">
-                    <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight">
-                        {subject.name}
-                    </h2>
-                    {subject.description && (
-                        <span className="text-xs text-gray-500 dark:text-gray-500 font-medium mt-0.5">
-                            {subject.description}
-                        </span>
+
+            <div
+                onClick={() => { if (subjectSelectionMode) onToggleSelectSubject?.(subject.id); }}
+                onTouchStart={handleHeaderTouchStart}
+                onTouchMove={handleHeaderTouchMove}
+                onTouchEnd={clearLongPressTimer}
+                onTouchCancel={clearLongPressTimer}
+                className={`group/header flex items-start justify-between gap-4 mb-3 border-b pb-2 rounded-lg transition-colors duration-300 no-hover:select-none no-hover:[-webkit-touch-callout:none] ${
+                    subjectSelectionMode && isSubjectSelected
+                        ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 px-2 -mx-2"
+                        : "border-gray-100 dark:border-gray-800"
+                }`}
+            >
+                <div className="flex items-start gap-3">
+                    {/* Selection checkbox — only rendered in subjectSelectionMode,
+                        same shape/behavior as TaskItem's own checkbox reused for
+                        selection (2026-09-10). Subjects have no "completed"
+                        concept to double up on, so this is purely additive. */}
+                    {subjectSelectionMode && (
+                        <button
+                            onClick={() => onToggleSelectSubject?.(subject.id)}
+                            role="checkbox"
+                            aria-checked={isSubjectSelected}
+                            aria-label={t.ttSelectSubject}
+                            title={t.ttSelectSubject}
+                            className={`w-6 h-6 mt-0.5 shrink-0 rounded-full border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-500 ${
+                                isSubjectSelected
+                                    ? "bg-blue-500 border-blue-500"
+                                    : "border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 bg-white dark:bg-transparent"
+                            }`}
+                        >
+                            <Check size={12} color="white" className={`transition-all duration-200 ${isSubjectSelected ? "scale-100 opacity-100" : "scale-0 opacity-0"}`} />
+                        </button>
                     )}
+                    <div className="flex flex-col">
+                        <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight">
+                            {subject.name}
+                        </h2>
+                        {subject.description && (
+                            <span className="text-xs text-gray-500 dark:text-gray-500 font-medium mt-0.5">
+                                {subject.description}
+                            </span>
+                        )}
+                    </div>
                 </div>
-                
-                <div className="flex items-center gap-1 opacity-100 [@media(any-hover:hover)]:opacity-0 [@media(any-hover:hover)]:group-hover/header:opacity-100 transition-opacity duration-200 shrink-0">
-                    <button type="button" className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition" onClick={() => setIsRecurringModalOpen(true)} title={t.ttRoutines}><Repeat size={16} /></button>
-                    <button type="button" className="p-1.5 text-gray-500 hover:text-yellow-600 hover:bg-yellow-50 dark:hover:text-yellow-400 dark:hover:bg-yellow-900/30 rounded-lg transition" onClick={() => { setOpenFormUpdateSubject(subject.id); setUpdatedSubject({ name: subject.name, description: subject.description || "" }); }} title={t.ttEditSubject}><Pencil size={16} /></button>
-                    <button type="button" className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition" onClick={() => { handleArchiveSubject(subject.id); }} title={t.ttArchive}><Archive size={16} /></button>
-                    <button type="button" className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition" onClick={() => { handleDeleteSubject(subject.id); }} title={t.ttDelete}><X size={16} /></button>
-                </div>
+
+                {/* ACTION BUTTONS — hidden entirely during selection mode (the
+                    header's own checkbox/highlight takes over). Split in two:
+                    Routines has no bulk-toolbar equivalent, so it stays
+                    reachable on touch devices; Edit/Archive/Delete are
+                    can-hover-only now that long-press + the bulk toolbar's
+                    Edit (single)/Archive/Delete (any count) cover mobile
+                    (2026-09-10, same reasoning as TaskItem.tsx's icons). */}
+                {!subjectSelectionMode && (
+                    <div className="flex items-center gap-1 shrink-0">
+                        <button type="button" className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition opacity-100 [@media(any-hover:hover)]:opacity-0 [@media(any-hover:hover)]:group-hover/header:opacity-100 transition-opacity duration-200" onClick={() => setIsRecurringModalOpen(true)} title={t.ttRoutines}><Repeat size={16} /></button>
+                        <div className="hidden can-hover:flex items-center gap-1 [@media(any-hover:hover)]:opacity-0 [@media(any-hover:hover)]:group-hover/header:opacity-100 transition-opacity duration-200">
+                            <button type="button" className="p-1.5 text-gray-500 hover:text-yellow-600 hover:bg-yellow-50 dark:hover:text-yellow-400 dark:hover:bg-yellow-900/30 rounded-lg transition" onClick={() => { setOpenFormUpdateSubject(subject.id); setUpdatedSubject({ name: subject.name, description: subject.description || "" }); }} title={t.ttEditSubject}><Pencil size={16} /></button>
+                            <button type="button" className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition" onClick={() => { handleArchiveSubject(subject.id); }} title={t.ttArchive}><Archive size={16} /></button>
+                            <button type="button" className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition" onClick={() => { handleDeleteSubject(subject.id); }} title={t.ttDelete}><X size={16} /></button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* EDIT SUBJECT FORM */}
