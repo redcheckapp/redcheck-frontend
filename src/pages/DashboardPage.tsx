@@ -2,7 +2,7 @@ import { Sidebar } from "../components/Sidebar";
 import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
 import { useState, useEffect, useMemo, useRef, useCallback, Suspense, lazy } from "react";
-import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2, Settings, Moon, Sun, Languages, Archive, HelpCircle, ArrowUpDown, MessageSquarePlus, Clock3, Repeat } from "lucide-react";
+import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2, Settings, Moon, Sun, Languages, Archive, HelpCircle, ArrowUpDown, MessageSquarePlus, Clock3, Repeat, Pencil } from "lucide-react";
 import { ArchivedSubjectsPopover } from "../components/ArchivedSubjectsPopover";
 import type { CommandAction } from "../components/CommandPalette";
 import { ProgressHeatmap } from "../components/ProgressHeatmap";
@@ -117,6 +117,7 @@ const translations = {
         tasksSelectedOne: "1 tarea seleccionada",
         tasksSelectedMany: "tareas seleccionadas",
         bulkComplete: "Completar",
+        bulkEdit: "Editar",
         bulkDelete: "Eliminar",
         confirmBulkDeleteTitle: "¿Borrar tareas seleccionadas?",
         confirmBulkDelete: "¿Seguro que quieres eliminar las tareas seleccionadas?",
@@ -213,6 +214,7 @@ const translations = {
         tasksSelectedOne: "1 task selected",
         tasksSelectedMany: "tasks selected",
         bulkComplete: "Complete",
+        bulkEdit: "Edit",
         bulkDelete: "Delete",
         confirmBulkDeleteTitle: "Delete selected tasks?",
         confirmBulkDelete: "Are you sure you want to delete the selected tasks?",
@@ -366,6 +368,40 @@ const DashboardPage = () => {
     const exitSelectionMode = () => {
         setSelectionMode(false);
         setSelectedTaskKeys(new Set());
+    };
+
+    // Toolbar-only action (see the selection toolbar below) — editing only
+    // makes sense for a single task, so the "Edit" button there only
+    // renders when selectedTaskKeys.size === 1. Reuses the same
+    // inline-edit-form mechanism the row's own pencil icon uses (hidden
+    // during selection mode) — populates updatedTask and opens the form via
+    // openFormSubjectIdTaskId — but exits selection mode first, since the
+    // row's edit form and the bulk toolbar shouldn't both be on screen.
+    const handleEditSelectedTask = () => {
+        const [key] = Array.from(selectedTaskKeys);
+        if (!key) return;
+        const [subjectIdStr, taskIdStr] = key.split(":");
+        const subjectId = Number(subjectIdStr);
+        const taskId = Number(taskIdStr);
+        const task = subjects.find(s => s.id === subjectId)?.tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        exitSelectionMode();
+
+        let formattedDate = "";
+        if (task.deadline) {
+            const d = new Date(task.deadline);
+            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+            formattedDate = d.toISOString().slice(0, 16);
+        }
+
+        setUpdatedTask({
+            title: task.title,
+            description: task.description || "",
+            deadline: formattedDate,
+            priority: task.priority
+        });
+        setOpenFormSubjectIdTaskId({ subjectId, taskId });
     };
 
     // Mobile-only entry point into selection mode (gallery-style long-press
@@ -1453,6 +1489,14 @@ const DashboardPage = () => {
                                                     >
                                                         {t.cancelSelection}
                                                     </button>
+                                                    {selectedTaskKeys.size === 1 && (
+                                                        <button
+                                                            onClick={handleEditSelectedTask}
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors"
+                                                        >
+                                                            <Pencil size={14} /> {t.bulkEdit}
+                                                        </button>
+                                                    )}
                                                     <button
                                                         onClick={handleBulkComplete}
                                                         disabled={selectedTaskKeys.size === 0}
