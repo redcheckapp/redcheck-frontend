@@ -1,19 +1,24 @@
-import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, memo, lazy, Suspense, type TouchEvent, type KeyboardEvent, type DragEvent, type CSSProperties } from "react";
+import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, memo, lazy, Suspense, type TouchEvent, type KeyboardEvent, type DragEvent, type MouseEvent, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
-import { ChevronLeft, ChevronRight, Clock, CalendarDays, Plus, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, CalendarDays, Plus, Check, ListTodo, CalendarRange } from "lucide-react";
 import { getProgressHeatmap } from "../api/progressRecordApi";
 import { getTasksForDateRange } from "../api/taskApi";
-import type { ProgressRecord, SubjectWithTasks, TaskPriority, TaskRequest, TaskResponse } from "../types";
+import { getCalendarEventsForDateRange, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "../api/calendarEventApi";
+import { createRecurringCalendarEvent } from "../api/recurringCalendarEventApi";
+import { getEventCategories } from "../api/eventCategoryApi";
+import type { ProgressRecord, SubjectWithTasks, TaskPriority, TaskRequest, TaskResponse, CalendarEventResponse, CalendarEventRequest, RecurringCalendarEventRequest, EventCategoryResponse } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import { getSubjectColor } from "../utils/subjectColors";
 import { getPriorityColor } from "../utils/priorityColors";
+import { DEFAULT_EVENT_COLOR } from "../utils/eventCategoryColors";
 import { DayOffIllustration } from "./illustrations/DayOffIllustration";
 
 // Only needed once the user opens the create/edit task modal from the
 // calendar — split out of the main AgendaView chunk, same pattern as the
 // dashboard's own on-demand modals (SettingsModal, TrashView, etc.).
 const CalendarTaskModal = lazy(() => import("./CalendarTaskModal").then(m => ({ default: m.CalendarTaskModal })));
+const CalendarEventModal = lazy(() => import("./CalendarEventModal").then(m => ({ default: m.CalendarEventModal })));
 
 type ViewMode = "day" | "week" | "month";
 
@@ -44,6 +49,15 @@ type TaskModalState =
     | { mode: "create"; date: Date; defaultSubjectId: number | null }
     | { mode: "edit"; task: TaskResponse };
 
+// Same shape, for the separate calendar-events domain (CalendarEventModal).
+// Events are never tied to a subject, so there's no defaultSubjectId here.
+// `endDate` is only ever set by Day view's drag-to-create (see
+// handleTimelineMouseDown) — every other entry point (the "+" chooser)
+// only knows a single clicked date/hour.
+type EventModalState =
+    | { mode: "create"; date: Date; endDate?: Date }
+    | { mode: "edit"; event: CalendarEventResponse };
+
 // --- Translation dictionary for AgendaView ---
 const translations = {
     es: {
@@ -54,13 +68,18 @@ const translations = {
         lblViewTasks: "Ver tareas",
         lblAllDay: "Todo el día",
         moreTasks: "más",
+        moreEvents: "más",
+        noCategory: "Sin categoría",
+        chooserTask: "Tarea",
+        chooserEvent: "Evento",
         jumpToDate: "Ir a una fecha",
         prevPeriod: "Periodo anterior",
         nextPeriod: "Periodo siguiente",
         prevMonth: "Mes anterior",
         nextMonth: "Mes siguiente",
-        addTaskTitle: "Añadir tarea",
+        addTaskTitle: "Añadir",
         btnAddTask: "Añadir tarea",
+        btnAddEvent: "Añadir evento",
         dayOffTitle: "¡Día libre!",
         dayOffDesc: "No hay tareas programadas para este día.",
         ttToggleComplete: "Marcar como completada",
@@ -80,13 +99,18 @@ const translations = {
         lblViewTasks: "View tasks",
         lblAllDay: "All day",
         moreTasks: "more",
+        moreEvents: "more",
+        noCategory: "No category",
+        chooserTask: "Task",
+        chooserEvent: "Event",
         jumpToDate: "Jump to a date",
         prevPeriod: "Previous period",
         nextPeriod: "Next period",
         prevMonth: "Previous month",
         nextMonth: "Next month",
-        addTaskTitle: "Add task",
+        addTaskTitle: "Add",
         btnAddTask: "Add task",
+        btnAddEvent: "Add event",
         dayOffTitle: "Day off!",
         dayOffDesc: "No tasks scheduled for this day.",
         ttToggleComplete: "Mark as complete",
@@ -174,8 +198,123 @@ const getHistoricalTasksForDate = (
         .sort((a, b) => (a.completed === b.completed) ? 0 : a.completed ? 1 : -1);
 };
 
+// Calendar events for a given day: unlike tasks (a single point in time),
+// an event is an interval — it "occurs" on day D whenever [startDateTime,
+// endDateTime] overlaps [D 00:00, D 23:59], covering punctual, all-day and
+// multi-day events alike with one comparison (mirrors redcheck-backend's
+// CalendarEventRepository#findAllByUser_IdAndDateRange). Independent of
+// `showTasks`/getMergedTasksForDate — hiding tasks shouldn't hide events,
+// they're a separate content type on the same calendar.
+const getEventsForDate = (events: CalendarEventResponse[], date: Date): CalendarEventResponse[] => {
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+    return events
+        .filter(ev => new Date(ev.startDateTime).getTime() <= dayEnd.getTime() && new Date(ev.endDateTime).getTime() >= dayStart.getTime())
+        .sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime());
+};
+
 const DAY_VIEW_HOUR_START = 0;
 const DAY_VIEW_HOUR_END = 23;
+
+// Matches the hourly grid's own h-20 row height (80px = 5rem at the default
+// 16px root) — every Day-view vertical-position formula in this file (the
+// "now" line, and the event-block layout below) is pinned to this constant.
+const DAY_VIEW_ROW_HEIGHT_REM = 5;
+// A block shorter than this (e.g. a 5-minute event) still gets this much
+// height so its title stays legible/clickable — same reasoning Google
+// Calendar and similar apps use for a minimum event-block size.
+const MIN_EVENT_BLOCK_HEIGHT_REM = 1.5;
+
+// Renders "minutes since midnight" as a localized "HH:MM" — used only for
+// the drag-to-create ghost preview's live time label; the actual Date
+// objects handed to the modal are built straight from the drag's
+// start/end minutes (see handleTimelineMouseDown), this is purely display.
+const formatMinutesOfDay = (minutes: number) =>
+    new Date(2000, 0, 1, 0, minutes).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+interface DayEventBlock {
+    event: CalendarEventResponse;
+    start: Date; // clipped to this day's [00:00, 24:00) window
+    end: Date;
+    startMinutes: number; // minutes since this day's midnight
+    endMinutes: number;
+    col: number; // 0-based column within its overlap cluster
+    totalCols: number; // column count of that cluster, for width division
+}
+
+// Lays out this day's *timed* (non-allDay) events as Google-Calendar-style
+// blocks spanning their real duration: each gets a `top`/`height` (via
+// startMinutes/endMinutes, see renderDayEventBlock) and, when two or more
+// overlap in time, a `col`/`totalCols` pair so they sit side by side instead
+// of on top of each other. All-day events never reach this function — they
+// stay in the separate all-day strip.
+//
+// Two passes: (1) clip every event's interval to this day's window and sort
+// by start; (2) sweep through in order, grouping consecutive events into
+// "clusters" (a run where each event starts before the running max end of
+// the cluster so far — the standard interval-overlap grouping), then within
+// each cluster greedily assign the lowest free column (freed once that
+// column's current occupant has ended). A cluster's own column count is
+// used as `totalCols` for every event in it, so unrelated overlaps
+// elsewhere in the day don't needlessly narrow these blocks.
+const layoutTimedEventsForDay = (events: CalendarEventResponse[], date: Date): DayEventBlock[] => {
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayEnd.getDate() + 1);
+
+    const clipped = events
+        .filter(ev => !ev.allDay)
+        .map(ev => {
+            const rawStart = new Date(ev.startDateTime);
+            const rawEnd = new Date(ev.endDateTime);
+            const start = rawStart < dayStart ? dayStart : rawStart;
+            const end = rawEnd > dayEnd ? dayEnd : rawEnd;
+            const startMinutes = (start.getTime() - dayStart.getTime()) / 60000;
+            // A punctual event (start === end) still gets a sliver of
+            // height via this floor, same spirit as MIN_EVENT_BLOCK_HEIGHT_REM.
+            const endMinutes = Math.max(startMinutes + 15, (end.getTime() - dayStart.getTime()) / 60000);
+            return { event: ev, start, end, startMinutes, endMinutes };
+        })
+        .sort((a, b) => a.startMinutes - b.startMinutes || a.endMinutes - b.endMinutes);
+
+    const results: DayEventBlock[] = [];
+    let clusterStart = 0;
+    while (clusterStart < clipped.length) {
+        let clusterEnd = clipped[clusterStart].endMinutes;
+        let i = clusterStart + 1;
+        while (i < clipped.length && clipped[i].startMinutes < clusterEnd) {
+            clusterEnd = Math.max(clusterEnd, clipped[i].endMinutes);
+            i++;
+        }
+
+        const openCols: (number | null)[] = [];
+        for (let j = clusterStart; j < i; j++) {
+            const item = clipped[j];
+            for (let c = 0; c < openCols.length; c++) {
+                if (openCols[c] !== null && (openCols[c] as number) <= item.startMinutes) openCols[c] = null;
+            }
+            let col = openCols.findIndex(c => c === null);
+            if (col === -1) {
+                col = openCols.length;
+                openCols.push(null);
+            }
+            openCols[col] = item.endMinutes;
+            results.push({ ...item, col, totalCols: 0 }); // totalCols backfilled below
+        }
+
+        const totalCols = openCols.length;
+        for (let k = results.length - (i - clusterStart); k < results.length; k++) {
+            results[k].totalCols = totalCols;
+        }
+
+        clusterStart = i;
+    }
+
+    return results;
+};
 
 // Week cells are one tall row (vs. Month's up to six short ones), so they
 // can comfortably fit more real task cards before falling back to "+N more".
@@ -211,7 +350,7 @@ const DatePickerPopover = ({ selectedDate, onSelect, onClose, weekDays, months, 
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
+        const handleClickOutside = (e: globalThis.MouseEvent) => {
             if (containerRef.current && !containerRef.current.contains(e.target as Node)) onClose();
         };
         const handleEscKeyDown = (e: globalThis.KeyboardEvent) => {
@@ -347,6 +486,19 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
     const refreshHistory = () => setHistoryRefreshTick(tick => tick + 1);
     const [datePickerOpen, setDatePickerOpen] = useState(false);
     const [taskModalState, setTaskModalState] = useState<TaskModalState | null>(null);
+    const [eventModalState, setEventModalState] = useState<EventModalState | null>(null);
+    // Add-chooser popover (Tarea/Evento), opened from every "+" affordance
+    // instead of jumping straight into CalendarTaskModal like before — see
+    // openAddChooser below.
+    const [addChooser, setAddChooser] = useState<{ date: Date; rect: DOMRect } | null>(null);
+    // Calendar events (separate domain from tasks — see CalendarEvent vs
+    // Task in redcheck-backend): fetched for the same visible range as
+    // historicalTasks, but unconditionally (there's no "live" subjects-like
+    // source for events the way today/future tasks have `subjects`).
+    const [events, setEvents] = useState<CalendarEventResponse[]>([]);
+    const [eventsRefreshTick, setEventsRefreshTick] = useState(0);
+    const refreshEvents = () => setEventsRefreshTick(tick => tick + 1);
+    const [categories, setCategories] = useState<EventCategoryResponse[]>([]);
     const [transitionVariant, setTransitionVariant] = useState<TransitionVariant>("fade");
     // Month view's "+N more" hover preview (see the popover render near the
     // bottom of this component). Cleared on every navigation below, not
@@ -472,6 +624,42 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
         setTaskModalState({ mode: "edit", task });
     };
 
+    const openCreateEventModal = (date: Date, endDate?: Date) => {
+        setEventModalState({ mode: "create", date, endDate });
+    };
+    const openEditEventModal = (event: CalendarEventResponse) => {
+        setEventModalState({ mode: "edit", event });
+    };
+
+    // Every "+" affordance (Month/Week cell, Day hour row) opens this small
+    // chooser instead of jumping straight into task creation — mirrors
+    // Google Calendar's own "Task or Event?" prompt. Anchored off the
+    // clicked button's own rect, same positioning approach as morePopover.
+    const openAddChooser = (e: MouseEvent<HTMLButtonElement>, date: Date) => {
+        e.stopPropagation();
+        setAddChooser({ date, rect: e.currentTarget.getBoundingClientRect() });
+    };
+
+    const handleCreateEvent = async (data: CalendarEventRequest) => {
+        await createCalendarEvent(data);
+        refreshEvents();
+    };
+    // A recurring event's first occurrence is generated by the backend
+    // scheduler on its next daily tick (mirrors RecurringTask), never
+    // synchronously here — nothing to refetch immediately, unlike a
+    // one-off event.
+    const handleCreateRecurringEvent = async (data: RecurringCalendarEventRequest) => {
+        await createRecurringCalendarEvent(data);
+    };
+    const handleUpdateEvent = async (eventId: number, data: CalendarEventRequest) => {
+        await updateCalendarEvent(eventId, data);
+        refreshEvents();
+    };
+    const handleDeleteEvent = async (eventId: number) => {
+        await deleteCalendarEvent(eventId);
+        refreshEvents();
+    };
+
     // CalendarTaskModal's onCreate/onUpdate/onDelete straight through would
     // skip refreshHistory() — needed so a past-day task created/edited/
     // deleted from the calendar shows up immediately instead of only after
@@ -526,6 +714,20 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
         };
         fetchHeatmap();
     }, []);
+
+    // Event categories: fetched once (like the heatmap above) and refetched
+    // on demand after a create/delete inside CalendarEventModal — passed
+    // down as `onCategoriesChanged` so the modal doesn't need its own
+    // separate category state.
+    const fetchCategories = useCallback(async () => {
+        try {
+            const data = await getEventCategories();
+            setCategories(data);
+        } catch (error) {
+            console.error("Error loading event categories:", error);
+        }
+    }, []);
+    useEffect(() => { fetchCategories(); }, [fetchCategories]);
 
     const handlePrev = () => {
         setTransitionVariant("prev");
@@ -690,6 +892,27 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
         return () => { cancelled = true; };
     }, [historicalRange, historyRefreshTick]);
 
+    // Calendar events for the visible range — unlike the task-history fetch
+    // above, this always runs (past, present or future range alike), since
+    // events have no separate "live" source the way today/future tasks have
+    // `subjects`. `eventsRefreshTick` forces a refetch after a create/
+    // update/delete reaches the calendar, same reasoning as
+    // `historyRefreshTick`.
+    useEffect(() => {
+        let cancelled = false;
+        const fetchEvents = async () => {
+            try {
+                const data = await getCalendarEventsForDateRange(formatDateKey(historicalRange.from), formatDateKey(historicalRange.to));
+                if (!cancelled) setEvents(data);
+            } catch (error) {
+                console.error("Error loading calendar events:", error);
+                if (!cancelled) setEvents([]);
+            }
+        };
+        fetchEvents();
+        return () => { cancelled = true; };
+    }, [historicalRange, eventsRefreshTick]);
+
     // Per-day task lookup used everywhere below: `subjects` (live-synced,
     // but pending/completed-today only) for today/future, the fetched
     // calendar-history data for past days. `showTasks` is checked first,
@@ -712,6 +935,10 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
         [getMergedTasksForDate, currentDate]
     );
 
+    const categoryById = useMemo(() => new Map(categories.map(c => [c.id, c])), [categories]);
+
+    const eventsForCurrentDay = useMemo(() => getEventsForDate(events, currentDate), [events, currentDate]);
+
     // Day view now spans the full 24h, so an empty midnight can't be the
     // first thing shown on open — scroll the shared hour container to the
     // current hour (today) or the old 8am default (any other day) whenever
@@ -722,7 +949,7 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
     const dayScrollRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
         if (view !== "day" || !dayScrollRef.current) return;
-        if (tasksForCurrentDay.length === 0) {
+        if (tasksForCurrentDay.length === 0 && eventsForCurrentDay.length === 0) {
             dayScrollRef.current.scrollTop = 0;
             return;
         }
@@ -731,16 +958,96 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
         dayScrollRef.current.scrollTop = Math.max(0, (targetHour - 1) * 80);
         // todayObj is a fresh `new Date()` every render, not a stable value to
         // depend on — this should only re-run when the visible view/date (or
-        // whether *this* day has any tasks) changes, not on every unrelated
-        // re-render, which would fight the user's own manual scrolling.
+        // whether *this* day has any tasks/events) changes, not on every
+        // unrelated re-render, which would fight the user's own manual
+        // scrolling.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [view, currentDate, tasksForCurrentDay.length === 0]);
+    }, [view, currentDate, tasksForCurrentDay.length === 0, eventsForCurrentDay.length === 0]);
+
+    // --- Day view: press-and-drag to create a timed event ------------
+    // Google-Calendar-style click-and-drag on empty timeline space: press
+    // down, drag, and the dragged span becomes the new event's start/end.
+    // A plain click (no real drag) intentionally does nothing here, same
+    // as today — only the hover "+" chooser creates from a single click.
+    // Mouse-only by design, same as the chip drag-and-drop above: mobile
+    // has no equivalent gesture here, and dragging out a precise time
+    // range on a touchscreen with no live preview would be a poor
+    // experience anyway.
+    const dayTimelineRef = useRef<HTMLDivElement>(null);
+    const [dayDragCreate, setDayDragCreate] = useState<{ startMinutes: number; currentMinutes: number } | null>(null);
+
+    // Minutes since this day's midnight for a given viewport Y coordinate,
+    // snapped to 15-minute increments (matching Google Calendar's own
+    // default drag-snap granularity) and clamped to the visible 0-24h
+    // range. Deliberately does NOT assume "80px === 1 hour" the way the
+    // CSS-only positioning elsewhere in this file can (the "now" line,
+    // renderDayEventBlock size themselves in `rem`, so they automatically
+    // stay in sync with whatever the live root font-size is) — this runs
+    // in JS against raw pixel mouse coordinates, and index.css's rule #3
+    // shrinks the root font-size to 80% on desktop (a deliberate compact-
+    // scale), so a real hour row renders at 64px there, not 80px. Dividing
+    // the timeline's own measured height by its total minute span gets
+    // the actual live px-per-minute regardless of that scale (or any
+    // future change to DAY_VIEW_ROW_HEIGHT_REM), instead of baking in a
+    // pixel constant that only happens to hold at the browser default
+    // 16px root font-size (i.e. on mobile, where rule #3 doesn't apply).
+    const minutesFromClientY = useCallback((clientY: number) => {
+        const el = dayTimelineRef.current;
+        if (!el) return 0;
+        const rect = el.getBoundingClientRect();
+        const totalMinutes = (DAY_VIEW_HOUR_END - DAY_VIEW_HOUR_START + 1) * 60;
+        const pxPerMinute = rect.height / totalMinutes;
+        const offsetY = clientY - rect.top;
+        const rawMinutes = pxPerMinute > 0 ? offsetY / pxPerMinute : 0;
+        const snapped = Math.round(rawMinutes / 15) * 15;
+        return Math.min(Math.max(snapped, 0), totalMinutes);
+    }, []);
+
+    const handleTimelineMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+        // Only a plain left-click drag; and never when it starts on a task
+        // chip, an event block, or the "+" button — those need their own
+        // click/native-drag behavior untouched (see each one's
+        // data-drag-ignore attribute).
+        if (e.button !== 0 || (e.target as HTMLElement).closest("[data-drag-ignore]")) return;
+
+        const startMinutes = minutesFromClientY(e.clientY);
+        setDayDragCreate({ startMinutes, currentMinutes: startMinutes });
+
+        const handleMouseMove = (moveEvent: globalThis.MouseEvent) => {
+            setDayDragCreate(prev => prev && { ...prev, currentMinutes: minutesFromClientY(moveEvent.clientY) });
+        };
+        const handleMouseUp = (upEvent: globalThis.MouseEvent) => {
+            window.removeEventListener("mousemove", handleMouseMove);
+            window.removeEventListener("mouseup", handleMouseUp);
+            setDayDragCreate(null);
+
+            const endMinutes = minutesFromClientY(upEvent.clientY);
+            const lo = Math.min(startMinutes, endMinutes);
+            const hi = Math.max(startMinutes, endMinutes);
+            // Shorter than one snap step means this was a click, not a
+            // drag — leave it a no-op rather than creating a zero-length
+            // event nobody asked for.
+            if (hi - lo < 15) return;
+
+            const dayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+            const start = new Date(dayStart.getTime() + lo * 60000);
+            const end = new Date(dayStart.getTime() + hi * 60000);
+            openCreateEventModal(start, end);
+        };
+
+        window.addEventListener("mousemove", handleMouseMove);
+        window.addEventListener("mouseup", handleMouseUp);
+    };
 
     // One list per day of the visible week, for the Week view's per-day
     // task chips — same underlying filter as Day view, just run 7 times.
     const tasksByWeekDay = useMemo(
         () => currentWeekDays.map(date => getMergedTasksForDate(date)),
         [getMergedTasksForDate, currentWeekDays]
+    );
+    const eventsByWeekDay = useMemo(
+        () => currentWeekDays.map(date => getEventsForDate(events, date)),
+        [events, currentWeekDays]
     );
 
     // Buckets currentDate's tasks so Day view can actually place them on
@@ -763,6 +1070,19 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
         }
         return { allDayTasks: allDay, timedTasksByHour: byHour };
     }, [tasksForCurrentDay]);
+
+    // allDay events go to the strip regardless of their stored time-of-day
+    // (see CalendarEvent#allDay); everything else is a *timed* event, laid
+    // out as a real duration-spanning block (layoutTimedEventsForDay) in
+    // its own column next to the hourly grid — see renderDayEventBlock.
+    const allDayEvents = useMemo(
+        () => eventsForCurrentDay.filter(ev => ev.allDay),
+        [eventsForCurrentDay]
+    );
+    const timedEventBlocks = useMemo(
+        () => layoutTimedEventsForDay(eventsForCurrentDay, currentDate),
+        [eventsForCurrentDay, currentDate]
+    );
 
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     let firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
@@ -907,6 +1227,7 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
         return (
             <div
                 key={task.id}
+                data-drag-ignore
                 draggable
                 onDragStart={(e) => handleChipDragStart(e, task)}
                 onDragEnd={handleChipDragEnd}
@@ -931,6 +1252,157 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                 )}
                 <span className="shrink-0 font-semibold text-gray-500 dark:text-gray-500">{timeString}</span>
                 <span className="truncate font-medium">{task.title}</span>
+            </div>
+        );
+    };
+
+    // --- Calendar event renderers -------------------------------------
+    // Deliberately *not* the same "tint bg + tint text" treatment
+    // subjectColor gives tasks (which gets away with it because it only
+    // ever draws from 8 hand-picked, contrast-checked shades) — a
+    // category's color is arbitrary user-picked hex with no guaranteed
+    // light/dark-mode-safe text variant, and text set in a raw, fully-
+    // saturated hue reads as loud/unrefined next to this app's otherwise
+    // muted, restrained palette. So every event surface below keeps text
+    // neutral (the same gray scale task cards use) and spends the
+    // category color only on accents: a left border, a small dot, and a
+    // very soft tinted background (`${color}0d`/`${color}14`, ~5-8% alpha
+    // — noticeably quieter than a task chip's own ~15% tint, since an
+    // event's color-coding is a secondary cue here, not its primary
+    // identity the way a subject's color is for a task).
+    const renderMonthEventChip = (event: CalendarEventResponse, evIdx = 0) => {
+        const color = (event.categoryId && categoryById.get(event.categoryId)?.color) || DEFAULT_EVENT_COLOR;
+        return (
+            <div
+                key={`ev-${event.id}`}
+                title={event.title}
+                onClick={(e) => { e.stopPropagation(); openEditEventModal(event); }}
+                role="button"
+                tabIndex={0}
+                aria-label={event.title}
+                onKeyDown={(e) => { e.stopPropagation(); handleActivateKeyDown(e, () => openEditEventModal(event)); }}
+                style={{ animationDelay: `${evIdx * 40}ms`, backgroundColor: `${color}0d`, borderColor: color }}
+                className="animate-chip-in text-[8px] sm:text-[10px] font-medium px-1 sm:px-1.5 py-0.5 rounded truncate text-gray-600 dark:text-gray-300 transition-all hover:brightness-95 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 border-l-2"
+            >
+                {event.title}
+            </div>
+        );
+    };
+
+    const renderWeekEventCard = (event: CalendarEventResponse, evIdx = 0) => {
+        const color = (event.categoryId && categoryById.get(event.categoryId)?.color) || DEFAULT_EVENT_COLOR;
+        const timeString = event.allDay ? t.lblAllDay : new Date(event.startDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return (
+            <div
+                key={`ev-${event.id}`}
+                title={event.title}
+                onClick={(e) => { e.stopPropagation(); openEditEventModal(event); }}
+                role="button"
+                tabIndex={0}
+                aria-label={event.title}
+                onKeyDown={(e) => { e.stopPropagation(); handleActivateKeyDown(e, () => openEditEventModal(event)); }}
+                style={{ animationDelay: `${evIdx * 40}ms`, backgroundColor: `${color}0d`, borderColor: color }}
+                className="animate-chip-in flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-lg border-l-2 text-[9px] sm:text-[10px] font-medium text-gray-600 dark:text-gray-300 shrink-0 shadow-sm transition-all hover:shadow-md hover:-translate-y-px active:translate-y-0 active:scale-[0.97] outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500"
+            >
+                <span className="shrink-0 opacity-60 tabular-nums">{timeString}</span>
+                <span className="truncate">{event.title}</span>
+            </div>
+        );
+    };
+
+    const renderDayEventCard = (event: CalendarEventResponse, evIdx = 0) => {
+        const category = event.categoryId ? categoryById.get(event.categoryId) : undefined;
+        const color = category?.color ?? DEFAULT_EVENT_COLOR;
+        const timeString = event.allDay
+            ? t.lblAllDay
+            : `${new Date(event.startDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}–${new Date(event.endDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        return (
+            <div
+                key={`ev-${event.id}`}
+                title={event.title}
+                onClick={() => openEditEventModal(event)}
+                role="button"
+                tabIndex={0}
+                aria-label={event.title}
+                onKeyDown={(e) => handleActivateKeyDown(e, () => openEditEventModal(event))}
+                style={{ animationDelay: `${evIdx * 40}ms`, borderColor: color }}
+                className="animate-chip-in bg-white dark:bg-gray-800 border p-2 sm:p-3 rounded-xl shadow-sm flex items-start gap-2 sm:gap-3 transition-all hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500"
+            >
+                <span className="mt-1.5 w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                <div className="flex flex-col flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                        <span className="truncate text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider">
+                            {category?.name ?? t.noCategory}
+                        </span>
+                        <div className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 sm:px-2 py-0.5 rounded-md shrink-0">
+                            <Clock size={11} />
+                            {timeString}
+                        </div>
+                    </div>
+                    <h4 className="text-sm font-bold truncate text-gray-800 dark:text-gray-200">{event.title}</h4>
+                </div>
+            </div>
+        );
+    };
+
+    // Google-Calendar-style spanning block for a timed event: absolutely
+    // positioned by real start/duration (layoutTimedEventsForDay already
+    // did the minute-math and overlap/column assignment) directly inside
+    // the SAME column the hour rows/task chips live in — not a separate
+    // lane — so it visually occupies its actual time slot on the shared
+    // timeline. That parent column (`relative z-20`, spanning the full
+    // width of the day's own ruled-line column — see the JSX just above)
+    // has no padding of its own, so unlike the "now"
+    // line elsewhere in this file, `top` needs no padding-box offset added
+    // back in — plain rem values line up with the hour rows directly.
+    //
+    // No explicit z-index here on purpose: every hour row below is given
+    // `relative` (z-index:auto), and — per CSS stacking rules — among
+    // sibling positioned elements with equal/auto z-index, the one later in
+    // DOM order paints on top. These blocks are rendered *before* the hour
+    // rows in the JSX, so every row (and the task chip/"+"-button inside
+    // it) naturally paints above an event block behind it; a row's own
+    // background is transparent everywhere except where a chip/button
+    // actually sits, so the event's color still shows through the rest of
+    // that hour. This is the deliberate "task overlaps the event" layering
+    // the user asked for, mirroring Google Calendar's own Day view.
+    const renderDayEventBlock = (block: DayEventBlock) => {
+        const { event, start, end, startMinutes, endMinutes, col, totalCols } = block;
+        const category = event.categoryId ? categoryById.get(event.categoryId) : undefined;
+        const color = category?.color ?? DEFAULT_EVENT_COLOR;
+        const topRem = (startMinutes / 60) * DAY_VIEW_ROW_HEIGHT_REM;
+        const heightRem = Math.max(MIN_EVENT_BLOCK_HEIGHT_REM, ((endMinutes - startMinutes) / 60) * DAY_VIEW_ROW_HEIGHT_REM);
+        const timeString = `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}–${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        // A small px gutter between side-by-side columns (when events
+        // overlap each other) — subtracted from width/added to left so
+        // blocks never visually touch. Irrelevant (totalCols === 1) for the
+        // common case of a lone event, which then spans the full column.
+        const gapPx = 3;
+
+        return (
+            <div
+                key={`ev-block-${event.id}`}
+                data-drag-ignore
+                title={`${event.title} (${timeString})`}
+                onClick={() => openEditEventModal(event)}
+                role="button"
+                tabIndex={0}
+                aria-label={`${event.title} — ${timeString}`}
+                onKeyDown={(e) => handleActivateKeyDown(e, () => openEditEventModal(event))}
+                style={{
+                    top: `${topRem}rem`,
+                    height: `${heightRem}rem`,
+                    left: `calc(${(col / totalCols) * 100}% + ${col === 0 ? 0 : gapPx}px)`,
+                    width: `calc(${100 / totalCols}% - ${gapPx}px)`,
+                    backgroundColor: `${color}14`,
+                    borderColor: color,
+                }}
+                className="animate-chip-in absolute rounded-lg border-l-4 px-1.5 py-1 shadow-sm overflow-hidden cursor-pointer text-gray-800 dark:text-gray-100 transition-all hover:shadow-md hover:brightness-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500"
+            >
+                <div className="text-[10px] sm:text-xs font-semibold truncate leading-tight">{event.title}</div>
+                {heightRem > 2 && (
+                    <div className="text-[9px] sm:text-[11px] text-gray-500 dark:text-gray-400 truncate leading-tight">{timeString}</div>
+                )}
             </div>
         );
     };
@@ -1095,6 +1567,7 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                 // calendar-history data, which — unlike `subjects` — includes
                                 // completed tasks).
                                 const dayTasks = getMergedTasksForDate(cellDateObj);
+                                const dayEvents = getEventsForDate(events, cellDateObj);
 
                                 const monthCellKey = `month-${cellDateString}`;
                                 return (
@@ -1116,16 +1589,14 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                             <span className={`text-xs sm:text-sm font-bold w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full transition-colors duration-300 ${isToday ? "bg-red-600 text-white shadow-sm" : bgColorClass.includes("bg-[#4ade80]") || bgColorClass.includes("bg-[#16a34a]") ? "text-white drop-shadow-md" : "text-gray-500 dark:text-gray-400"}`}>
                                                 {dayNum}
                                             </span>
-                                            {subjects.length > 0 && (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); openCreateModal(cellDateObj); }}
-                                                    title={t.addTaskTitle}
-                                                    aria-label={t.addTaskTitle}
-                                                    className="can-hover:opacity-0 can-hover:group-hover:opacity-100 focus:opacity-100 no-hover:opacity-100 p-0.5 sm:p-1 rounded-md bg-white/80 dark:bg-gray-900/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:scale-110 active:scale-90 shadow-sm transition-all"
-                                                >
-                                                    <Plus size={12} />
-                                                </button>
-                                            )}
+                                            <button
+                                                onClick={(e) => openAddChooser(e, cellDateObj)}
+                                                title={t.addTaskTitle}
+                                                aria-label={t.addTaskTitle}
+                                                className="can-hover:opacity-0 can-hover:group-hover:opacity-100 focus:opacity-100 no-hover:opacity-100 p-0.5 sm:p-1 rounded-md bg-white/80 dark:bg-gray-900/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:scale-110 active:scale-90 shadow-sm transition-all"
+                                            >
+                                                <Plus size={12} />
+                                            </button>
                                         </div>
                                         {dayTasks.length > 0 ? (
                                             <div className="flex-1 flex flex-col gap-0.5 sm:gap-1 overflow-y-auto no-scrollbar">
@@ -1170,6 +1641,16 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                                 )}
                                             </div>
                                         ) : null}
+                                        {dayEvents.length > 0 && (
+                                            <div className="flex flex-col gap-0.5 sm:gap-1 mt-0.5">
+                                                {dayEvents.slice(0, 2).map((ev, evIdx) => renderMonthEventChip(ev, evIdx))}
+                                                {dayEvents.length > 2 && (
+                                                    <span className="hidden sm:inline text-[9px] text-gray-500 dark:text-gray-500 font-bold px-1">
+                                                        +{dayEvents.length - 2} {t.moreEvents}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -1216,6 +1697,7 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                 }
                                 
                                 const dayTasks = tasksByWeekDay[i];
+                                const dayEvents = eventsByWeekDay[i];
                                 const weekCellKey = `week-${cellDateString}`;
 
                                 return (
@@ -1233,16 +1715,14 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                             dragOverKey === weekCellKey ? "z-20 ring-2 ring-inset ring-red-400 dark:ring-red-500" : ""
                                         }`}
                                     >
-                                        {subjects.length > 0 && (
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); openCreateModal(date); }}
-                                                title={t.addTaskTitle}
-                                                aria-label={t.addTaskTitle}
-                                                className="absolute top-1 right-1 can-hover:opacity-0 can-hover:group-hover:opacity-100 focus:opacity-100 no-hover:opacity-100 p-0.5 sm:p-1 rounded-md bg-white/80 dark:bg-gray-900/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:scale-110 active:scale-90 shadow-sm transition-all z-10"
-                                            >
-                                                <Plus size={12} />
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={(e) => openAddChooser(e, date)}
+                                            title={t.addTaskTitle}
+                                            aria-label={t.addTaskTitle}
+                                            className="absolute top-1 right-1 can-hover:opacity-0 can-hover:group-hover:opacity-100 focus:opacity-100 no-hover:opacity-100 p-0.5 sm:p-1 rounded-md bg-white/80 dark:bg-gray-900/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:scale-110 active:scale-90 shadow-sm transition-all z-10"
+                                        >
+                                            <Plus size={12} />
+                                        </button>
                                         {dayTasks.length === 0 ? (
                                             <div className="flex-1 flex items-center justify-center">
                                                 <span className="hidden sm:inline text-[10px] text-gray-300 dark:text-gray-600 font-medium">{t.dayOffTitle}</span>
@@ -1298,6 +1778,16 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                                 )}
                                             </>
                                         )}
+                                        {dayEvents.length > 0 && (
+                                            <>
+                                                {dayEvents.slice(0, WEEK_CELL_TASK_LIMIT).map((ev, evIdx) => renderWeekEventCard(ev, evIdx))}
+                                                {dayEvents.length > WEEK_CELL_TASK_LIMIT && (
+                                                    <span className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-500 font-bold px-1">
+                                                        +{dayEvents.length - WEEK_CELL_TASK_LIMIT} {t.moreEvents}
+                                                    </span>
+                                                )}
+                                            </>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -1312,7 +1802,7 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                         {/* All-day tasks (no specific time) sit above the hourly
                             grid, calendar-convention style, instead of being
                             squeezed into a midnight row. */}
-                        {allDayTasks.length > 0 && (
+                        {(allDayTasks.length > 0 || allDayEvents.length > 0) && (
                             <div
                                 onDragOver={(e) => handleDropZoneDragOver(e, "allday")}
                                 onDragLeave={() => handleDropZoneDragLeave("allday")}
@@ -1323,6 +1813,7 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                             >
                                 <span className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider px-1">{t.lblAllDay}</span>
                                 {allDayTasks.map((task, taskIdx) => renderDayTaskCard(task, taskIdx))}
+                                {allDayEvents.map((ev, evIdx) => renderDayEventCard(ev, evIdx))}
                             </div>
                         )}
 
@@ -1359,7 +1850,12 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
 
                                 {currentDate.toDateString() === todayObj.toDateString() && (
                                     <div
-                                        className="absolute left-0 right-0 top-[calc(0.75rem+var(--now-offset))] sm:top-[calc(1.5rem+var(--now-offset))] border-t-2 border-red-500 z-10 pointer-events-none"
+                                        // z-40, above the z-20 tasks/events column right below —
+                                        // the current-time line is a navigational cue that should
+                                        // always read as on top of everything else in Day view,
+                                        // including a timed event's own colored block spanning
+                                        // across it.
+                                        className="absolute left-0 right-0 top-[calc(0.75rem+var(--now-offset))] sm:top-[calc(1.5rem+var(--now-offset))] border-t-2 border-red-500 z-40 pointer-events-none"
                                         style={{ "--now-offset": `${((todayObj.getHours() - DAY_VIEW_HOUR_START) * 5) + (todayObj.getMinutes() / 12)}rem` } as CSSProperties}
                                     >
                                         {/* Centered exactly ON the line's own (0,0) corner via
@@ -1389,7 +1885,24 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                     the grid also means an empty day still gets working
                                     hour-row drop zones and "+" buttons instead of only the one
                                     generic "add task" affordance the placeholder had. */}
-                                <div className="relative z-20 sm:max-w-xl sm:ml-4">
+                                <div
+                                    ref={dayTimelineRef}
+                                    onMouseDown={handleTimelineMouseDown}
+                                    className="relative z-20 cursor-crosshair"
+                                >
+                                    {/* Timed-event blocks share this exact column with the hour
+                                        rows below (not a separate lane) — rendered first in DOM,
+                                        each hour row after it. Neither has an explicit z-index, so
+                                        painting falls back to DOM order among positioned siblings:
+                                        every hour row below is `relative` (see its className), so
+                                        it — and whatever task chip/button it contains — paints
+                                        *after*, i.e. on top of, any event block behind it. A row's
+                                        own background is transparent except where a task chip or
+                                        the "+" button actually sits, so the event's color still
+                                        shows through everywhere else in that hour — exactly the
+                                        "task overlaps the event" layering Google Calendar itself
+                                        uses. */}
+                                    {timedEventBlocks.map(block => renderDayEventBlock(block))}
                                     {hours.map(hour => {
                                         const hourDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), hour, 0);
                                         const hourKey = `hour-${hour}`;
@@ -1399,26 +1912,39 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                                 onDragOver={(e) => handleDropZoneDragOver(e, hourKey)}
                                                 onDragLeave={() => handleDropZoneDragLeave(hourKey)}
                                                 onDrop={(e) => handleHourRowDrop(e, hour)}
-                                                className={`h-20 shrink-0 flex items-center gap-1 overflow-y-auto no-scrollbar py-0.5 group rounded-lg transition-all ${
+                                                className={`relative h-20 shrink-0 flex items-center gap-1 overflow-y-auto no-scrollbar py-0.5 group rounded-lg transition-all ${
                                                     dragOverKey === hourKey ? "ring-2 ring-inset ring-red-400 dark:ring-red-500 bg-red-50/40 dark:bg-red-900/10" : ""
                                                 }`}
                                             >
                                                 <div className="flex flex-col justify-center gap-1 flex-1 min-w-0">
                                                     {(timedTasksByHour[hour] ?? []).map((task, taskIdx) => renderCompactHourTask(task, taskIdx))}
                                                 </div>
-                                                {subjects.length > 0 && (
-                                                    <button
-                                                        onClick={() => openCreateModal(hourDate)}
-                                                        title={t.addTaskTitle}
-                                                        aria-label={t.addTaskTitle}
-                                                        className="can-hover:opacity-0 can-hover:group-hover:opacity-100 focus:opacity-100 no-hover:opacity-100 p-1 rounded-md text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-110 active:scale-90 shrink-0 transition-all"
-                                                    >
-                                                        <Plus size={14} />
-                                                    </button>
-                                                )}
+                                                <button
+                                                    data-drag-ignore
+                                                    onClick={(e) => openAddChooser(e, hourDate)}
+                                                    title={t.addTaskTitle}
+                                                    aria-label={t.addTaskTitle}
+                                                    className="can-hover:opacity-0 can-hover:group-hover:opacity-100 focus:opacity-100 no-hover:opacity-100 p-1 rounded-md text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-110 active:scale-90 shrink-0 transition-all"
+                                                >
+                                                    <Plus size={14} />
+                                                </button>
                                             </div>
                                         );
                                     })}
+                                    {dayDragCreate && (() => {
+                                        const lo = Math.min(dayDragCreate.startMinutes, dayDragCreate.currentMinutes);
+                                        const hi = Math.max(dayDragCreate.startMinutes, dayDragCreate.currentMinutes);
+                                        return (
+                                            <div
+                                                className="absolute inset-x-0 z-30 rounded-lg border-2 border-dashed border-red-400 dark:border-red-500 bg-red-50/70 dark:bg-red-900/25 pointer-events-none flex items-start justify-center overflow-hidden"
+                                                style={{ top: `${(lo / 60) * DAY_VIEW_ROW_HEIGHT_REM}rem`, height: `${Math.max(0.25, ((hi - lo) / 60) * DAY_VIEW_ROW_HEIGHT_REM)}rem` }}
+                                            >
+                                                <span className="mt-1 text-[10px] sm:text-xs font-bold text-red-600 dark:text-red-400 bg-white/95 dark:bg-gray-900/95 px-1.5 py-0.5 rounded-md shadow-sm whitespace-nowrap">
+                                                    {formatMinutesOfDay(lo)} – {formatMinutesOfDay(hi)}
+                                                </span>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
 
                                 {/* Empty-day message: absolutely positioned (like the "now"
@@ -1435,7 +1961,7 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                     scroll-to-hour effect above scrolls an empty day to the
                                     very top so this is actually visible without the user
                                     having to scroll up first. */}
-                                {tasksForCurrentDay.length === 0 && (
+                                {tasksForCurrentDay.length === 0 && eventsForCurrentDay.length === 0 && (
                                     // left-1/2 -translate-x-1/2 centers this reliably regardless
                                     // of width — inset-x-0 (left-0 right-0) plus a capped
                                     // max-width doesn't auto-center an absolutely positioned box
@@ -1446,14 +1972,22 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                         <DayOffIllustration className="w-20 h-20 mb-2" />
                                         <h3 className="text-gray-500 dark:text-gray-400 font-bold transition-colors duration-300">{t.dayOffTitle}</h3>
                                         <p className="text-sm text-gray-500 dark:text-gray-500 mb-3 transition-colors duration-300">{t.dayOffDesc}</p>
-                                        {subjects.length > 0 && (
+                                        <div className="flex items-center gap-2">
+                                            {subjects.length > 0 && (
+                                                <button
+                                                    onClick={() => openCreateModal(currentDate)}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 rounded-lg transition-all"
+                                                >
+                                                    <ListTodo size={14} /> {t.btnAddTask}
+                                                </button>
+                                            )}
                                             <button
-                                                onClick={() => openCreateModal(currentDate)}
-                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 rounded-lg transition-all"
+                                                onClick={() => openCreateEventModal(currentDate)}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 rounded-lg transition-all"
                                             >
-                                                <Plus size={14} /> {t.btnAddTask}
+                                                <CalendarRange size={14} /> {t.btnAddEvent}
                                             </button>
-                                        )}
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -1497,6 +2031,44 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                 document.body
             )}
 
+            {/* Add-chooser popover (Tarea/Evento) — same portal + anchored-
+                rect positioning approach as morePopover above, but
+                interactive (two buttons) and dismissed via a full-screen
+                click-catcher instead of onMouseLeave, since it opens on
+                click rather than hover. */}
+            {addChooser && createPortal(
+                <>
+                    <div className="fixed inset-0 z-[89]" onClick={() => setAddChooser(null)} />
+                    <div
+                        className="fixed z-[90] w-40 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl shadow-xl p-1.5 flex flex-col gap-1 animate-soft-fade"
+                        style={{
+                            left: Math.min(Math.max(addChooser.rect.left, 8), window.innerWidth - 160 - 8),
+                            ...(addChooser.rect.bottom + 100 > window.innerHeight
+                                ? { bottom: window.innerHeight - addChooser.rect.top + 6 }
+                                : { top: addChooser.rect.bottom + 6 }),
+                        }}
+                    >
+                        {subjects.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => { const d = addChooser.date; setAddChooser(null); openCreateModal(d); }}
+                                className="flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
+                            >
+                                <ListTodo size={14} className="text-red-500" /> {t.chooserTask}
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            onClick={() => { const d = addChooser.date; setAddChooser(null); openCreateEventModal(d); }}
+                            className="flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
+                        >
+                            <CalendarRange size={14} className="text-indigo-500" /> {t.chooserEvent}
+                        </button>
+                    </div>
+                </>,
+                document.body
+            )}
+
             <Suspense fallback={null}>
                 <CalendarTaskModal
                     isOpen={taskModalState !== null}
@@ -1509,6 +2081,22 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                     onCreate={handleCreateTaskFromCalendar}
                     onUpdate={handleUpdateTaskFromCalendar}
                     onDelete={handleDeleteTaskFromCalendar}
+                />
+            </Suspense>
+            <Suspense fallback={null}>
+                <CalendarEventModal
+                    isOpen={eventModalState !== null}
+                    onClose={() => setEventModalState(null)}
+                    categories={categories}
+                    onCategoriesChanged={fetchCategories}
+                    mode={eventModalState?.mode ?? "create"}
+                    initialDate={eventModalState?.mode === "create" ? eventModalState.date : undefined}
+                    initialEndDate={eventModalState?.mode === "create" ? eventModalState.endDate : undefined}
+                    event={eventModalState?.mode === "edit" ? eventModalState.event : undefined}
+                    onCreate={handleCreateEvent}
+                    onCreateRecurring={handleCreateRecurringEvent}
+                    onUpdate={handleUpdateEvent}
+                    onDelete={handleDeleteEvent}
                 />
             </Suspense>
         </div>
