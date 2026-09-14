@@ -44,7 +44,7 @@ export const ConfirmModal = ({ isOpen, title, message, confirmLabel, cancelLabel
                     {/* Drag handle — mobile only. Dragging it down dismisses
                         the sheet (useSwipeToDismiss); it also just visually
                         invites the gesture, the way native bottom sheets do. */}
-                    <div {...swipeHandlers} className="sm:hidden flex justify-center pt-2.5 pb-1.5 shrink-0" aria-hidden="true">
+                    <div {...swipeHandlers} className="sm:hidden flex justify-center pt-2.5 pb-1.5 shrink-0 touch-none" aria-hidden="true">
                         <span className="w-9 h-1.5 rounded-full bg-gray-300 dark:bg-gray-700" />
                     </div>
                     <div className="flex items-start gap-3 p-5 sm:p-6">
