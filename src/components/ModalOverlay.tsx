@@ -20,6 +20,29 @@ const TRANSITION_MS = 200;
 
 const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+// Module-level, shared by every ModalOverlay instance mounted anywhere in
+// the app (DashboardPage alone mounts a dozen of these simultaneously —
+// only one is ever actually open at a time, by convention, but nothing
+// stops that from changing). Locks page scroll for as long as at least one
+// modal is open and only unlocks once the very last one closes — a naive
+// per-instance "reset on close" would risk unlocking scroll out from under
+// a still-open modal if two were ever open together.
+let openModalCount = 0;
+
+const lockBodyScroll = () => {
+    openModalCount += 1;
+    if (openModalCount === 1) {
+        document.body.style.overflow = "hidden";
+    }
+};
+
+const unlockBodyScroll = () => {
+    openModalCount = Math.max(0, openModalCount - 1);
+    if (openModalCount === 0) {
+        document.body.style.overflow = "";
+    }
+};
+
 // Shared enter/exit animation for every modal-with-backdrop in the app: the
 // dim+blur backdrop and the dialog itself fade/scale in together instead of
 // popping in at once, and reverse the same way on close. `children` is a
@@ -38,6 +61,17 @@ export const ModalOverlay = ({ isOpen, onClose, backdropClassName = "bg-black/40
     const [isVisible, setIsVisible] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const triggerElementRef = useRef<HTMLElement | null>(null);
+
+    // Locks the page behind the modal from scrolling/bouncing at all while
+    // it's open — belt-and-suspenders alongside index.css's global
+    // overscroll-behavior: none, not a fix for a different bug on its own
+    // (see that comment for the pull-to-refresh incident this whole layer
+    // exists to fully rule out).
+    useEffect(() => {
+        if (!isOpen) return;
+        lockBodyScroll();
+        return () => unlockBodyScroll();
+    }, [isOpen]);
 
     // Escape-to-close, shared by every modal that uses this wrapper instead
     // of each one wiring its own listener.

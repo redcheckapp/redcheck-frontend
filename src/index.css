@@ -14,14 +14,27 @@
      Pixel that competes with our own edge-swipe-to-open-sidebar gesture,
      see Sidebar.tsx) — without this, a swipe starting near the left edge
      can navigate the browser back instead of/along with opening the
-     drawer. Set on both html and body since browser support for which
-     element it needs to live on has historically been inconsistent.
+     drawer.
+   - overscroll-behavior-y blocks Chrome's own pull-to-refresh (this is
+     Google's own documented fix for it — see web.dev's "pull-to-refresh"
+     note). Added after a real report: dragging down on a mobile bottom
+     sheet's grabber handle (ModalOverlay.tsx's "bottom" position) was
+     ALSO read as a page-level pull-to-refresh and reloaded the whole app
+     instead of just dismissing the sheet — a per-element touch-action:
+     none on the handle (see any of those modals) turned out not to be
+     enough on its own, since the browser's pull-to-refresh is a root-
+     document-level gesture, not scoped to whatever element the touch
+     happened to start on. This app never relies on document/body-level
+     scrolling anywhere (every scrollable area is its own nested
+     `overflow-y-auto` region), so disabling it here has no downside.
+   Both set on html and body since browser support for which element they
+   need to live on has historically been inconsistent.
    - -webkit-tap-highlight-color removes the grey/blue flash Chrome/Safari
      paint on every tap of a link/button — one of the more obvious "this is
      a website" tells on an otherwise app-like UI; every interactive
      element here already has its own active: press feedback instead. */
 html, body {
-  overscroll-behavior-x: none;
+  overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
 }
 
