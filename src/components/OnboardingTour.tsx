@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Check, Sparkles, CalendarDays, Focus } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import { ModalOverlay } from "./ModalOverlay";
+import { useSwipeToDismiss } from "../hooks/useSwipeToDismiss";
 
 interface OnboardingTourProps {
     isOpen: boolean;
@@ -82,10 +83,18 @@ export const OnboardingTour = ({ isOpen, onClose }: OnboardingTourProps) => {
         setTimeout(() => setStep(0), 200);
     };
 
+    const { style: dismissStyle, handlers: swipeHandlers } = useSwipeToDismiss(handleClose);
+
     return (
         <ModalOverlay isOpen={isOpen} onClose={handleClose}>
             {(isVisible) => (
-                <div className={`bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col border border-transparent dark:border-gray-800 pb-[env(safe-area-inset-bottom)] sm:pb-0 transition-all duration-200 ${isVisible ? "opacity-100 translate-y-0 sm:scale-100" : "opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"}`}>
+                <div style={dismissStyle} className={`bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col border border-transparent dark:border-gray-800 pb-[env(safe-area-inset-bottom)] sm:pb-0 transition-all duration-200 ${isVisible ? "opacity-100 translate-y-0 sm:scale-100" : "opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"}`}>
+                    {/* Drag handle — mobile only. Dragging it down dismisses
+                        the sheet (useSwipeToDismiss); it also just visually
+                        invites the gesture, the way native bottom sheets do. */}
+                    <div {...swipeHandlers} className="sm:hidden flex justify-center pt-2.5 pb-1.5 shrink-0" aria-hidden="true">
+                        <span className="w-9 h-1.5 rounded-full bg-gray-300 dark:bg-gray-700" />
+                    </div>
                     <div className="flex flex-col items-center text-center px-6 pt-8 pb-6">
                         <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 mb-5">
                             <StepIcon size={26} strokeWidth={2.25} />

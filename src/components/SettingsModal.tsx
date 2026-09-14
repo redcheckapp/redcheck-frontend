@@ -10,6 +10,7 @@ import { ModalOverlay } from "./ModalOverlay";
 import { FontSizeSlider } from "./FontSizeSlider";
 import { ToggleSwitch } from "./ToggleSwitch";
 import { triggerHapticFeedback } from "../utils/feedback";
+import { useSwipeToDismiss } from "../hooks/useSwipeToDismiss";
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -238,16 +239,27 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
         }
     };
 
+    const { style: dismissStyle, handlers: swipeHandlers } = useSwipeToDismiss(onClose);
+
     // ModalOverlay renders into document.body so it covers the entire window (including the Sidebar)
     return (
         <ModalOverlay isOpen={isOpen} onClose={onClose}>
             {(isVisible) => (
-            <div className={`bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md flex flex-col overflow-hidden border border-transparent dark:border-gray-800 pb-[env(safe-area-inset-bottom)] sm:pb-0 transition-all duration-200 ${isVisible ? "opacity-100 translate-y-0 sm:scale-100" : "opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"}`}>
+            <div style={dismissStyle} className={`bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md flex flex-col overflow-hidden border border-transparent dark:border-gray-800 pb-[env(safe-area-inset-bottom)] sm:pb-0 transition-all duration-200 ${isVisible ? "opacity-100 translate-y-0 sm:scale-100" : "opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"}`}>
+
+                {/* Drag handle — mobile only. Dragging it down dismisses the
+                    sheet (useSwipeToDismiss); it also just visually invites
+                    the gesture, the way native bottom sheets do. */}
+                <div {...swipeHandlers} className="sm:hidden flex justify-center pt-2.5 pb-1.5 shrink-0" aria-hidden="true">
+                    <span className="w-9 h-1.5 rounded-full bg-gray-300 dark:bg-gray-700" />
+                </div>
 
                 {/* Header */}
                 <div className="flex justify-between items-center p-5 border-b border-gray-100 dark:border-gray-800 transition-colors">
                     <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t.title}</h2>
-                    <button onClick={onClose} aria-label={t.close} title={t.close} className="text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition rounded-lg p-1 hover:bg-gray-100 dark:hover:bg-gray-800">
+                    {/* Mobile dismisses by dragging the handle above instead
+                        — this X is desktop-only there. */}
+                    <button onClick={onClose} aria-label={t.close} title={t.close} className="hidden sm:block text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition rounded-lg p-1 hover:bg-gray-100 dark:hover:bg-gray-800">
                         <X size={20} />
                     </button>
                 </div>

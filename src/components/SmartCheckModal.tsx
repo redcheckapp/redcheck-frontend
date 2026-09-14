@@ -3,6 +3,7 @@ import { Sparkles } from 'lucide-react';
 import type { SmartCheckAiData, SubjectWithTasks } from '../types';
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import { ModalOverlay } from "./ModalOverlay";
+import { useSwipeToDismiss } from "../hooks/useSwipeToDismiss";
 
 interface SmartCheckModalProps {
   isOpen: boolean;
@@ -55,6 +56,9 @@ const getRiskConfig = (nivel: string, t: typeof translations['es']) => {
 const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiData, subjects }) => {
   const { language } = useLanguage();
   const t = translations[language as keyof typeof translations];
+  // Called unconditionally, before the `!aiData` early return below, so the
+  // Rules of Hooks aren't violated by a conditional hook call.
+  const { style: dismissStyle, handlers: swipeHandlers } = useSwipeToDismiss(onClose);
 
   if (!aiData) return null;
 
@@ -65,8 +69,14 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
       {(isVisible) => (
       <div
         className={`bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-xl flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] sm:pb-0 transition-all duration-200 ${isVisible ? "opacity-100 translate-y-0 sm:scale-100" : "opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"}`}
-        style={{ maxHeight: '88vh' }}
+        style={{ maxHeight: '88vh', ...dismissStyle }}
       >
+        {/* Drag handle — mobile only. Dragging it down dismisses the sheet
+            (useSwipeToDismiss); it also just visually invites the gesture,
+            the way native bottom sheets do. */}
+        <div {...swipeHandlers} className="sm:hidden flex justify-center pt-2.5 pb-1.5 shrink-0" aria-hidden="true">
+          <span className="w-9 h-1.5 rounded-full bg-gray-300 dark:bg-gray-700" />
+        </div>
 
         {/* ── HEADER ── */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4">

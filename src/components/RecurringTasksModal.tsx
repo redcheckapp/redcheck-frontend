@@ -9,6 +9,7 @@ import { ModalOverlay } from "./ModalOverlay";
 import { RecurrenceFieldset } from "./RecurrenceFieldset";
 import { RoutineRow } from "./RoutineRow";
 import { DEFAULT_RECURRENCE_STATE, isRecurrenceStateValid, parseFrequencyForEditing, resolveFrequency, type RecurrenceState } from "../utils/recurrenceUtils";
+import { useSwipeToDismiss } from "../hooks/useSwipeToDismiss";
 
 interface RecurringTasksModalProps {
     isOpen: boolean;
@@ -196,10 +197,19 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
         }
     };
 
+    const { style: dismissStyle, handlers: swipeHandlers } = useSwipeToDismiss(onClose);
+
     return (
         <ModalOverlay isOpen={isOpen} onClose={onClose}>
             {(isVisible) => (
-            <div className={`bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh] border border-transparent dark:border-gray-800 pb-[env(safe-area-inset-bottom)] sm:pb-0 transition-all duration-200 ${isVisible ? "opacity-100 translate-y-0 sm:scale-100" : "opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"}`}>
+            <div style={dismissStyle} className={`bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh] border border-transparent dark:border-gray-800 pb-[env(safe-area-inset-bottom)] sm:pb-0 transition-all duration-200 ${isVisible ? "opacity-100 translate-y-0 sm:scale-100" : "opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"}`}>
+
+                {/* Drag handle — mobile only. Dragging it down dismisses the
+                    sheet (useSwipeToDismiss); it also just visually invites
+                    the gesture, the way native bottom sheets do. */}
+                <div {...swipeHandlers} className="sm:hidden flex justify-center pt-2.5 pb-1.5 shrink-0" aria-hidden="true">
+                    <span className="w-9 h-1.5 rounded-full bg-gray-300 dark:bg-gray-700" />
+                </div>
 
                 {/* Modal header */}
                 <div className="flex items-start gap-3 p-5 sm:p-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-800/40 transition-colors duration-300">
@@ -210,7 +220,9 @@ export const RecurringTasksModal = ({ isOpen, onClose, subjectId, subjectName }:
                         <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 tracking-tight transition-colors duration-300">{t.title}</h2>
                         <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5 transition-colors duration-300">{t.subject}: {subjectName}</p>
                     </div>
-                    <button onClick={onClose} aria-label={t.close} title={t.close} className="shrink-0 p-2 -mr-1 -mt-1 text-gray-500 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-xl transition-all duration-200">
+                    {/* Mobile dismisses by dragging the handle above instead
+                        — this X is desktop-only there. */}
+                    <button onClick={onClose} aria-label={t.close} title={t.close} className="hidden sm:block shrink-0 p-2 -mr-1 -mt-1 text-gray-500 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-xl transition-all duration-200">
                         <X size={20} />
                     </button>
                 </div>

@@ -8,6 +8,7 @@ import { ModalOverlay } from "./ModalOverlay";
 import { ToggleSwitch } from "./ToggleSwitch";
 import { createEventCategory, updateEventCategory, deleteEventCategory } from "../api/eventCategoryApi";
 import { EVENT_CATEGORY_COLOR_PALETTE, DEFAULT_EVENT_COLOR } from "../utils/eventCategoryColors";
+import { useSwipeToDismiss } from "../hooks/useSwipeToDismiss";
 
 interface CalendarEventModalProps {
     isOpen: boolean;
@@ -323,10 +324,18 @@ export const CalendarEventModal = ({
     const fieldClass = "w-full bg-gray-50 dark:bg-gray-800/60 border border-transparent text-gray-800 dark:text-gray-100 rounded-xl pl-10 py-2.5 text-sm placeholder:text-gray-500 dark:placeholder:text-gray-500 [color-scheme:light] dark:[color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-red-300/70 dark:focus:ring-red-500/40 focus:bg-white dark:focus:bg-gray-900 focus:border-red-200 dark:focus:border-red-900/50 transition-all duration-200";
     const fieldClassNoIcon = "w-full bg-gray-50 dark:bg-gray-800/60 border border-transparent text-gray-800 dark:text-gray-100 rounded-xl px-3 py-2.5 text-sm placeholder:text-gray-500 dark:placeholder:text-gray-500 [color-scheme:light] dark:[color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-red-300/70 dark:focus:ring-red-500/40 focus:bg-white dark:focus:bg-gray-900 focus:border-red-200 dark:focus:border-red-900/50 transition-all duration-200";
 
+    const { style: dismissStyle, handlers: swipeHandlers } = useSwipeToDismiss(onClose);
+
     return (
         <ModalOverlay isOpen={isOpen} onClose={onClose}>
             {(isVisible) => (
-                <div className={`bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-transparent dark:border-gray-800 pb-[env(safe-area-inset-bottom)] sm:pb-0 transition-all duration-200 ${isVisible ? "opacity-100 translate-y-0 sm:scale-100" : "opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"}`}>
+                <div style={dismissStyle} className={`bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-transparent dark:border-gray-800 pb-[env(safe-area-inset-bottom)] sm:pb-0 transition-all duration-200 ${isVisible ? "opacity-100 translate-y-0 sm:scale-100" : "opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"}`}>
+                    {/* Drag handle — mobile only. Dragging it down dismisses
+                        the sheet (useSwipeToDismiss); it also just visually
+                        invites the gesture, the way native bottom sheets do. */}
+                    <div {...swipeHandlers} className="sm:hidden flex justify-center pt-2.5 pb-1.5 shrink-0" aria-hidden="true">
+                        <span className="w-9 h-1.5 rounded-full bg-gray-300 dark:bg-gray-700" />
+                    </div>
                     <div className="flex items-start gap-3 p-5 sm:p-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-800/40 transition-colors duration-300">
                         <div
                             className="shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center"
@@ -342,7 +351,9 @@ export const CalendarEventModal = ({
                                 {mode === "edit" ? t.subtitleEdit : t.subtitleCreate}
                             </p>
                         </div>
-                        <button onClick={onClose} aria-label={t.close} title={t.close} className="shrink-0 p-2 -mr-1 -mt-1 text-gray-500 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-xl transition-all duration-200">
+                        {/* Mobile dismisses by dragging the handle above
+                            instead — this X is desktop-only there. */}
+                        <button onClick={onClose} aria-label={t.close} title={t.close} className="hidden sm:block shrink-0 p-2 -mr-1 -mt-1 text-gray-500 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 rounded-xl transition-all duration-200">
                             <X size={20} />
                         </button>
                     </div>
