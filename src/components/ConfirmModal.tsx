@@ -35,12 +35,12 @@ const translations = {
 export const ConfirmModal = ({ isOpen, title, message, confirmLabel, cancelLabel, onConfirm, onCancel }: ConfirmModalProps) => {
     const { language } = useLanguage();
     const t = translations[language as keyof typeof translations];
-    const { style: dismissStyle, handlers: swipeHandlers } = useSwipeToDismiss(onCancel);
+    const { sheetRef, handlers: swipeHandlers } = useSwipeToDismiss(onCancel);
 
     return (
         <ModalOverlay isOpen={isOpen} onClose={onCancel}>
             {(isVisible) => (
-                <div style={dismissStyle} className={`bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col border border-transparent dark:border-gray-800 pb-[env(safe-area-inset-bottom)] sm:pb-0 transition-all duration-200 ${isVisible ? "opacity-100 translate-y-0 sm:scale-100" : "opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"}`}>
+                <div ref={sheetRef} className={`bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col border border-transparent dark:border-gray-800 pb-[env(safe-area-inset-bottom)] sm:pb-0 transition-all duration-200 ${isVisible ? "opacity-100 translate-y-0 sm:scale-100" : "opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"}`}>
                     {/* Drag handle — mobile only. Dragging it down dismisses
                         the sheet (useSwipeToDismiss); it also just visually
                         invites the gesture, the way native bottom sheets do. */}

@@ -58,7 +58,7 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
   const t = translations[language as keyof typeof translations];
   // Called unconditionally, before the `!aiData` early return below, so the
   // Rules of Hooks aren't violated by a conditional hook call.
-  const { style: dismissStyle, handlers: swipeHandlers } = useSwipeToDismiss(onClose);
+  const { sheetRef, handlers: swipeHandlers } = useSwipeToDismiss(onClose);
 
   if (!aiData) return null;
 
@@ -68,8 +68,9 @@ const SmartCheckModal: React.FC<SmartCheckModalProps> = ({ isOpen, onClose, aiDa
     <ModalOverlay isOpen={isOpen} onClose={onClose} backdropClassName="bg-black/60">
       {(isVisible) => (
       <div
+        ref={sheetRef}
         className={`bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-xl flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] sm:pb-0 transition-all duration-200 ${isVisible ? "opacity-100 translate-y-0 sm:scale-100" : "opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"}`}
-        style={{ maxHeight: '88vh', ...dismissStyle }}
+        style={{ maxHeight: '88vh' }}
       >
         {/* Drag handle — mobile only. Dragging it down dismisses the sheet
             (useSwipeToDismiss); it also just visually invites the gesture,

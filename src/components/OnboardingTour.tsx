@@ -83,12 +83,12 @@ export const OnboardingTour = ({ isOpen, onClose }: OnboardingTourProps) => {
         setTimeout(() => setStep(0), 200);
     };
 
-    const { style: dismissStyle, handlers: swipeHandlers } = useSwipeToDismiss(handleClose);
+    const { sheetRef, handlers: swipeHandlers } = useSwipeToDismiss(handleClose);
 
     return (
         <ModalOverlay isOpen={isOpen} onClose={handleClose}>
             {(isVisible) => (
-                <div style={dismissStyle} className={`bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col border border-transparent dark:border-gray-800 pb-[env(safe-area-inset-bottom)] sm:pb-0 transition-all duration-200 ${isVisible ? "opacity-100 translate-y-0 sm:scale-100" : "opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"}`}>
+                <div ref={sheetRef} className={`bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col border border-transparent dark:border-gray-800 pb-[env(safe-area-inset-bottom)] sm:pb-0 transition-all duration-200 ${isVisible ? "opacity-100 translate-y-0 sm:scale-100" : "opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"}`}>
                     {/* Drag handle — mobile only. Dragging it down dismisses
                         the sheet (useSwipeToDismiss); it also just visually
                         invites the gesture, the way native bottom sheets do. */}

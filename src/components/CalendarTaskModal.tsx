@@ -182,12 +182,12 @@ export const CalendarTaskModal = ({
     // field's dark background in dark mode.
     const fieldClass = "w-full bg-gray-50 dark:bg-gray-800/60 border border-transparent text-gray-800 dark:text-gray-100 rounded-xl pl-10 py-2.5 text-sm placeholder:text-gray-500 dark:placeholder:text-gray-500 [color-scheme:light] dark:[color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-red-300/70 dark:focus:ring-red-500/40 focus:bg-white dark:focus:bg-gray-900 focus:border-red-200 dark:focus:border-red-900/50 transition-all duration-200";
 
-    const { style: dismissStyle, handlers: swipeHandlers } = useSwipeToDismiss(onClose);
+    const { sheetRef, handlers: swipeHandlers } = useSwipeToDismiss(onClose);
 
     return (
         <ModalOverlay isOpen={isOpen} onClose={onClose}>
             {(isVisible) => (
-                <div style={dismissStyle} className={`bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-transparent dark:border-gray-800 pb-[env(safe-area-inset-bottom)] sm:pb-0 transition-all duration-200 ${isVisible ? "opacity-100 translate-y-0 sm:scale-100" : "opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"}`}>
+                <div ref={sheetRef} className={`bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-transparent dark:border-gray-800 pb-[env(safe-area-inset-bottom)] sm:pb-0 transition-all duration-200 ${isVisible ? "opacity-100 translate-y-0 sm:scale-100" : "opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"}`}>
                     {/* Drag handle — mobile only. Dragging it down dismisses
                         the sheet (useSwipeToDismiss); it also just visually
                         invites the gesture, the way native bottom sheets do. */}

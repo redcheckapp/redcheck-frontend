@@ -239,13 +239,13 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
         }
     };
 
-    const { style: dismissStyle, handlers: swipeHandlers } = useSwipeToDismiss(onClose);
+    const { sheetRef, handlers: swipeHandlers } = useSwipeToDismiss(onClose);
 
     // ModalOverlay renders into document.body so it covers the entire window (including the Sidebar)
     return (
         <ModalOverlay isOpen={isOpen} onClose={onClose}>
             {(isVisible) => (
-            <div style={dismissStyle} className={`bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md flex flex-col overflow-hidden border border-transparent dark:border-gray-800 pb-[env(safe-area-inset-bottom)] sm:pb-0 transition-all duration-200 ${isVisible ? "opacity-100 translate-y-0 sm:scale-100" : "opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"}`}>
+            <div ref={sheetRef} className={`bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md flex flex-col overflow-hidden border border-transparent dark:border-gray-800 pb-[env(safe-area-inset-bottom)] sm:pb-0 transition-all duration-200 ${isVisible ? "opacity-100 translate-y-0 sm:scale-100" : "opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"}`}>
 
                 {/* Drag handle — mobile only. Dragging it down dismisses the
                     sheet (useSwipeToDismiss); it also just visually invites
