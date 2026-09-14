@@ -280,13 +280,8 @@ export const SubjectSection = memo(({
                         onClick={handleNameTap}
                         className="flex flex-col no-hover:active:scale-[0.97] no-hover:transition-transform"
                     >
-                        <h2 className="flex items-center gap-1.5 text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight">
+                        <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight">
                             {subject.name}
-                            {/* Subtle affordance hinting the name is tappable
-                                on touch devices, now that the "+ Add task"
-                                button is gone there — small and muted on
-                                purpose, not a button of its own. */}
-                            <Plus size={14} strokeWidth={2.5} className="hidden no-hover:inline-block text-gray-300 dark:text-gray-600 shrink-0" />
                         </h2>
                         {subject.description && (
                             <span className="text-xs text-gray-500 dark:text-gray-500 font-medium mt-0.5">
