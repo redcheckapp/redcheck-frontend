@@ -221,6 +221,25 @@ export const SubjectSection = memo(({
         }
     };
 
+    // A short tap on the subject's name/description opens (or, tapping
+    // again, closes) the add-task form — the touch-only replacement for the
+    // "+ Add task" button below, which is hidden on touch devices (see
+    // no-hover:hidden on that button's wrapper). Mouse users keep the
+    // hover-revealed button instead; this only fires on devices with no
+    // hover capability (matches the no-hover/can-hover CSS split used
+    // throughout this file), so a desktop click on the name does nothing.
+    // Coexists with the header's own long-press-to-select gesture above
+    // without extra bookkeeping: a long press never reaches a click event
+    // (the browser only synthesizes one after a short, un-moved touch).
+    const handleNameTap = () => {
+        if (subjectSelectionMode) return;
+        if (typeof window === "undefined" || !window.matchMedia("(any-hover: none)").matches) return;
+        if (localStorage.getItem("taskFeedbackEnabled") !== "false") {
+            triggerHapticFeedback();
+        }
+        setOpenFormSubjectId(openFormSubjectId === subject.id ? null : subject.id);
+    };
+
     return (
         <div key={subject.id} className="group/section">
 
@@ -257,9 +276,17 @@ export const SubjectSection = memo(({
                             <CheckboxGlyph size={12} color="white" className={`transition-all duration-200 ${isSubjectSelected ? "scale-100 opacity-100" : "scale-0 opacity-0"}`} />
                         </button>
                     )}
-                    <div className="flex flex-col">
-                        <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight">
+                    <div
+                        onClick={handleNameTap}
+                        className="flex flex-col no-hover:active:scale-[0.97] no-hover:transition-transform"
+                    >
+                        <h2 className="flex items-center gap-1.5 text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight">
                             {subject.name}
+                            {/* Subtle affordance hinting the name is tappable
+                                on touch devices, now that the "+ Add task"
+                                button is gone there — small and muted on
+                                purpose, not a button of its own. */}
+                            <Plus size={14} strokeWidth={2.5} className="hidden no-hover:inline-block text-gray-300 dark:text-gray-600 shrink-0" />
                         </h2>
                         {subject.description && (
                             <span className="text-xs text-gray-500 dark:text-gray-500 font-medium mt-0.5">
@@ -347,9 +374,14 @@ export const SubjectSection = memo(({
                     ))
                 )}
 
-                <div className={`grid transition-all duration-300 ease-in-out focus-within:opacity-100 ${
-                    openFormSubjectId === subject.id || normalTasks.length === 0 
-                        ? 'grid-rows-[1fr] opacity-100' 
+                {/* Touch devices open this form via a short tap on the
+                    subject name instead (see handleNameTap above) — a more
+                    native-feeling gesture than a permanently-visible button
+                    taking up space in every subject's task list. Mouse users
+                    keep this hover-revealed button unchanged. */}
+                <div className={`no-hover:hidden grid transition-all duration-300 ease-in-out focus-within:opacity-100 ${
+                    openFormSubjectId === subject.id || normalTasks.length === 0
+                        ? 'grid-rows-[1fr] opacity-100'
                         : 'grid-rows-[1fr] opacity-100 [@media(any-hover:hover)]:grid-rows-[0fr] [@media(any-hover:hover)]:opacity-0 [@media(any-hover:hover)]:group-hover/section:grid-rows-[1fr] [@media(any-hover:hover)]:group-hover/section:opacity-100'
                 }`}>
                     <div className="overflow-hidden flex items-center">

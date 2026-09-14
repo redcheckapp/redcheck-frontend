@@ -5,6 +5,14 @@ interface ModalOverlayProps {
     isOpen: boolean;
     onClose?: () => void;
     backdropClassName?: string;
+    // "bottom" (default): docks to the bottom edge on mobile, a native
+    // sheet, while staying a centered card from `sm:` up — see the class
+    // comment below. "center" opts out and stays centered at every width;
+    // CommandPalette is the one user of this — a bottom sheet fights the
+    // on-screen keyboard there (the search input is the first thing
+    // tapped, and a sheet anchored under a keyboard reads worse than a
+    // dialog that just stays where it was).
+    position?: "bottom" | "center";
     children: (isVisible: boolean) => ReactNode;
 }
 
@@ -17,7 +25,15 @@ const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), textarea:not([disab
 // popping in at once, and reverse the same way on close. `children` is a
 // render prop so each modal keeps its own dialog markup/sizing and only
 // receives `isVisible` to drive its own transition classes.
-export const ModalOverlay = ({ isOpen, onClose, backdropClassName = "bg-black/40", children }: ModalOverlayProps) => {
+//
+// On mobile the dialog docks to the bottom edge instead of floating
+// centered (items-end + no gutter, vs. items-center + p-4 from `sm:` up) —
+// a bottom sheet reads as the native pattern on a phone, a centered card as
+// the native pattern on desktop. Each modal's own wrapper picks up the
+// matching look (rounded-t-* only + slide-up-from-bottom below `sm:`,
+// fully rounded + fade/scale from `sm:` up) — see any modal built on this
+// for the exact class shape to copy for a new one.
+export const ModalOverlay = ({ isOpen, onClose, backdropClassName = "bg-black/40", position = "bottom", children }: ModalOverlayProps) => {
     const [shouldRender, setShouldRender] = useState(isOpen);
     const [isVisible, setIsVisible] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -103,7 +119,9 @@ export const ModalOverlay = ({ isOpen, onClose, backdropClassName = "bg-black/40
         <div
             ref={containerRef}
             tabIndex={-1}
-            className={`fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-200 outline-none ${backdropClassName} ${
+            className={`fixed inset-0 z-[100] flex justify-center backdrop-blur-sm transition-opacity duration-200 outline-none ${
+                position === "center" ? "items-center p-4" : "items-end sm:items-center p-0 sm:p-4"
+            } ${backdropClassName} ${
                 isVisible ? "opacity-100" : "opacity-0"
             }`}
         >

@@ -10,6 +10,11 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+// Kept in sync with index.html's static <meta name="theme-color"> default
+// and its anti-flicker script (initial paint, before this module ever
+// loads) — see that file's comment for why these two exact values.
+const THEME_COLORS: Record<Theme, string> = { light: '#cc2229', dark: '#030712' };
+
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     const [theme, setTheme] = useState<Theme>(() => {
         // 1. Highest priority: shared cookie
@@ -39,6 +44,11 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         // Persist to both mechanisms simultaneously
         localStorage.setItem('theme', theme);
         setSharedCookie('rc_theme', theme);
+
+        // Follows the theme so the OS status bar/task-switcher chrome
+        // (Android) matches the app instead of staying the brand red at all
+        // times — see THEME_COLORS above.
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLORS[theme]);
     }, [theme]);
 
     const toggleTheme = () => {

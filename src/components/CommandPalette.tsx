@@ -186,7 +186,7 @@ export const CommandPalette = ({
     };
 
     return (
-        <ModalOverlay isOpen={isOpen} onClose={onClose} backdropClassName="bg-black/40">
+        <ModalOverlay isOpen={isOpen} onClose={onClose} backdropClassName="bg-black/40" position="center">
             {(isVisible) => (
                 <div
                     className={`bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col border border-transparent dark:border-gray-800 transition-all duration-200 ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}

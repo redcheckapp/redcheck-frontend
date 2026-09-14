@@ -2,7 +2,7 @@ import { Sidebar } from "../components/Sidebar";
 import { SubjectSection } from "../components/SubjectSection";
 import { OverdueSection } from "../components/OverdueSection";
 import { useState, useEffect, useMemo, useRef, useCallback, Suspense, lazy } from "react";
-import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2, Settings, Moon, Sun, Languages, Archive, HelpCircle, ArrowUpDown, MessageSquarePlus, Clock3, Repeat, Pencil } from "lucide-react";
+import { Check, Coffee, Plus, Focus, LayoutGrid, Menu, Calendar, ListChecks, BarChart3, Eye, X, Search, Sparkles, CheckSquare, Trash2, Settings, Moon, Sun, Languages, Archive, HelpCircle, ArrowUpDown, MessageSquarePlus, Clock3, Repeat, Pencil, RefreshCw } from "lucide-react";
 import { ArchivedSubjectsPopover } from "../components/ArchivedSubjectsPopover";
 import type { CommandAction } from "../components/CommandPalette";
 import { ProgressHeatmap } from "../components/ProgressHeatmap";
@@ -843,6 +843,76 @@ const DashboardPage = () => {
         }
     }, []);
 
+    // --- Pull-to-refresh (mobile Tasks panel) --------------------------
+    // A native list-refresh gesture: drag down from the very top of the
+    // Tasks panel to re-fetch, instead of relying on the browser's own
+    // page-reload pull-to-refresh (which reloads the whole app, loses
+    // scroll position/open forms, and doesn't exist at all once installed
+    // as a standalone PWA). The panel's own `overscroll-y-contain` (see its
+    // className below) stops Chrome from ALSO triggering its native
+    // page-reload pull-to-refresh at the same scroll boundary this gesture
+    // watches — without it, both would visibly compete for the same drag.
+    // PULL_MAX_PX caps how far the indicator can be
+    // dragged out (with resistance past that point feeling wrong via
+    // PULL_RESISTANCE), PULL_COMMIT_PX is how far a release still counts
+    // as "let go while committed" rather than "cancelled".
+    const PULL_MAX_PX = 80;
+    const PULL_COMMIT_PX = 56;
+    const PULL_RESISTANCE = 0.5;
+    const tasksScrollRef = useRef<HTMLDivElement>(null);
+    const pullStartYRef = useRef<number | null>(null);
+    const [pullDistance, setPullDistance] = useState(0);
+    const [isPulling, setIsPulling] = useState(false);
+    const [isRefreshingTasks, setIsRefreshingTasks] = useState(false);
+    const pullCommittedRef = useRef(false);
+
+    const handleTasksPanelTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+        if (isRefreshingTasks || (tasksScrollRef.current?.scrollTop ?? 0) > 0) return;
+        pullStartYRef.current = e.touches[0].clientY;
+        pullCommittedRef.current = false;
+    };
+
+    const handleTasksPanelTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+        const startY = pullStartYRef.current;
+        if (startY === null || isRefreshingTasks) return;
+        // Bail (rather than snapping to 0) the instant the panel has
+        // scrolled away from the top — e.g. a fast scroll gesture that
+        // started before this render saw scrollTop catch up — so a normal
+        // scroll never gets hijacked mid-gesture.
+        if ((tasksScrollRef.current?.scrollTop ?? 0) > 0) {
+            pullStartYRef.current = null;
+            setIsPulling(false);
+            setPullDistance(0);
+            return;
+        }
+        const deltaY = e.touches[0].clientY - startY;
+        if (deltaY <= 0) {
+            if (isPulling) { setIsPulling(false); setPullDistance(0); }
+            return;
+        }
+        setIsPulling(true);
+        const distance = Math.min(PULL_MAX_PX, deltaY * PULL_RESISTANCE);
+        setPullDistance(distance);
+        if (!pullCommittedRef.current && distance >= PULL_COMMIT_PX) {
+            pullCommittedRef.current = true;
+            if (localStorage.getItem("taskFeedbackEnabled") !== "false") triggerHapticFeedback();
+        } else if (pullCommittedRef.current && distance < PULL_COMMIT_PX) {
+            pullCommittedRef.current = false;
+        }
+    };
+
+    const handleTasksPanelTouchEnd = async () => {
+        const wasCommitted = pullCommittedRef.current;
+        pullStartYRef.current = null;
+        pullCommittedRef.current = false;
+        setIsPulling(false);
+        setPullDistance(0);
+        if (!wasCommitted) return;
+        setIsRefreshingTasks(true);
+        await refreshData();
+        setIsRefreshingTasks(false);
+    };
+
     // Every delete in this app is a soft-delete (goes to Trash, see
     // TrashView) — so a quick "Undo" toast right after the action is a much
     // faster recovery path than navigating to Trash and restoring it there.
@@ -1392,6 +1462,7 @@ const DashboardPage = () => {
                     setSidebarOpen={setSidebarOpen}
                     mobileOpen={mobileSidebarOpen}
                     onCloseMobile={() => setMobileSidebarOpen(false)}
+                    onOpenMobile={() => setMobileSidebarOpen(true)}
                     totalPending={totalPending}
                     subjects={subjects}
                     onOpenSettings={() => setIsSettingsOpen(true)}
@@ -1426,7 +1497,12 @@ const DashboardPage = () => {
                 />
 
                 {/* --- MOBILE TOP BAR (hamburger + logo) --- */}
-                <div className="sm:hidden flex items-center justify-between shrink-0 mb-2 px-1 py-1">
+                {/* mt-[env(safe-area-inset-top)] keeps this clear of the
+                    notch/status bar on a full-screen (PWA) launch — see
+                    index.html's viewport-fit=cover comment. Falls back to 0
+                    on every browser without a notch, so this is a no-op
+                    there. */}
+                <div className="sm:hidden flex items-center justify-between shrink-0 mt-[env(safe-area-inset-top)] mb-2 px-1 py-1">
                     <button
                         onClick={() => setMobileSidebarOpen(true)}
                         className="flex items-center justify-center w-10 h-10 rounded-xl bg-white dark:bg-gray-900 shadow-md text-gray-600 dark:text-gray-300"
@@ -1526,7 +1602,37 @@ const DashboardPage = () => {
                             </div>
 
                             {/* --- BLOCK 2: TASKS (CENTER) --- */}
-                        <div className={`${mobileView === "tasks" ? "flex" : "hidden"} sm:flex flex-1 rounded-2xl bg-white dark:bg-gray-900 shadow-md flex-col overflow-y-auto transition-colors duration-500 ease-in-out sm:ml-4`}>
+                        <div
+                            ref={tasksScrollRef}
+                            onTouchStart={handleTasksPanelTouchStart}
+                            onTouchMove={handleTasksPanelTouchMove}
+                            onTouchEnd={handleTasksPanelTouchEnd}
+                            onTouchCancel={handleTasksPanelTouchEnd}
+                            className={`${mobileView === "tasks" ? "flex" : "hidden"} sm:flex flex-1 rounded-2xl bg-white dark:bg-gray-900 shadow-md flex-col overflow-y-auto overscroll-y-contain transition-colors duration-500 ease-in-out sm:ml-4`}
+                        >
+                            {/* Pull-to-refresh indicator — a growing strip above
+                                the real content, only ever tall while a touch
+                                drag or the resulting refresh is in progress
+                                (0px the rest of the time, so it's invisible and
+                                inert on desktop/mouse). Height tracks the drag
+                                1:1 while pulling (no transition, same pattern as
+                                Sidebar.tsx's drawer drag) and animates back once
+                                released — either to 0 (cancelled) or to a fixed
+                                height while refreshData() is in flight. */}
+                            <div
+                                aria-hidden="true"
+                                style={isPulling ? { height: `${pullDistance}px`, transitionDuration: "0ms" } : undefined}
+                                className={`sm:hidden flex items-center justify-center shrink-0 overflow-hidden transition-[height] duration-300 ease-out ${
+                                    isPulling ? "" : isRefreshingTasks ? "h-14" : "h-0"
+                                }`}
+                            >
+                                <RefreshCw
+                                    size={20}
+                                    className={`text-red-500 dark:text-red-400 ${isRefreshingTasks ? "animate-spin" : ""}`}
+                                    style={isRefreshingTasks ? undefined : { transform: `rotate(${Math.min(1, pullDistance / PULL_COMMIT_PX) * 360}deg)` }}
+                                />
+                            </div>
+
                             <div className="p-4 sm:p-6 mx-auto w-full max-w-4xl transition-all duration-500 ease-in-out">
 
                                 {/* TASKS HEADER + FOCUS MODE BUTTON */}
@@ -2067,8 +2173,11 @@ const DashboardPage = () => {
             </div>
 
             {/* --- MOBILE BOTTOM TAB BAR --- */}
+            {/* mb-[env(safe-area-inset-bottom)] clears the home-indicator/
+                gesture-bar area the same way the top bar clears the notch
+                above — see that comment. */}
             {!showTrash && !showRoutines && (
-                <div className="sm:hidden relative shrink-0 mt-2 grid grid-cols-3 gap-1 p-1.5 rounded-2xl bg-white dark:bg-gray-900 shadow-md">
+                <div className="sm:hidden relative shrink-0 mt-2 mb-[env(safe-area-inset-bottom)] grid grid-cols-3 gap-1 p-1.5 rounded-2xl bg-white dark:bg-gray-900 shadow-md">
                     {/* Sliding pill background, same pattern as AgendaView's
                         Day/Week/Month selector — one animated layer that
                         glides in multiples of 1/3 instead of each button

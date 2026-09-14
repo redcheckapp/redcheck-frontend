@@ -3,7 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/redcheck.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover lets the page draw under the notch/status bar and
+         gesture bar on full-screen (standalone/PWA) launches — required for
+         apple-mobile-web-app-status-bar-style=black-translucent below to
+         actually have anything to show through, and for the env(safe-area-
+         inset-*) values components pad against (Sidebar.tsx, the mobile top
+         bar/bottom tab bar in DashboardPage.tsx) to be non-zero at all. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>RedCheck</title>
 
     <!-- PWA: lets users "Add to Home Screen" and launch RedCheck in
@@ -11,6 +17,13 @@
          hide the address bar for users, since a normal browser tab can't
          do this via script for phishing-prevention reasons. -->
     <link rel="manifest" href="/manifest.json" />
+    <!-- Kept in sync with ThemeContext.tsx's THEME_COLORS at runtime (theme
+         toggle) and the anti-flicker script below (initial paint) — #cc2229
+         is the light value (the brand red, unchanged), #030712 the dark one
+         (Tailwind's gray-950, matching body's dark:bg-gray-950). Without
+         this following the theme, a dark-mode phone would show a jarring
+         red OS status bar/task-switcher color above an otherwise dark app —
+         one of the clearer "this is just a website" tells. -->
     <meta name="theme-color" content="#cc2229" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -26,11 +39,15 @@
     <script>
       try {
         const storedTheme = localStorage.getItem('theme');
-        if (storedTheme === 'dark' || (!storedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        const isDark = storedTheme === 'dark' || (!storedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (isDark) {
           document.documentElement.classList.add('dark');
         } else {
           document.documentElement.classList.remove('dark');
         }
+
+        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+        if (metaThemeColor) metaThemeColor.setAttribute('content', isDark ? '#030712' : '#cc2229');
 
         const storedFontSize = localStorage.getItem('rc_font_size');
         if (storedFontSize && storedFontSize !== 'medium') {

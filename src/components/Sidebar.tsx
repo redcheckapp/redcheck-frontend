@@ -25,6 +25,7 @@ interface SidebarProps {
     onGoHome: () => void;
     mobileOpen: boolean;
     onCloseMobile: () => void;
+    onOpenMobile: () => void;
     onMarkNotificationsRead: () => void;
 }
 
@@ -105,6 +106,7 @@ export const Sidebar = ({
     onGoHome,
     mobileOpen,
     onCloseMobile,
+    onOpenMobile,
     onMarkNotificationsRead
 }: SidebarProps) => {
     const navigate = useNavigate();
@@ -156,63 +158,116 @@ export const Sidebar = ({
     // no point collapsing it to icon-only inside an overlay panel.
     const expanded = sidebarOpen || mobileOpen;
 
-    // --- Mobile swipe-to-close gesture --------------------------------
-    // Lets the user drag the open drawer toward the left edge to dismiss
-    // it, the way a native slide-out panel behaves. Only engages while
-    // the mobile drawer is actually open, so it never interferes with
-    // the static desktop sidebar.
+    // --- Mobile swipe-to-open/close gesture ----------------------------
+    // Lets the user drag the drawer itself toward the left edge to dismiss
+    // it (native slide-out panel behavior), and — the reverse — drag in
+    // from the screen's left edge to open it, the way a native app's
+    // navigation drawer does. Both directions share one live pixel offset
+    // (dragX, always within [-DRAWER_WIDTH, 0]) and one drag session
+    // (dragMode), just started from two different places: the visible
+    // drawer (close, only reachable while it's open) and a thin always-
+    // present edge strip (open, only reachable while it's closed) below.
     const DRAWER_WIDTH = 280;
+    const EDGE_COMMIT_RATIO = 0.3;
     const [dragX, setDragX] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
+    const [dragMode, setDragMode] = useState<"open" | "close" | null>(null);
     const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
     const handleDrawerTouchStart = (e: TouchEvent<HTMLDivElement>) => {
         if (!mobileOpen) return;
         const touch = e.touches[0];
         touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+        setDragMode("close");
     };
 
-    const handleDrawerTouchMove = (e: TouchEvent<HTMLDivElement>) => {
-        if (!mobileOpen || !touchStartRef.current) return;
+    const handleEdgeTouchStart = (e: TouchEvent<HTMLDivElement>) => {
+        if (mobileOpen) return;
+        const touch = e.touches[0];
+        touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+        setDragMode("open");
+    };
+
+    const handleDragTouchMove = (e: TouchEvent<HTMLDivElement>) => {
+        if (!dragMode || !touchStartRef.current) return;
         const touch = e.touches[0];
         const deltaX = touch.clientX - touchStartRef.current.x;
         const deltaY = touch.clientY - touchStartRef.current.y;
 
         if (!isDragging) {
-            // Wait for clear horizontal intent (toward the left edge) so
-            // vertical scrolling inside the drawer keeps working.
-            if (deltaX >= 0 || Math.abs(deltaX) < Math.abs(deltaY) || Math.abs(deltaX) < 10) return;
+            // Wait for clear, deliberate intent in the expected direction
+            // (left to close, right to open) so vertical scrolling inside
+            // the drawer — or a plain tap on the edge strip — never gets
+            // mistaken for a drag.
+            const movesInExpectedDirection = dragMode === "close" ? deltaX < 0 : deltaX > 0;
+            if (!movesInExpectedDirection || Math.abs(deltaX) < Math.abs(deltaY) || Math.abs(deltaX) < 10) return;
             setIsDragging(true);
         }
-        setDragX(Math.max(-DRAWER_WIDTH, deltaX));
+        const base = dragMode === "close" ? 0 : -DRAWER_WIDTH;
+        setDragX(Math.min(0, Math.max(-DRAWER_WIDTH, base + deltaX)));
     };
 
-    const handleDrawerTouchEnd = () => {
-        if (isDragging && dragX < -DRAWER_WIDTH * 0.3) {
-            onCloseMobile();
+    const handleDragTouchEnd = () => {
+        if (isDragging) {
+            if (dragMode === "close" && dragX < -DRAWER_WIDTH * EDGE_COMMIT_RATIO) onCloseMobile();
+            if (dragMode === "open" && dragX > -DRAWER_WIDTH * (1 - EDGE_COMMIT_RATIO)) onOpenMobile();
         }
         setIsDragging(false);
+        setDragMode(null);
         setDragX(0);
         touchStartRef.current = null;
     };
 
+    // How far open the drag-in-progress currently is, 0 (closed) to 1
+    // (fully open) — drives the backdrop's live fade-in while dragging the
+    // drawer open, since the backdrop otherwise only exists once mobileOpen
+    // itself flips true (right at the end of the gesture).
+    const dragOpenProgress = (dragX + DRAWER_WIDTH) / DRAWER_WIDTH;
+
     return (
         <>
-            {/* Mobile-only backdrop behind the sliding drawer */}
-            {mobileOpen && (
+            {/* Mobile-only backdrop behind the sliding drawer — also shown
+                (with a live opacity tied to drag progress) while an
+                edge-swipe-open drag is in flight, so the dimming appears
+                gradually under the finger instead of popping in only once
+                mobileOpen flips true at the very end of the gesture. */}
+            {(mobileOpen || (dragMode === "open" && isDragging)) && (
                 <div
                     onClick={onCloseMobile}
+                    style={dragMode === "open" && isDragging ? { opacity: Math.min(1, dragOpenProgress), transitionDuration: "0ms" } : undefined}
                     className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm transition-opacity duration-300 sm:hidden"
                 />
             )}
 
+            {/* Thin invisible strip along the screen's left edge — the
+                touch-start target for the edge-swipe-open gesture. Only
+                rendered while the drawer is closed (once open, the drawer's
+                own swipe-to-close handlers below cover that same region). */}
+            {!mobileOpen && (
+                <div
+                    onTouchStart={handleEdgeTouchStart}
+                    onTouchMove={handleDragTouchMove}
+                    onTouchEnd={handleDragTouchEnd}
+                    onTouchCancel={handleDragTouchEnd}
+                    aria-hidden="true"
+                    className="fixed inset-y-0 left-0 z-40 w-5 sm:hidden"
+                />
+            )}
+
+            {/* pt-/pb- add the safe-area inset on top of the drawer's normal
+                1.25rem (p-5) padding — this drawer is fixed edge-to-edge
+                (inset-y-0) so its background still spans under the notch/
+                gesture bar for a proper full-bleed native look, while the
+                header/footer content inside gets pushed clear of them.
+                env() is 0 on any non-notched/non-fullscreen context (every
+                desktop browser included), so this is a no-op there. */}
             <div
                 onTouchStart={handleDrawerTouchStart}
-                onTouchMove={handleDrawerTouchMove}
-                onTouchEnd={handleDrawerTouchEnd}
-                onTouchCancel={handleDrawerTouchEnd}
+                onTouchMove={handleDragTouchMove}
+                onTouchEnd={handleDragTouchEnd}
+                onTouchCancel={handleDragTouchEnd}
                 style={isDragging ? { transform: `translateX(${dragX}px)`, transitionDuration: "0ms" } : undefined}
-                className={`fixed inset-y-0 left-0 z-40 w-[280px] p-5 flex flex-col
+                className={`fixed inset-y-0 left-0 z-40 w-[280px] px-5 pt-[calc(1.25rem+env(safe-area-inset-top))] pb-[calc(1.25rem+env(safe-area-inset-bottom))] flex flex-col
                 transform transition-transform duration-300 ease-in-out ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
                 rounded-r-2xl shadow-xl
                 sm:static sm:z-20 sm:translate-x-0 sm:transition-[width] sm:duration-300 sm:ease-in-out sm:rounded-2xl sm:shadow-md

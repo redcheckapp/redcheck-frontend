@@ -8,6 +8,23 @@
 @custom-variant can-hover (@media (any-hover: hover));
 @custom-variant no-hover (@media (any-hover: none));
 
+/* 2b. Makes the installed/mobile app feel native rather than a browser tab:
+   - overscroll-behavior-x blocks Chrome's own edge-swipe-back/forward
+     history navigation (the exact gesture on Android phones like the
+     Pixel that competes with our own edge-swipe-to-open-sidebar gesture,
+     see Sidebar.tsx) — without this, a swipe starting near the left edge
+     can navigate the browser back instead of/along with opening the
+     drawer. Set on both html and body since browser support for which
+     element it needs to live on has historically been inconsistent.
+   - -webkit-tap-highlight-color removes the grey/blue flash Chrome/Safari
+     paint on every tap of a link/button — one of the more obvious "this is
+     a website" tells on an otherwise app-like UI; every interactive
+     element here already has its own active: press feedback instead. */
+html, body {
+  overscroll-behavior-x: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* 3. Desktop-only compact scale, matching how the app looked at ~80%
    browser zoom (the user's own workaround before this was added) — every
    Tailwind spacing/sizing/font-size utility is rem-based by default, so
