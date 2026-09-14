@@ -11,6 +11,7 @@ import type { ProgressRecord, SubjectWithTasks, TaskPriority, TaskRequest, TaskR
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import { getSubjectColor } from "../utils/subjectColors";
 import { getPriorityColor } from "../utils/priorityColors";
+import { triggerHapticFeedback } from "../utils/feedback";
 import { DEFAULT_EVENT_COLOR } from "../utils/eventCategoryColors";
 import { DayOffIllustration } from "./illustrations/DayOffIllustration";
 
@@ -321,6 +322,12 @@ const layoutTimedEventsForDay = (events: CalendarEventResponse[], date: Date): D
 const WEEK_CELL_TASK_LIMIT = 6;
 
 const VIEW_ORDER: ViewMode[] = ["day", "week", "month"];
+
+// Same long-press tuning TaskItem.tsx/SubjectSection.tsx already use for
+// their own long-press-to-select gesture — kept identical here so a
+// press-and-hold feels the same everywhere in the app, not just tasks.
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_MOVE_THRESHOLD_PX = 10;
 
 // Which direction the grid content should slide in from. Set directly in
 // event handlers (prev/next vs. everything else), not derived during
@@ -638,6 +645,43 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
     const openAddChooser = (e: MouseEvent<HTMLButtonElement>, date: Date) => {
         e.stopPropagation();
         setAddChooser({ date, rect: e.currentTarget.getBoundingClientRect() });
+    };
+
+    // --- Month view (mobile): long-press a day cell to add ------------
+    // The "+" button is desktop-only (can-hover:) — on touch, a plain tap
+    // has to keep meaning "open this day" (jumpToDay, unchanged), so the
+    // chooser can only be reached via a deliberate press-and-hold, same
+    // gesture/timing TaskItem.tsx's long-press-to-select already uses. One
+    // shared ref (not per-cell) is enough since only one finger can be
+    // pressing a cell at a time.
+    const monthLongPressRef = useRef<{ timer: ReturnType<typeof setTimeout> | null; startX: number; startY: number } | null>(null);
+
+    const handleMonthCellTouchStart = (e: TouchEvent<HTMLDivElement>, cellDateObj: Date) => {
+        const touch = e.touches[0];
+        const rect = e.currentTarget.getBoundingClientRect();
+        const state = { startX: touch.clientX, startY: touch.clientY, timer: null as ReturnType<typeof setTimeout> | null };
+        state.timer = setTimeout(() => {
+            state.timer = null;
+            if (localStorage.getItem("taskFeedbackEnabled") !== "false") triggerHapticFeedback();
+            setAddChooser({ date: cellDateObj, rect });
+        }, LONG_PRESS_MS);
+        monthLongPressRef.current = state;
+    };
+    // A scroll/swipe starts with the same touchstart as a long-press —
+    // cancel the timer once the finger has clearly moved, same threshold-
+    // based disambiguation as TaskItem.tsx and the swipe-nav handling below.
+    const handleMonthCellTouchMove = (e: TouchEvent<HTMLDivElement>) => {
+        const state = monthLongPressRef.current;
+        if (!state?.timer) return;
+        const touch = e.touches[0];
+        if (Math.abs(touch.clientX - state.startX) > LONG_PRESS_MOVE_THRESHOLD_PX || Math.abs(touch.clientY - state.startY) > LONG_PRESS_MOVE_THRESHOLD_PX) {
+            clearTimeout(state.timer);
+            monthLongPressRef.current = null;
+        }
+    };
+    const clearMonthLongPress = () => {
+        if (monthLongPressRef.current?.timer) clearTimeout(monthLongPressRef.current.timer);
+        monthLongPressRef.current = null;
     };
 
     const handleCreateEvent = async (data: CalendarEventRequest) => {
@@ -1020,23 +1064,115 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
             window.removeEventListener("mousemove", handleMouseMove);
             window.removeEventListener("mouseup", handleMouseUp);
             setDayDragCreate(null);
-
-            const endMinutes = minutesFromClientY(upEvent.clientY);
-            const lo = Math.min(startMinutes, endMinutes);
-            const hi = Math.max(startMinutes, endMinutes);
-            // Shorter than one snap step means this was a click, not a
-            // drag — leave it a no-op rather than creating a zero-length
-            // event nobody asked for.
-            if (hi - lo < 15) return;
-
-            const dayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
-            const start = new Date(dayStart.getTime() + lo * 60000);
-            const end = new Date(dayStart.getTime() + hi * 60000);
-            openCreateEventModal(start, end);
+            finalizeTimelineDrag(startMinutes, minutesFromClientY(upEvent.clientY));
         };
 
         window.addEventListener("mousemove", handleMouseMove);
         window.addEventListener("mouseup", handleMouseUp);
+    };
+
+    // Shared by the mouse-drag path above and the touch path below: turns a
+    // dragged [startMinutes, endMinutes] span into a create-event call.
+    // Shorter than one snap step means this was a click/tap, not a real
+    // drag — left a no-op rather than creating a zero-length event nobody
+    // asked for.
+    const finalizeTimelineDrag = (startMinutes: number, endMinutes: number) => {
+        const lo = Math.min(startMinutes, endMinutes);
+        const hi = Math.max(startMinutes, endMinutes);
+        if (hi - lo < 15) return;
+        const dayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+        openCreateEventModal(new Date(dayStart.getTime() + lo * 60000), new Date(dayStart.getTime() + hi * 60000));
+    };
+
+    // --- Day view (mobile): tap to add, press-and-drag to create -----
+    // Mirrors Month view's long-press disambiguation (a real scroll starts
+    // the same touchstart as a deliberate hold, so a timer + move-threshold
+    // tells them apart), but with a twist specific to this timeline: once
+    // armed, the gesture *becomes* the mouse-drag path above (a live ghost
+    // preview the user actively drags to size), rather than firing a single
+    // action on its own. Lifting **before** arming, without ever moving
+    // past the threshold, means a deliberate quick tap — that's what opens
+    // the Task/Event chooser here (there is no per-hour "+" button on
+    // touch, see its own comment above).
+    const dayTouchCreateRef = useRef<{ startX: number; startY: number; startMinutes: number; timer: ReturnType<typeof setTimeout> | null; dragging: boolean } | null>(null);
+
+    const handleTimelineTouchStart = (e: TouchEvent<HTMLDivElement>) => {
+        if ((e.target as HTMLElement).closest("[data-drag-ignore]")) return;
+        const touch = e.touches[0];
+        const state = {
+            startX: touch.clientX, startY: touch.clientY,
+            startMinutes: minutesFromClientY(touch.clientY),
+            dragging: false, timer: null as ReturnType<typeof setTimeout> | null,
+        };
+        state.timer = setTimeout(() => {
+            state.timer = null;
+            state.dragging = true;
+            if (localStorage.getItem("taskFeedbackEnabled") !== "false") triggerHapticFeedback();
+            setDayDragCreate({ startMinutes: state.startMinutes, currentMinutes: state.startMinutes });
+        }, LONG_PRESS_MS);
+        dayTouchCreateRef.current = state;
+    };
+
+    // A plain React onTouchMove prop is attached passively (React's own
+    // default since v17, for scroll-performance reasons) — calling
+    // preventDefault from inside one is a silent no-op, which would leave
+    // the page scrolling underneath an already-armed drag-create gesture.
+    // Attached manually as a real, non-passive listener below instead (see
+    // the effect right after this), which is the only way to actually
+    // suppress the native scroll once armed.
+    const handleTimelineTouchMove = useCallback((e: globalThis.TouchEvent) => {
+        const state = dayTouchCreateRef.current;
+        if (!state) return;
+        const touch = e.touches[0];
+        if (!state.dragging) {
+            // Not armed yet — real scrolling cancels the hold-timer and
+            // lets the page scroll normally instead of hijacking it.
+            if (Math.abs(touch.clientX - state.startX) > LONG_PRESS_MOVE_THRESHOLD_PX || Math.abs(touch.clientY - state.startY) > LONG_PRESS_MOVE_THRESHOLD_PX) {
+                if (state.timer) clearTimeout(state.timer);
+                dayTouchCreateRef.current = null;
+            }
+            return;
+        }
+        // Armed: this is now a drag-create gesture, taking over from the
+        // page's own scroll for the remainder of this touch.
+        e.preventDefault();
+        setDayDragCreate(prev => prev && { ...prev, currentMinutes: minutesFromClientY(touch.clientY) });
+    }, [minutesFromClientY]);
+
+    // Day view's timeline column only exists in the DOM while `view ===
+    // "day"` — re-attach whenever it (re)mounts. Not `{ passive: true }`
+    // (the default for a plain addEventListener call too): this listener's
+    // whole purpose is calling preventDefault once armed.
+    useEffect(() => {
+        const el = dayTimelineRef.current;
+        if (!el) return;
+        el.addEventListener("touchmove", handleTimelineTouchMove, { passive: false });
+        return () => el.removeEventListener("touchmove", handleTimelineTouchMove);
+    }, [view, handleTimelineTouchMove]);
+
+    const handleTimelineTouchEnd = (e: TouchEvent<HTMLDivElement>) => {
+        const state = dayTouchCreateRef.current;
+        dayTouchCreateRef.current = null;
+        if (!state) return;
+        if (state.timer) clearTimeout(state.timer);
+
+        if (!state.dragging) {
+            const touch = e.changedTouches[0];
+            const tapDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+            tapDate.setMinutes(state.startMinutes);
+            setAddChooser({ date: tapDate, rect: new DOMRect(touch.clientX, touch.clientY, 0, 0) });
+            return;
+        }
+
+        setDayDragCreate(null);
+        finalizeTimelineDrag(state.startMinutes, minutesFromClientY(e.changedTouches[0].clientY));
+    };
+
+    const handleTimelineTouchCancel = () => {
+        const state = dayTouchCreateRef.current;
+        dayTouchCreateRef.current = null;
+        if (state?.timer) clearTimeout(state.timer);
+        setDayDragCreate(null);
     };
 
     // One list per day of the visible week, for the Week view's per-day
@@ -1577,11 +1713,15 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                         onDragOver={(e) => handleDropZoneDragOver(e, monthCellKey)}
                                         onDragLeave={() => handleDropZoneDragLeave(monthCellKey)}
                                         onDrop={(e) => handleDayCellDrop(e, cellDateObj)}
+                                        onTouchStart={(e) => handleMonthCellTouchStart(e, cellDateObj)}
+                                        onTouchMove={handleMonthCellTouchMove}
+                                        onTouchEnd={clearMonthLongPress}
+                                        onTouchCancel={clearMonthLongPress}
                                         role="button"
                                         tabIndex={0}
                                         aria-label={cellDateObj.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
                                         onKeyDown={(e) => handleActivateKeyDown(e, () => jumpToDay(cellDateObj))}
-                                        className={`${bgColorClass} rounded-lg p-1 sm:p-2 flex flex-col transition-all hover:brightness-95 dark:hover:brightness-110 hover:shadow-md hover:z-20 cursor-pointer relative group outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 ${isToday ? "z-10" : ""} ${
+                                        className={`${bgColorClass} rounded-lg p-1 sm:p-2 flex flex-col transition-all hover:brightness-95 dark:hover:brightness-110 hover:shadow-md hover:z-20 cursor-pointer relative group outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 no-hover:select-none no-hover:[-webkit-touch-callout:none] ${isToday ? "z-10" : ""} ${
                                             dragOverKey === monthCellKey ? "z-20 ring-2 ring-inset ring-red-400 dark:ring-red-500" : ""
                                         }`}
                                     >
@@ -1589,11 +1729,14 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                             <span className={`text-xs sm:text-sm font-bold w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full transition-colors duration-300 ${isToday ? "bg-red-600 text-white shadow-sm" : bgColorClass.includes("bg-[#4ade80]") || bgColorClass.includes("bg-[#16a34a]") ? "text-white drop-shadow-md" : "text-gray-500 dark:text-gray-400"}`}>
                                                 {dayNum}
                                             </span>
+                                            {/* Desktop only — on touch, a plain tap opens the day
+                                                (jumpToDay), so the "+" chooser is only reachable via
+                                                the long-press handlers on the cell itself. */}
                                             <button
                                                 onClick={(e) => openAddChooser(e, cellDateObj)}
                                                 title={t.addTaskTitle}
                                                 aria-label={t.addTaskTitle}
-                                                className="can-hover:opacity-0 can-hover:group-hover:opacity-100 focus:opacity-100 no-hover:opacity-100 p-0.5 sm:p-1 rounded-md bg-white/80 dark:bg-gray-900/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:scale-110 active:scale-90 shadow-sm transition-all"
+                                                className="hidden can-hover:opacity-0 can-hover:group-hover:opacity-100 can-hover:block focus:opacity-100 focus:block p-0.5 sm:p-1 rounded-md bg-white/80 dark:bg-gray-900/80 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:scale-110 active:scale-90 shadow-sm transition-all"
                                             >
                                                 <Plus size={12} />
                                             </button>
@@ -1888,7 +2031,10 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                 <div
                                     ref={dayTimelineRef}
                                     onMouseDown={handleTimelineMouseDown}
-                                    className="relative z-20 cursor-crosshair"
+                                    onTouchStart={handleTimelineTouchStart}
+                                    onTouchEnd={handleTimelineTouchEnd}
+                                    onTouchCancel={handleTimelineTouchCancel}
+                                    className="relative z-20 cursor-crosshair no-hover:select-none no-hover:[-webkit-touch-callout:none]"
                                 >
                                     {/* Timed-event blocks share this exact column with the hour
                                         rows below (not a separate lane) — rendered first in DOM,
@@ -1919,12 +2065,17 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                                 <div className="flex flex-col justify-center gap-1 flex-1 min-w-0">
                                                     {(timedTasksByHour[hour] ?? []).map((task, taskIdx) => renderCompactHourTask(task, taskIdx))}
                                                 </div>
+                                                {/* Desktop only — on touch, this hour's slot is
+                                                    reached via a tap (opens the chooser) or a
+                                                    press-and-drag (creates the event directly), both
+                                                    handled by the timeline's own touch handlers, not
+                                                    a per-row button. */}
                                                 <button
                                                     data-drag-ignore
                                                     onClick={(e) => openAddChooser(e, hourDate)}
                                                     title={t.addTaskTitle}
                                                     aria-label={t.addTaskTitle}
-                                                    className="can-hover:opacity-0 can-hover:group-hover:opacity-100 focus:opacity-100 no-hover:opacity-100 p-1 rounded-md text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-110 active:scale-90 shrink-0 transition-all"
+                                                    className="hidden can-hover:opacity-0 can-hover:group-hover:opacity-100 can-hover:block focus:opacity-100 focus:block p-1 rounded-md text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-110 active:scale-90 shrink-0 transition-all"
                                                 >
                                                     <Plus size={14} />
                                                 </button>
