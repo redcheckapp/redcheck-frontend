@@ -833,11 +833,13 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
         setCurrentDate(new Date());
     };
 
+    // Picking a date from the header's jump-to-date popover opens that day's
+    // Day view directly — same behavior as clicking a day cell in Month/Week
+    // view (see jumpToDay above), rather than just moving the current
+    // Month/Week view to a different date.
     const handleJumpToDate = (date: Date) => {
-        setTransitionVariant("fade");
-        setMorePopover(null);
-        setCurrentDate(date);
         setDatePickerOpen(false);
+        jumpToDay(date);
     };
 
     // --- Mobile swipe to navigate prev/next --------------------------
