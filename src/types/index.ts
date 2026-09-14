@@ -122,6 +122,7 @@ export interface RecurringCalendarEventRequest {
 
 export interface UserResponse {
     username: string;
+    alias: string;
     email: string;
     hasPassword: boolean;
 }

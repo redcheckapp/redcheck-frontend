@@ -37,6 +37,7 @@ const CommandPalette = lazy(() => import("../components/CommandPalette").then(m 
 const OnboardingTour = lazy(() => import("../components/OnboardingTour").then(m => ({ default: m.OnboardingTour })));
 const FeedbackModal = lazy(() => import("../components/FeedbackModal").then(m => ({ default: m.FeedbackModal })));
 const ChangePasswordModal = lazy(() => import("../components/ChangePasswordModal").then(m => ({ default: m.ChangePasswordModal })));
+const EditAliasModal = lazy(() => import("../components/EditAliasModal").then(m => ({ default: m.EditAliasModal })));
 
 // Soonest deadline first — mirrors sortTasksByPriority's shape (copy, stable
 // for equal keys) but lives here rather than in priorityColors.ts since it
@@ -297,6 +298,7 @@ const DashboardPage = () => {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
     const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+    const [showEditAliasModal, setShowEditAliasModal] = useState(false);
 
     const [showCalendar, setShowCalendar] = useState(true);
     const [showTrash, setShowTrash] = useState(false);
@@ -329,6 +331,12 @@ const DashboardPage = () => {
     const handleOpenChangePassword = () => {
         setIsSettingsOpen(false);
         setShowChangePasswordModal(true);
+    };
+
+    // Same close-Settings-then-open pattern as handleOpenFeedback above.
+    const handleOpenEditAlias = () => {
+        setIsSettingsOpen(false);
+        setShowEditAliasModal(true);
     };
 
     // Selecting a task result in the command palette surfaces it the same
@@ -667,6 +675,10 @@ const DashboardPage = () => {
     const taskDeleteTimeoutsRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
     const subjectDeleteTimeoutsRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
     const [username, setUsername] = useState("");
+    // The dashboard greeting ("Buenos días, X") uses this, not the raw
+    // username — defaults to the username itself until the user picks a
+    // custom one from Settings (see redcheck-backend's getDisplayAlias).
+    const [alias, setAlias] = useState("");
     const [userEmail, setUserEmail] = useState("");
     const [hasPassword, setHasPassword] = useState(true);
     const [updatedSubject, setUpdatedSubject] = useState({ name: "", description: "" });
@@ -986,11 +998,11 @@ const DashboardPage = () => {
     };
 
     // Updated to use the translated greetings
-    const getGreeting = (username: string): string => {
+    const getGreeting = (name: string): string => {
         const hour = new Date().getHours();
-        if (hour >= 6 && hour < 12) return `${t.greetingMorning} ${username}`;
-        if (hour >= 12 && hour < 21) return `${t.greetingAfternoon} ${username}`;
-        return `${t.greetingNight} ${username}`;
+        if (hour >= 6 && hour < 12) return `${t.greetingMorning} ${name}`;
+        if (hour >= 12 && hour < 21) return `${t.greetingAfternoon} ${name}`;
+        return `${t.greetingNight} ${name}`;
     };
 
     // Updated to adapt the date to the current language
@@ -1001,6 +1013,7 @@ const DashboardPage = () => {
             try {
                 const profile = await getUsername();
                 setUsername(profile.username);
+                setAlias(profile.alias);
                 setUserEmail(profile.email);
                 setHasPassword(profile.hasPassword);
                 await refreshData();
@@ -1130,7 +1143,7 @@ const DashboardPage = () => {
             }
 
             if (e.key !== "Escape") return;
-            if (isSettingsOpen || isAiModalOpen || paletteOpen || showFeedbackModal || showChangePasswordModal) return;
+            if (isSettingsOpen || isAiModalOpen || paletteOpen || showFeedbackModal || showChangePasswordModal || showEditAliasModal) return;
 
             if (mobileSidebarOpen) {
                 setMobileSidebarOpen(false);
@@ -1163,6 +1176,7 @@ const DashboardPage = () => {
         paletteOpen,
         showFeedbackModal,
         showChangePasswordModal,
+        showEditAliasModal,
         mobileSidebarOpen,
         showTrash,
         showRoutines,
@@ -1518,7 +1532,7 @@ const DashboardPage = () => {
                                 {/* TASKS HEADER + FOCUS MODE BUTTON */}
                                 <div className="mb-6 flex justify-between items-start">
                                     <div>
-                                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100">{ getGreeting(username) }</h1>
+                                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100">{ getGreeting(alias) }</h1>
                                         <p className="text-gray-500 dark:text-gray-500 mt-1 capitalize">{today}</p>
                                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
                                             {totalPending === 0 ? (
@@ -1985,6 +1999,8 @@ const DashboardPage = () => {
                         onClose={() => setIsSettingsOpen(false)}
                         handleDeleteAccount={handleDeleteAccount}
                         userEmail={userEmail}
+                        alias={alias}
+                        onOpenEditAlias={handleOpenEditAlias}
                         hasPassword={hasPassword}
                         onOpenChangePassword={handleOpenChangePassword}
                         remindersEnabled={remindersEnabled}
@@ -2037,6 +2053,16 @@ const DashboardPage = () => {
 
                 <Suspense fallback={null}>
                     <ChangePasswordModal isOpen={showChangePasswordModal} onClose={() => setShowChangePasswordModal(false)} hasPassword={hasPassword} />
+                </Suspense>
+
+                <Suspense fallback={null}>
+                    <EditAliasModal
+                        isOpen={showEditAliasModal}
+                        onClose={() => setShowEditAliasModal(false)}
+                        username={username}
+                        currentAlias={alias === username ? "" : alias}
+                        onAliasUpdated={setAlias}
+                    />
                 </Suspense>
             </div>
 

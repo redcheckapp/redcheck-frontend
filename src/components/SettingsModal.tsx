@@ -1,4 +1,4 @@
-import { X, Trash2, Moon, Sun, MessageSquarePlus, ChevronRight, KeyRound } from "lucide-react";
+import { X, Trash2, Moon, Sun, MessageSquarePlus, ChevronRight, KeyRound, UserRound } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -16,6 +16,8 @@ interface SettingsModalProps {
     onClose: () => void;
     handleDeleteAccount: () => void;
     userEmail: string;
+    alias: string;
+    onOpenEditAlias: () => void;
     hasPassword: boolean;
     onOpenChangePassword: () => void;
     remindersEnabled: boolean;
@@ -34,6 +36,10 @@ const translations = {
     es: {
         title: "Ajustes",
         close: "Cerrar",
+        account: "Cuenta",
+        alias: "Alias",
+        aliasDesc: "Cómo te saluda el panel — cámbialo cuando quieras",
+        aliasDemoDesc: "Por motivos de seguridad, el alias de la cuenta de demostración no se puede cambiar.",
         appearance: "Apariencia",
         darkMode: "Modo Oscuro",
         themeDesc: "Ajustar el tema visual",
@@ -100,6 +106,10 @@ const translations = {
     en: {
         title: "Settings",
         close: "Close",
+        account: "Account",
+        alias: "Alias",
+        aliasDesc: "How the dashboard greets you — change it whenever you like",
+        aliasDemoDesc: "For security reasons, the demo account's alias cannot be changed.",
         appearance: "Appearance",
         darkMode: "Dark Mode",
         themeDesc: "Adjust visual theme",
@@ -201,7 +211,7 @@ const chipClass = (selected: boolean) =>
             : "bg-gray-50 dark:bg-gray-800/60 border-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
     }`;
 
-export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail, hasPassword, onOpenChangePassword, remindersEnabled, onToggleReminders, taskFeedbackEnabled, onToggleTaskFeedback, showTasksInCalendar, onToggleShowTasksInCalendar, heatmapEnabled, onToggleHeatmap, onOpenFeedback }: SettingsModalProps) => {
+export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail, alias, onOpenEditAlias, hasPassword, onOpenChangePassword, remindersEnabled, onToggleReminders, taskFeedbackEnabled, onToggleTaskFeedback, showTasksInCalendar, onToggleShowTasksInCalendar, heatmapEnabled, onToggleHeatmap, onOpenFeedback }: SettingsModalProps) => {
     const { theme, toggleTheme } = useTheme();
     const { language, toggleLanguage } = useLanguage(); // We extract the language and the toggle function
     const { colorblindMode, setColorblindMode, fontSize, setFontSize } = useAccessibility();
@@ -244,7 +254,42 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
 
                 {/* Content */}
                 <div className="p-5 flex flex-col gap-6 max-h-[60vh] overflow-y-auto">
-                    
+
+                    {/* Section 0: Account — currently just the alias, the
+                        name the dashboard greeting uses instead of the raw
+                        username. Deliberately its own section rather than
+                        folded into Appearance/Danger Zone: it's an identity
+                        setting, not a visual preference or a destructive
+                        one. Disabled for either seeded demo account, same
+                        pattern as the password row below (see
+                        redcheck-backend's DemoAccountUtils — the backend
+                        rejects this regardless of what the frontend sends). */}
+                    <div className="flex flex-col gap-3">
+                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.account}</h3>
+
+                        <button
+                            type="button"
+                            onClick={onOpenEditAlias}
+                            disabled={isDemoAccount}
+                            className={`flex justify-between items-center p-3 rounded-xl border text-left transition-colors ${
+                                isDemoAccount
+                                    ? "border-gray-100 dark:border-gray-800 bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
+                                    : "border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            }`}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 ${isDemoAccount ? "text-gray-400 dark:text-gray-600" : "text-gray-500 dark:text-gray-400"}`}>
+                                    <UserRound size={16} />
+                                </div>
+                                <div>
+                                    <p className={`text-sm font-medium ${isDemoAccount ? "text-gray-500 dark:text-gray-500" : "text-gray-700 dark:text-gray-200"}`}>{t.alias}: {alias}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">{isDemoAccount ? t.aliasDemoDesc : t.aliasDesc}</p>
+                                </div>
+                            </div>
+                            {!isDemoAccount && <ChevronRight size={16} className="text-gray-400 dark:text-gray-500 shrink-0" />}
+                        </button>
+                    </div>
+
                     {/* Section 1: Appearance — purely visual settings.
                         Notification/behavior toggles used to live in here
                         too (grouped by "when this was added" rather than
