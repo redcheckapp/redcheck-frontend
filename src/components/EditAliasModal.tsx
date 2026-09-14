@@ -27,7 +27,6 @@ const translations = {
         subtitle: "Así te saludará el panel — puedes cambiarlo cuando quieras",
         close: "Cerrar",
         lblAlias: "Alias",
-        phAlias: "Ej. Sergio",
         hint: "Déjalo vacío para usar tu nombre de usuario",
         btnCancel: "Cancelar",
         btnSave: "Guardar",
@@ -40,7 +39,6 @@ const translations = {
         subtitle: "This is how the dashboard greets you — change it whenever you like",
         close: "Close",
         lblAlias: "Alias",
-        phAlias: "E.g. Sergio",
         hint: "Leave it empty to use your username instead",
         btnCancel: "Cancel",
         btnSave: "Save",
@@ -119,7 +117,6 @@ export const EditAliasModal = ({ isOpen, onClose, username, currentAlias, onAlia
                                 type="text"
                                 value={alias}
                                 onChange={(e) => setAlias(e.target.value)}
-                                placeholder={t.phAlias}
                                 maxLength={ALIAS_MAX_LENGTH}
                                 autoFocus
                                 className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-100 transition-all duration-200 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
