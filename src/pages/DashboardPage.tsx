@@ -10,7 +10,7 @@ import { archiveSubject, deleteSubject, getSubjectsWithTasks, postSubject, resto
 import { addNewTask, deleteTask, restoreTask, toggleTask, updateTask } from "../api/taskApi";
 import { sortTasksByPriority } from "../utils/priorityColors";
 import type { SmartCheckAiData, SubjectWithTasks, TaskPriority, TaskRequest } from "../types";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { deleteUser, getUsername } from "../api/userApi";
 import { addRecurringTask } from "../api/recurringTaskApi";
 import { DEFAULT_RECURRENCE_STATE, isRecurrenceStateValid, resolveFrequency, type RecurrenceState } from "../utils/recurrenceUtils";
@@ -299,6 +299,28 @@ const DashboardPage = () => {
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
     const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
     const [showEditAliasModal, setShowEditAliasModal] = useState(false);
+
+    // Manifest shortcuts (public/manifest.json's "shortcuts" array) — long-
+    // pressing the installed app's icon offers "Today"/"Calendar"/
+    // "Settings", each landing here as /dashboard?view=... or ?open=...
+    // Handled once on mount and immediately stripped from the URL
+    // (replace: true, no extra history entry) so refreshing or navigating
+    // back never re-triggers it. Only ever affects mobile (setMobileView
+    // has no visible effect on desktop's side-by-side layout), matching
+    // where a home-screen-icon shortcut is actually reachable from.
+    const [searchParams, setSearchParams] = useSearchParams();
+    useEffect(() => {
+        const view = searchParams.get("view");
+        const open = searchParams.get("open");
+        if (!view && !open) return;
+        if (view === "agenda") setMobileView("agenda");
+        if (open === "settings") setIsSettingsOpen(true);
+        setSearchParams({}, { replace: true });
+        // Only ever meant to run once, right after landing from a shortcut
+        // — searchParams itself isn't a dependency on purpose, since
+        // setSearchParams({}) below would otherwise immediately re-trigger it.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const [showCalendar, setShowCalendar] = useState(true);
     const [showTrash, setShowTrash] = useState(false);
@@ -1356,6 +1378,30 @@ const DashboardPage = () => {
         prevTotalPendingRef.current = totalPending;
     }, [totalPending]);
 
+    // App icon badge (Badging API) — shows the pending-task count on the
+    // home screen/dock icon while the app is closed or backgrounded, the
+    // same way Mail badges its unread count. Feature-detected: only
+    // Chromium-based browsers on Android/desktop and Safari on iOS/macOS
+    // (installed as a PWA) implement this at all, so every call is guarded
+    // and wrapped — an unsupported browser just silently does nothing,
+    // never a console error. setAppBadge(0) is explicitly avoided in favor
+    // of clearAppBadge() — some implementations render a literal "0" badge
+    // otherwise, which is worse than no badge at all.
+    useEffect(() => {
+        if (!("setAppBadge" in navigator)) return;
+        try {
+            if (totalPending > 0) {
+                navigator.setAppBadge(totalPending)?.catch(() => {});
+            } else {
+                navigator.clearAppBadge?.()?.catch(() => {});
+            }
+        } catch {
+            // Some browsers throw synchronously (e.g. permission/context
+            // issues) rather than rejecting the promise — either way, this
+            // is a cosmetic nicety, never worth surfacing to the user.
+        }
+    }, [totalPending]);
+
     // Command palette actions — contextual (label/icon depend on current
     // state, e.g. Trash open/closed, Focus Mode on/off).
     // Plain array, not memoized: two of its entries close over
@@ -1501,11 +1547,15 @@ const DashboardPage = () => {
                     notch/status bar on a full-screen (PWA) launch — see
                     index.html's viewport-fit=cover comment. Falls back to 0
                     on every browser without a notch, so this is a no-op
-                    there. */}
+                    there. The two buttons' bg-white/80 + backdrop-blur-lg
+                    (same treatment as the bottom tab bar below) is a frosted-
+                    glass look — iOS/Android's own top/bottom chrome is
+                    translucent over content, unlike this app's previous flat
+                    solid-white buttons. */}
                 <div className="sm:hidden flex items-center justify-between shrink-0 mt-[env(safe-area-inset-top)] mb-2 px-1 py-1">
                     <button
                         onClick={() => setMobileSidebarOpen(true)}
-                        className="flex items-center justify-center w-10 h-10 rounded-xl bg-white dark:bg-gray-900 shadow-md text-gray-600 dark:text-gray-300"
+                        className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-md text-gray-600 dark:text-gray-300"
                         title={t.openMenu}
                     >
                         <Menu size={20} />
@@ -1516,7 +1566,7 @@ const DashboardPage = () => {
                     {aiPlanData ? (
                         <button
                             onClick={handleOpenAiModal}
-                            className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-white dark:bg-gray-900 shadow-md text-red-600 dark:text-red-400"
+                            className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-md text-red-600 dark:text-red-400"
                             title={t.viewLastPlan}
                         >
                             <Eye size={20} />
@@ -2177,7 +2227,7 @@ const DashboardPage = () => {
                 gesture-bar area the same way the top bar clears the notch
                 above — see that comment. */}
             {!showTrash && !showRoutines && (
-                <div className="sm:hidden relative shrink-0 mt-2 mb-[env(safe-area-inset-bottom)] grid grid-cols-3 gap-1 p-1.5 rounded-2xl bg-white dark:bg-gray-900 shadow-md">
+                <div className="sm:hidden relative shrink-0 mt-2 mb-[env(safe-area-inset-bottom)] grid grid-cols-3 gap-1 p-1.5 rounded-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-md">
                     {/* Sliding pill background, same pattern as AgendaView's
                         Day/Week/Month selector — one animated layer that
                         glides in multiples of 1/3 instead of each button

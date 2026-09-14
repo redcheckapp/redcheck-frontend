@@ -1,5 +1,5 @@
 import { memo, useRef } from "react";
-import { Pencil, X, Type, AlignLeft, Clock3, Flag } from "lucide-react";
+import { Pencil, X, Type, AlignLeft, Clock3, Flag, Check, Trash2 } from "lucide-react";
 import type { SubjectWithTasks, TaskPriority } from "../types";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
 import { getPriorityColor } from "../utils/priorityColors";
@@ -7,6 +7,7 @@ import { triggerHapticFeedback } from "../utils/feedback";
 import { useCheckboxStyle } from "../context/CheckboxStyleContext";
 import { checkboxShapeClass } from "../utils/checkboxShapes";
 import { CHECKBOX_ICON_COMPONENTS } from "../utils/checkboxIcons";
+import { useSwipeActions } from "../hooks/useSwipeActions";
 
 type Task = SubjectWithTasks["tasks"][0];
 
@@ -213,28 +214,62 @@ export const TaskItem = memo(({
         }
     };
 
+    // Swipe right to complete, left to delete — touch only (any-hover:
+    // none has this row's own long-press-to-select gesture already; the
+    // two coexist without special coordination, since a horizontal drag
+    // immediately exceeds the long-press's own move-cancels-it threshold
+    // above, same as a vertical scroll already does). Disabled during
+    // selectionMode — a stray drag there shouldn't complete/delete a task
+    // someone's trying to add to a bulk selection. No swipe-to-complete on
+    // an already-completed task — the checkbox already handles undoing
+    // that trivially, so there's nothing useful to add there.
+    const { rowRef, leftActionRef, rightActionRef, handlers: swipeHandlers } = useSwipeActions({
+        onSwipeRight: !selectionMode && !task.completed ? () => handleToggleTask(subjectId, task.id) : undefined,
+        onSwipeLeft: !selectionMode ? () => handleDeleteTask(subjectId, task.id) : undefined,
+        disabled: selectionMode,
+    });
+
     return (
         <div className={`transition-all duration-500 ease-in-out origin-top overflow-hidden ${
                 isAdding || isDeleting
                     ? "opacity-0 scale-95 max-h-0 !mb-[-0.5rem]"
                     : "opacity-100 scale-100 max-h-[1000px]"
         }`}>
-            {/* Main task row — while selectionMode is active, the whole row
-                (not just the checkbox) toggles selection: a tap anywhere
-                bubbles up to this onClick. The checkbox's own onClick only
-                acts outside selectionMode, so a checkbox tap isn't handled
-                twice (once there, once bubbled here). */}
-            <div
-                onClick={() => { if (selectionMode) onToggleSelect?.(subjectId, task.id); }}
-                onTouchStart={handleRowTouchStart}
-                onTouchMove={handleRowTouchMove}
-                onTouchEnd={clearLongPressTimer}
-                onTouchCancel={clearLongPressTimer}
-                className={`flex items-center gap-3 p-3 rounded-xl transition active:scale-[0.99] group no-hover:select-none no-hover:[-webkit-touch-callout:none] ${
-                selectionMode && isSelected
-                    ? "bg-blue-50 dark:bg-blue-900/20 ring-1 ring-inset ring-blue-200 dark:ring-blue-800"
-                    : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
-            }`}>
+            {/* Swipe-reveal wrapper — the two action panels sit behind the
+                row itself (z-stacked via DOM order, no z-index needed) and
+                are 0-width until useSwipeActions grows one of them to
+                match the drag. overflow-hidden keeps both the reveal and
+                the row's own horizontal travel clipped to this row rather
+                than spilling into neighboring tasks. */}
+            <div className="relative overflow-hidden rounded-xl">
+                {!selectionMode && !task.completed && (
+                    <div ref={leftActionRef} className="absolute inset-y-0 left-0 w-0 overflow-hidden flex items-center bg-green-500" aria-hidden="true">
+                        <Check size={20} strokeWidth={2.5} className="text-white shrink-0 ml-4" />
+                    </div>
+                )}
+                {!selectionMode && (
+                    <div ref={rightActionRef} className="absolute inset-y-0 right-0 w-0 overflow-hidden flex items-center justify-end bg-red-500" aria-hidden="true">
+                        <Trash2 size={20} strokeWidth={2.5} className="text-white shrink-0 mr-4" />
+                    </div>
+                )}
+
+                {/* Main task row — while selectionMode is active, the whole row
+                    (not just the checkbox) toggles selection: a tap anywhere
+                    bubbles up to this onClick. The checkbox's own onClick only
+                    acts outside selectionMode, so a checkbox tap isn't handled
+                    twice (once there, once bubbled here). */}
+                <div
+                    ref={rowRef}
+                    onClick={() => { if (selectionMode) onToggleSelect?.(subjectId, task.id); }}
+                    onTouchStart={(e) => { handleRowTouchStart(e); swipeHandlers.onTouchStart(e); }}
+                    onTouchMove={(e) => { handleRowTouchMove(e); swipeHandlers.onTouchMove(e); }}
+                    onTouchEnd={() => { clearLongPressTimer(); swipeHandlers.onTouchEnd(); }}
+                    onTouchCancel={() => { clearLongPressTimer(); swipeHandlers.onTouchCancel(); }}
+                    className={`relative flex items-center gap-3 p-3 rounded-xl transition active:scale-[0.99] group no-hover:select-none no-hover:[-webkit-touch-callout:none] touch-pan-y ${
+                    selectionMode && isSelected
+                        ? "bg-blue-50 dark:bg-blue-900/20 ring-1 ring-inset ring-blue-200 dark:ring-blue-800"
+                        : "bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                }`}>
 
                 {/* Checkbox — doubles as the selection toggle in selection mode */}
                 <button
@@ -348,6 +383,7 @@ export const TaskItem = memo(({
                         </button>
                     </div>
                 )}
+                </div>
             </div>
 
             {/* EDIT TASK FORM */}

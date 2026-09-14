@@ -1,5 +1,5 @@
 import { memo, useRef } from "react";
-import { Pencil, X, Type, AlignLeft, Clock3, Flag } from "lucide-react";
+import { Pencil, X, Type, AlignLeft, Clock3, Flag, Check, Trash2 } from "lucide-react";
 import type { SubjectWithTasks, TaskPriority } from "../types";
 import { AnimatedVisibility } from "./AnimatedVisibility";
 import { useLanguage } from "../context/LanguageContext";
@@ -8,6 +8,7 @@ import { triggerHapticFeedback } from "../utils/feedback";
 import { useCheckboxStyle } from "../context/CheckboxStyleContext";
 import { checkboxShapeClass } from "../utils/checkboxShapes";
 import { CHECKBOX_ICON_COMPONENTS } from "../utils/checkboxIcons";
+import { useSwipeActions } from "../hooks/useSwipeActions";
 
 type Task = SubjectWithTasks["tasks"][0];
 
@@ -132,6 +133,16 @@ export const OverdueTaskRow = memo(({
         }
     };
 
+    // Same swipe-right-to-complete/swipe-left-to-delete as TaskItem.tsx —
+    // the user explicitly asked for overdue tasks to behave identically to
+    // the main list, not just visually resemble it (see that precedent
+    // elsewhere in this file's siblings), so this gesture is no exception.
+    const { rowRef, leftActionRef, rightActionRef, handlers: swipeHandlers } = useSwipeActions({
+        onSwipeRight: !selectionMode && !task.completed ? () => handleToggleTask(subjectId, task.id) : undefined,
+        onSwipeLeft: !selectionMode ? () => handleDeleteTask(subjectId, task.id) : undefined,
+        disabled: selectionMode,
+    });
+
     return (
         <div
             className={`flex flex-col w-full transition-all duration-500 ease-in-out origin-top overflow-hidden ${
@@ -141,13 +152,27 @@ export const OverdueTaskRow = memo(({
             }`}
         >
             {/* --- 1. NORMAL MODE (TASK VIEW) --- */}
+            {/* Swipe-reveal wrapper — see TaskItem.tsx's identical structure
+                for the full reasoning. */}
+            <div className="relative overflow-hidden rounded-xl">
+                {!selectionMode && !task.completed && (
+                    <div ref={leftActionRef} className="absolute inset-y-0 left-0 w-0 overflow-hidden flex items-center bg-green-500" aria-hidden="true">
+                        <Check size={20} strokeWidth={2.5} className="text-white shrink-0 ml-4" />
+                    </div>
+                )}
+                {!selectionMode && (
+                    <div ref={rightActionRef} className="absolute inset-y-0 right-0 w-0 overflow-hidden flex items-center justify-end bg-red-500" aria-hidden="true">
+                        <Trash2 size={20} strokeWidth={2.5} className="text-white shrink-0 mr-4" />
+                    </div>
+                )}
             <div
+                ref={rowRef}
                 onClick={() => { if (selectionMode) onToggleSelect?.(subjectId, task.id); }}
-                onTouchStart={handleRowTouchStart}
-                onTouchMove={handleRowTouchMove}
-                onTouchEnd={clearLongPressTimer}
-                onTouchCancel={clearLongPressTimer}
-                className={`flex items-center gap-3 p-3 rounded-xl transition-colors duration-300 group border no-hover:select-none no-hover:[-webkit-touch-callout:none] ${
+                onTouchStart={(e) => { handleRowTouchStart(e); swipeHandlers.onTouchStart(e); }}
+                onTouchMove={(e) => { handleRowTouchMove(e); swipeHandlers.onTouchMove(e); }}
+                onTouchEnd={() => { clearLongPressTimer(); swipeHandlers.onTouchEnd(); }}
+                onTouchCancel={() => { clearLongPressTimer(); swipeHandlers.onTouchCancel(); }}
+                className={`relative flex items-center gap-3 p-3 rounded-xl transition-colors duration-300 group border no-hover:select-none no-hover:[-webkit-touch-callout:none] touch-pan-y ${
                     selectionMode && isSelected
                         ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
                         : isEditing
@@ -248,6 +273,7 @@ export const OverdueTaskRow = memo(({
                         </button>
                     </div>
                 )}
+            </div>
             </div>
 
             {/* --- 2. ANIMATED EDIT MODE --- */}
