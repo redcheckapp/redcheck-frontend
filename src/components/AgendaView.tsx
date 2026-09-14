@@ -199,20 +199,46 @@ const getHistoricalTasksForDate = (
         .sort((a, b) => (a.completed === b.completed) ? 0 : a.completed ? 1 : -1);
 };
 
+// A pure whole-calendar-day index for `date` — its Y/M/D read via the
+// LOCAL getters (so it's still "the day this Date reads as" in whatever
+// timezone the browser is in), then re-anchored through Date.UTC purely so
+// dividing by a day's millisecond count is safe arithmetic with no
+// timezone/DST component left in it at all. Every event-vs-day comparison
+// in this file goes through this (see getEventDaySpan/getEventsForDate
+// below) specifically so there is no hour/millisecond boundary left
+// anywhere for an off-by-one to hide in — two instants on the same
+// calendar day always produce the exact same integer, full stop.
+const dayIndex = (date: Date): number =>
+    Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000);
+
+interface EventDaySpan {
+    event: CalendarEventResponse;
+    startDayIdx: number;
+    endDayIdx: number; // inclusive
+}
+
+// Reduces an event's real start/end instants to the whole calendar days
+// they fall on — e.g. an all-day event stored as
+// "2026-09-18T00:00:00" .. "2026-09-18T23:59:59" collapses to a single
+// startDayIdx === endDayIdx, and can never bleed into the 19th no matter
+// what time-of-day component either end happens to carry.
+const getEventDaySpan = (event: CalendarEventResponse): EventDaySpan => ({
+    event,
+    startDayIdx: dayIndex(new Date(event.startDateTime)),
+    endDayIdx: dayIndex(new Date(event.endDateTime)),
+});
+
 // Calendar events for a given day: unlike tasks (a single point in time),
-// an event is an interval — it "occurs" on day D whenever [startDateTime,
-// endDateTime] overlaps [D 00:00, D 23:59], covering punctual, all-day and
-// multi-day events alike with one comparison (mirrors redcheck-backend's
-// CalendarEventRepository#findAllByUser_IdAndDateRange). Independent of
+// an event is an interval — it "occurs" on day D whenever D falls within
+// [startDay, endDay] (inclusive), covering punctual, all-day and multi-day
+// events alike with one comparison, entirely in whole-day units (see
+// dayIndex above) rather than comparing raw timestamps. Independent of
 // `showTasks`/getMergedTasksForDate — hiding tasks shouldn't hide events,
 // they're a separate content type on the same calendar.
 const getEventsForDate = (events: CalendarEventResponse[], date: Date): CalendarEventResponse[] => {
-    const dayStart = new Date(date);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(date);
-    dayEnd.setHours(23, 59, 59, 999);
+    const d = dayIndex(date);
     return events
-        .filter(ev => new Date(ev.startDateTime).getTime() <= dayEnd.getTime() && new Date(ev.endDateTime).getTime() >= dayStart.getTime())
+        .filter(ev => { const span = getEventDaySpan(ev); return span.startDayIdx <= d && span.endDayIdx >= d; })
         .sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime());
 };
 
@@ -234,6 +260,18 @@ const MIN_EVENT_BLOCK_HEIGHT_REM = 1.5;
 // start/end minutes (see handleTimelineMouseDown), this is purely display.
 const formatMinutesOfDay = (minutes: number) =>
     new Date(2000, 0, 1, 0, minutes).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+// A continuous Month-view banner segment for one row of the grid — see the
+// monthEventSegments useMemo further down for how these get built.
+interface MonthEventSegment {
+    event: CalendarEventResponse;
+    row: number; // 0-indexed grid row
+    colStart: number; // 0-6 (Monday=0)
+    colEnd: number; // 0-6, inclusive
+    lane: number; // 0-based vertical stacking slot within this row
+    isStart: boolean; // true on the segment containing the event's real first day
+    isEnd: boolean; // true on the segment containing the event's real last day
+}
 
 interface DayEventBlock {
     event: CalendarEventResponse;
@@ -1233,6 +1271,69 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
         return (dayNumber > 0 && dayNumber <= daysInMonth) ? dayNumber : null;
     });
 
+    // Multi-day (and single-day all-day) events render as a continuous bar
+    // spanning the grid columns they actually cover — like Google Calendar
+    // — rather than a separate chip repeated in every day cell it touches.
+    // Computed once per month render (not per cell): each event's
+    // whole-day span (getEventDaySpan) is clipped to the visible month and
+    // split into one segment per grid *row* it crosses (a banner wrapping
+    // from one week to the next can't be one continuous DOM box across a
+    // row break), then segments are greedily assigned a vertical "lane"
+    // within their row so overlapping events stack instead of colliding —
+    // same interval-graph approach as Day view's layoutTimedEventsForDay,
+    // just column-based here instead of minute-based.
+    const { monthEventSegments, monthRowLaneCounts } = useMemo(() => {
+        const monthStartIdx = dayIndex(new Date(currentYear, currentMonth, 1));
+        const monthEndIdx = dayIndex(new Date(currentYear, currentMonth, daysInMonth));
+
+        type RawSegment = { event: CalendarEventResponse; row: number; colStart: number; colEnd: number; isStart: boolean; isEnd: boolean; spanStartIdx: number };
+        const raw: RawSegment[] = [];
+
+        for (const ev of events) {
+            if (!ev.allDay) continue;
+            const span = getEventDaySpan(ev);
+            const clippedStart = Math.max(span.startDayIdx, monthStartIdx);
+            const clippedEnd = Math.min(span.endDayIdx, monthEndIdx);
+            if (clippedStart > clippedEnd) continue; // entirely outside the visible month
+
+            let cursor = clippedStart;
+            while (cursor <= clippedEnd) {
+                const dayNum = cursor - monthStartIdx + 1; // 1-based day-of-month
+                const cellIndex = firstDayOfMonth + (dayNum - 1);
+                const row = Math.floor(cellIndex / 7);
+                const colStart = cellIndex % 7;
+                const roomInRow = 6 - colStart;
+                const roomInSpan = clippedEnd - cursor;
+                const extra = Math.min(roomInRow, roomInSpan);
+                raw.push({
+                    event: ev, row, colStart, colEnd: colStart + extra,
+                    isStart: cursor === span.startDayIdx,
+                    isEnd: cursor + extra === span.endDayIdx,
+                    spanStartIdx: span.startDayIdx,
+                });
+                cursor += extra + 1;
+            }
+        }
+
+        // Earlier-starting (and, as a tiebreak, longer) events claim lower
+        // lanes first — processing order only affects lane *packing*
+        // efficiency, never correctness: a lane is only reused once its
+        // previous occupant's column range has fully ended.
+        raw.sort((a, b) => a.spanStartIdx - b.spanStartIdx || (b.colEnd - b.colStart) - (a.colEnd - a.colStart));
+
+        const rowLaneEnds: number[][] = [];
+        const segments: MonthEventSegment[] = [];
+        for (const seg of raw) {
+            const lanes = (rowLaneEnds[seg.row] ??= []);
+            let lane = lanes.findIndex(end => end < seg.colStart);
+            if (lane === -1) lane = lanes.length;
+            lanes[lane] = seg.colEnd;
+            segments.push({ ...seg, lane });
+        }
+
+        return { monthEventSegments: segments, monthRowLaneCounts: rowLaneEnds.map(lanes => lanes.length) };
+    }, [events, currentYear, currentMonth, firstDayOfMonth, daysInMonth]);
+
     // Day view's full title ("9 September 2026") is the one that overflows
     // its row on narrow screens and wraps to two lines — Month/Week's titles
     // already fit, so `headerTitleShort` only actually differs for Day
@@ -1421,6 +1522,42 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                 className="animate-chip-in text-[8px] sm:text-[10px] font-medium px-1 sm:px-1.5 py-0.5 rounded truncate text-gray-600 dark:text-gray-300 transition-all hover:brightness-95 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 border-l-2"
             >
                 {event.title}
+            </div>
+        );
+    };
+
+    // Continuous Month-view banner for an all-day (or multi-day) event —
+    // an explicit CSS Grid placement (gridColumn/gridRow) rather than a
+    // per-cell chip, so a multi-day span reads as one unbroken bar across
+    // the columns it covers. Rendered as an *additional* child of the same
+    // `grid-cols-7` container the day cells themselves live in (CSS Grid
+    // happily lets multiple items share/overlap grid areas), positioned
+    // via `self-start` + a fixed `marginTop` that clears the day-number
+    // badge, stacked per `lane` when more than one event shares a row —
+    // the day cells reserve matching empty space for this via their own
+    // lane-count spacer (see monthRowLaneCounts).
+    const renderMonthEventBanner = (seg: MonthEventSegment) => {
+        const { event, row, colStart, colEnd, lane, isStart, isEnd } = seg;
+        const color = (event.categoryId && categoryById.get(event.categoryId)?.color) || DEFAULT_EVENT_COLOR;
+        return (
+            <div
+                key={`banner-${event.id}-${row}`}
+                title={event.title}
+                onClick={(e) => { e.stopPropagation(); openEditEventModal(event); }}
+                role="button"
+                tabIndex={0}
+                aria-label={event.title}
+                onKeyDown={(e) => { e.stopPropagation(); handleActivateKeyDown(e, () => openEditEventModal(event)); }}
+                style={{
+                    gridColumn: `${colStart + 1} / ${colEnd + 2}`,
+                    gridRow: `${row + 1} / ${row + 2}`,
+                    marginTop: `calc(1.9rem + ${lane} * 1.15rem)`,
+                    backgroundColor: `${color}14`,
+                    borderColor: color,
+                }}
+                className={`self-start z-10 mx-0.5 h-4 sm:h-[1.1rem] flex items-center px-1 text-[8px] sm:text-[9px] font-medium text-gray-600 dark:text-gray-300 truncate border-l-2 cursor-pointer transition-all hover:brightness-95 outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500 ${isStart ? "rounded-l" : ""} ${isEnd ? "rounded-r" : ""}`}
+            >
+                {isStart && <span className="truncate">{event.title}</span>}
             </div>
         );
     };
@@ -1666,7 +1803,17 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                             rather than a ruled spreadsheet grid. */}
                         <div className="flex-1 grid grid-cols-7 bg-gray-100/60 dark:bg-gray-950/40 gap-1.5 p-1.5 transition-colors duration-300" style={{ gridTemplateRows: `repeat(${rowsNeeded}, minmax(0, 1fr))` }}>
                             {calendarCells.map((dayNum, i) => {
-                                if (!dayNum) return <div key={i} className="bg-gray-50/30 dark:bg-gray-800/30 rounded-lg p-3 transition-colors duration-300" />;
+                                // Every cell gets an explicit grid position, not just the
+                                // event banners (see monthEventSegments/renderMonthEventBanner):
+                                // CSS Grid's auto-placement algorithm places explicitly-positioned
+                                // items first and then has auto-placed items *skip* any cell an
+                                // explicit item already occupies — since the banners share this
+                                // same grid-cols-7 container and use explicit gridColumn/gridRow,
+                                // leaving day cells on auto-placement caused them to visibly shift
+                                // out of their real weekday column whenever a banner sat on that
+                                // day (discovered from a report of events appearing 1-2 days off).
+                                const cellGridStyle = { gridColumn: (i % 7) + 1, gridRow: Math.floor(i / 7) + 1 };
+                                if (!dayNum) return <div key={i} style={cellGridStyle} className="bg-gray-50/30 dark:bg-gray-800/30 rounded-lg p-3 transition-colors duration-300" />;
 
                                 const cellDateObj = new Date(currentYear, currentMonth, dayNum);
                                 const isToday = cellDateObj.toDateString() === todayObj.toDateString();
@@ -1703,12 +1850,19 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                 // calendar-history data, which — unlike `subjects` — includes
                                 // completed tasks).
                                 const dayTasks = getMergedTasksForDate(cellDateObj);
-                                const dayEvents = getEventsForDate(events, cellDateObj);
+                                // All-day events render as continuous banners (see
+                                // monthEventSegments/renderMonthEventBanner) instead of a
+                                // per-cell chip — only non-all-day events still use the
+                                // plain chip list below.
+                                const dayEvents = getEventsForDate(events, cellDateObj).filter(ev => !ev.allDay);
+                                const monthRow = Math.floor(i / 7);
+                                const monthRowLanes = monthRowLaneCounts[monthRow] ?? 0;
 
                                 const monthCellKey = `month-${cellDateString}`;
                                 return (
                                     <div
                                         key={i}
+                                        style={cellGridStyle}
                                         onClick={() => jumpToDay(cellDateObj)}
                                         onDragOver={(e) => handleDropZoneDragOver(e, monthCellKey)}
                                         onDragLeave={() => handleDropZoneDragLeave(monthCellKey)}
@@ -1741,6 +1895,12 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                                 <Plus size={12} />
                                             </button>
                                         </div>
+                                        {/* Reserves the exact vertical space renderMonthEventBanner's
+                                            lanes occupy in this row (a fixed-height spacer, not the
+                                            banners themselves — those are separate grid-overlay
+                                            elements, see monthEventSegments) so today's own tasks/
+                                            event chips never render underneath a banner. */}
+                                        {monthRowLanes > 0 && <div style={{ height: `${monthRowLanes * 1.15}rem` }} className="shrink-0" />}
                                         {dayTasks.length > 0 ? (
                                             <div className="flex-1 flex flex-col gap-0.5 sm:gap-1 overflow-y-auto no-scrollbar">
                                                 {dayTasks.slice(0, 2).map((task, taskIdx) => {
@@ -1797,6 +1957,13 @@ export const AgendaView = memo(({ subjects = [], onCreateTask, onUpdateTask, onD
                                     </div>
                                 );
                             })}
+                            {/* Continuous all-day/multi-day banners — additional children
+                                of this same grid-cols-7 container, placed via explicit
+                                gridColumn/gridRow so a span reads as one unbroken bar
+                                across the day cells above/below it (CSS Grid allows
+                                multiple items to share a grid area; see
+                                renderMonthEventBanner for the stacking/z-index reasoning). */}
+                            {monthEventSegments.map(seg => renderMonthEventBanner(seg))}
                         </div>
                     </>
                 )}
