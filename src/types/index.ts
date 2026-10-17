@@ -125,6 +125,9 @@ export interface UserResponse {
     alias: string;
     email: string;
     hasPassword: boolean;
+    // Shows the developer dashboard entry point. Cosmetic only — the backend
+    // enforces access to /admin/** on its own.
+    isAdmin: boolean;
 }
 
 export interface SubjectRequest {
@@ -191,4 +194,87 @@ export interface FeedbackResponse {
     category: FeedbackCategory;
     message: string;
     createdDate: string;
+}
+
+// SYSTEM = legacy/AI notifications (English-only, not listed in the bell);
+// FEEDBACK_REPLY = a reply the developer sent from the developer dashboard.
+export type NotificationType = "SYSTEM" | "FEEDBACK_REPLY";
+
+export interface AppNotification {
+    id: number;
+    title: string;
+    message: string;
+    type: NotificationType;
+    read: boolean;
+    creationDate: string;
+}
+
+// --- Developer dashboard (admin-only, /admin/** on the backend) ---
+
+export type FeedbackStatus = "NEW" | "SEEN" | "IN_PROGRESS" | "DONE" | "WONTFIX";
+
+export interface AdminFeedback {
+    id: number;
+    category: FeedbackCategory;
+    status: FeedbackStatus;
+    message: string;
+    adminNote: string | null;
+    createdDate: string;
+    userNotifiedDate: string | null; // last in-app reply sent to the author
+    userEmail: string | null; // null once the author deleted their account
+    userAlias: string | null;
+}
+
+// Partial update: an omitted field is left unchanged; "" clears the note.
+export interface AdminFeedbackUpdate {
+    status?: FeedbackStatus;
+    adminNote?: string;
+}
+
+// GET /admin/user-stats. Demo accounts and admins are excluded. "seen" =
+// had an authenticated request (exact, but only since lastSeenAt started
+// being recorded); "acting" = completed a task or created one by hand
+// (approximate, but with full history — so `daily` is activity-based).
+export interface UserStats {
+    days: number;
+    totalUsers: number;
+    googleUsers: number;
+    newUsers: number;
+    seenToday: number;
+    seen7d: number;
+    seen30d: number;
+    acting7d: number;
+    acting30d: number;
+    daily: { date: string; actingUsers: number; signups: number }[];
+}
+
+export interface SystemStatus {
+    version: string | null;
+    buildTime: string | null; // ISO instant
+    gitSha: string; // "unknown" for local builds
+    startedAt: string;
+    uptimeSeconds: number;
+    javaVersion: string;
+    memoryUsedMb: number;
+    memoryMaxMb: number;
+    aiEngineReachable: boolean;
+    aiEngineLatencyMs: number | null;
+}
+
+export interface AiUsageDay {
+    date: string; // "YYYY-MM-DD"
+    prioritizeCalls: number;
+    outcomeCalls: number;
+    failedCalls: number;
+}
+
+export interface AiUsageStats {
+    days: number;
+    todayPrioritizeCalls: number;
+    totalPrioritizeCalls: number;
+    totalOutcomeCalls: number;
+    failedCalls: number;
+    avgPrioritizeDurationMs: number;
+    distinctUsers: number;
+    daily: AiUsageDay[]; // one entry per day, oldest first, zeros included
 }

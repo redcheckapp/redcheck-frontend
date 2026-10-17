@@ -1,4 +1,4 @@
-import { X, Trash2, Moon, Sun, MessageSquarePlus, ChevronRight, KeyRound, UserRound } from "lucide-react";
+import { X, Trash2, Moon, Sun, MessageSquarePlus, ChevronRight, KeyRound, UserRound, Gauge } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -30,6 +30,9 @@ interface SettingsModalProps {
     heatmapEnabled: boolean;
     onToggleHeatmap: () => void;
     onOpenFeedback: () => void;
+    // Developer dashboard row, only rendered for admins (see UserResponse.isAdmin).
+    isAdmin?: boolean;
+    onOpenDeveloperDashboard?: () => void;
 }
 
 // --- Translation dictionary for SettingsModal ---
@@ -93,6 +96,8 @@ const translations = {
         support: "Soporte",
         sendFeedback: "¿Tienes feedback?",
         sendFeedbackDesc: "Cuéntanoslo — bugs, ideas, o lo que sea",
+        developerDashboard: "Panel de desarrollador",
+        developerDashboardDesc: "Feedback recibido y uso de SmartCheck AI",
         dangerZone: "Zona de peligro",
         changePassword: "Cambiar contraseña",
         setPassword: "Crear contraseña",
@@ -163,6 +168,8 @@ const translations = {
         support: "Support",
         sendFeedback: "Got feedback?",
         sendFeedbackDesc: "Tell us — bugs, ideas, anything",
+        developerDashboard: "Developer dashboard",
+        developerDashboardDesc: "Incoming feedback and SmartCheck AI usage",
         dangerZone: "Danger Zone",
         changePassword: "Change password",
         setPassword: "Set a password",
@@ -212,7 +219,7 @@ const chipClass = (selected: boolean) =>
             : "bg-gray-50 dark:bg-gray-800/60 border-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
     }`;
 
-export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail, alias, onOpenEditAlias, hasPassword, onOpenChangePassword, remindersEnabled, onToggleReminders, taskFeedbackEnabled, onToggleTaskFeedback, showTasksInCalendar, onToggleShowTasksInCalendar, heatmapEnabled, onToggleHeatmap, onOpenFeedback }: SettingsModalProps) => {
+export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail, alias, onOpenEditAlias, hasPassword, onOpenChangePassword, remindersEnabled, onToggleReminders, taskFeedbackEnabled, onToggleTaskFeedback, showTasksInCalendar, onToggleShowTasksInCalendar, heatmapEnabled, onToggleHeatmap, onOpenFeedback, isAdmin = false, onOpenDeveloperDashboard }: SettingsModalProps) => {
     const { theme, toggleTheme } = useTheme();
     const { language, toggleLanguage } = useLanguage(); // We extract the language and the toggle function
     const { colorblindMode, setColorblindMode, fontSize, setFontSize } = useAccessibility();
@@ -584,6 +591,24 @@ export const SettingsModal = ({ isOpen, onClose, handleDeleteAccount, userEmail,
                             </div>
                             <ChevronRight size={16} className="text-gray-400 dark:text-gray-500 shrink-0" />
                         </button>
+                        {isAdmin && onOpenDeveloperDashboard && (
+                            <button
+                                type="button"
+                                onClick={onOpenDeveloperDashboard}
+                                className="flex justify-between items-center p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300">
+                                        <Gauge size={16} />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{t.developerDashboard}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">{t.developerDashboardDesc}</p>
+                                    </div>
+                                </div>
+                                <ChevronRight size={16} className="text-gray-400 dark:text-gray-500 shrink-0" />
+                            </button>
+                        )}
                     </div>
 
                     {/* Section 5: Danger Zone. The password row lives here

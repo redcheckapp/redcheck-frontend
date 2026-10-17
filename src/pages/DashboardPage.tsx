@@ -9,9 +9,10 @@ import { ProgressHeatmap } from "../components/ProgressHeatmap";
 import { archiveSubject, deleteSubject, getSubjectsWithTasks, postSubject, restoreSubject, updateSubject } from "../api/subjectApi";
 import { addNewTask, deleteTask, restoreTask, toggleTask, updateTask } from "../api/taskApi";
 import { sortTasksByPriority } from "../utils/priorityColors";
-import type { SmartCheckAiData, SubjectWithTasks, TaskPriority, TaskRequest } from "../types";
+import type { AppNotification, SmartCheckAiData, SubjectWithTasks, TaskPriority, TaskRequest } from "../types";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { deleteUser, getUsername } from "../api/userApi";
+import { getUnreadFeedbackReplies, markNotificationRead } from "../api/notificationApi";
 import { addRecurringTask } from "../api/recurringTaskApi";
 import { DEFAULT_RECURRENCE_STATE, isRecurrenceStateValid, resolveFrequency, type RecurrenceState } from "../utils/recurrenceUtils";
 import { dailyAnalysis, pollForAnalysis } from "../api/smartCheckApi";
@@ -703,6 +704,7 @@ const DashboardPage = () => {
     const [alias, setAlias] = useState("");
     const [userEmail, setUserEmail] = useState("");
     const [hasPassword, setHasPassword] = useState(true);
+    const [isAdmin, setIsAdmin] = useState(false);
     const [updatedSubject, setUpdatedSubject] = useState({ name: "", description: "" });
     const [newTask, setNewTask] = useState<{ title: string; description: string; deadline: string; priority: TaskPriority; recurrence: RecurrenceState }>(NEW_TASK_INITIAL);
     const [updatedTask, setUpdatedTask] = useState<{ title: string; description: string; deadline: string; priority: TaskPriority }>({ title: "", description: "", deadline: "", priority: "MEDIUM" });
@@ -747,6 +749,9 @@ const DashboardPage = () => {
     const [aiPlanData, setAiPlanData] = useState<SmartCheckAiData | null>(null);
     const [isAiLoading, setIsAiLoading] = useState(false);
     const [aiNotificationReady, setAiNotificationReady] = useState(false);
+    // Replies the developer sent to this user's feedback (developer
+    // dashboard → backend FEEDBACK_REPLY notifications), shown in the bell.
+    const [feedbackReplies, setFeedbackReplies] = useState<AppNotification[]>([]);
     
     const handleGenerateAiPlan = async () => {
         // Guards every entry point (SmartCheckButton, command palette) at
@@ -1108,6 +1113,9 @@ const DashboardPage = () => {
                 setAlias(profile.alias);
                 setUserEmail(profile.email);
                 setHasPassword(profile.hasPassword);
+                setIsAdmin(profile.isAdmin);
+                // Non-blocking: a failure here must never break the dashboard.
+                getUnreadFeedbackReplies().then(setFeedbackReplies).catch(() => {});
                 await refreshData();
                 if (localStorage.getItem("rc_onboarding_seen") !== "true") {
                     setShowOnboarding(true);
@@ -1539,7 +1547,16 @@ const DashboardPage = () => {
                         }
                     }}
                     onGoHome={() => { setShowTrash(false); setShowRoutines(false); }}
-                    onMarkNotificationsRead={() => setAiNotificationReady(false)}
+                    onMarkNotificationsRead={() => {
+                        setAiNotificationReady(false);
+                        feedbackReplies.forEach(reply => markNotificationRead(reply.id).catch(() => {}));
+                        setFeedbackReplies([]);
+                    }}
+                    feedbackReplies={feedbackReplies}
+                    onDismissFeedbackReply={(id) => {
+                        setFeedbackReplies(prev => prev.filter(reply => reply.id !== id));
+                        markNotificationRead(id).catch(() => {});
+                    }}
                 />
 
                 {/* --- MOBILE TOP BAR (hamburger + logo) --- */}
@@ -1555,10 +1572,15 @@ const DashboardPage = () => {
                 <div className="sm:hidden flex items-center justify-between shrink-0 mt-[env(safe-area-inset-top)] mb-2 px-1 py-1">
                     <button
                         onClick={() => setMobileSidebarOpen(true)}
-                        className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-md text-gray-600 dark:text-gray-300"
+                        className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-md text-gray-600 dark:text-gray-300"
                         title={t.openMenu}
                     >
                         <Menu size={20} />
+                        {/* The bell lives inside the drawer on mobile, so an
+                            unread feedback reply is hinted on the hamburger. */}
+                        {feedbackReplies.length > 0 && (
+                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-gray-900"></span>
+                        )}
                     </button>
                     <span className="text-lg font-black text-gray-900 dark:text-white tracking-tight">
                         REDCHECK
@@ -2168,6 +2190,8 @@ const DashboardPage = () => {
                         heatmapEnabled={heatmapEnabled}
                         onToggleHeatmap={handleToggleHeatmap}
                         onOpenFeedback={handleOpenFeedback}
+                        isAdmin={isAdmin}
+                        onOpenDeveloperDashboard={() => navigate("/developer")}
                     />
                 </Suspense>
 
