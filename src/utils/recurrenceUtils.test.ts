@@ -185,32 +185,36 @@ describe("getUpcomingOccurrences", () => {
         expect(dates.map(toDateKey)).toEqual(["2026-01-02", "2026-02-02"]);
     });
 
-    it("previews a custom Mon/Thu pattern — first occurrence is still just 'tomorrow', later ones follow the pattern", () => {
-        // Tomorrow (2026-01-02) is a Friday, not one of the selected days —
-        // matches RecurringTaskSchedulerService's own behavior: the very
-        // first-ever occurrence ignores the pattern entirely.
+    it("previews a custom Mon/Thu pattern — even the first occurrence lands on a selected day", () => {
+        // Tomorrow (2026-01-02) is a Friday, not one of the selected days, so
+        // the first occurrence is the following Monday — never a Friday.
         const dates = getUpcomingOccurrences("0 0 0 * * 1,4", 3);
-        expect(dates.map(toDateKey)).toEqual(["2026-01-02", "2026-01-05", "2026-01-08"]);
+        expect(dates.map(toDateKey)).toEqual(["2026-01-05", "2026-01-08", "2026-01-12"]);
+    });
+
+    it("starts tomorrow when tomorrow is one of the selected days", () => {
+        const dates = getUpcomingOccurrences("0 0 0 * * 5", 2);
+        expect(dates.map(toDateKey)).toEqual(["2026-01-02", "2026-01-09"]);
     });
 
     it("stops early once a projected date would fall after endDate", () => {
         const dates = getUpcomingOccurrences("0 0 0 * * 1,4", 5, "2026-01-06");
-        expect(dates.map(toDateKey)).toEqual(["2026-01-02", "2026-01-05"]);
+        expect(dates.map(toDateKey)).toEqual(["2026-01-05"]);
     });
 
     it("previews a monthly-day-15 pattern", () => {
         const dates = getUpcomingOccurrences("MONTHLY:15", 3);
-        expect(dates.map(toDateKey)).toEqual(["2026-01-02", "2026-01-15", "2026-02-15"]);
+        expect(dates.map(toDateKey)).toEqual(["2026-01-15", "2026-02-15", "2026-03-15"]);
     });
 
     it("previews a monthly-day-31 pattern, clamping to February's real last day", () => {
         const dates = getUpcomingOccurrences("MONTHLY:31", 3);
         // 2026 is not a leap year — February has 28 days.
-        expect(dates.map(toDateKey)).toEqual(["2026-01-02", "2026-01-31", "2026-02-28"]);
+        expect(dates.map(toDateKey)).toEqual(["2026-01-31", "2026-02-28", "2026-03-31"]);
     });
 
     it("previews a monthly-LAST pattern", () => {
         const dates = getUpcomingOccurrences("MONTHLY:LAST", 3);
-        expect(dates.map(toDateKey)).toEqual(["2026-01-02", "2026-01-31", "2026-02-28"]);
+        expect(dates.map(toDateKey)).toEqual(["2026-01-31", "2026-02-28", "2026-03-31"]);
     });
 });

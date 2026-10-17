@@ -185,21 +185,26 @@ const stepMonthlyDay = (dayToken: number | "LAST", from: Date): Date => {
 // for a frequency the user is currently composing in the create/edit form —
 // mirrors RecurringTaskService#computeNextOccurrence on the backend (the
 // authoritative source once a routine actually exists) closely enough to
-// use for a live "next dates" preview: the first occurrence always lands on
-// the scheduler's very next tick (tomorrow) regardless of frequency, since
-// that's how RecurringTaskSchedulerService#shouldGenerate treats a routine
-// that's never generated before; every occurrence after that steps forward
-// from the previous one via the frequency pattern. Stops early once a date
-// would fall after `endDateStr`, if given.
+// use for a live "next dates" preview. The first occurrence is the first day
+// from tomorrow on that the frequency selects — tomorrow itself for a preset,
+// the first matching weekday / day-of-month for a custom pattern — same as
+// RecurringTaskSchedulerService#shouldGenerate for a routine that's never
+// generated before; every occurrence after that steps forward from the
+// previous one via the frequency pattern. Stops early once a date would fall
+// after `endDateStr`, if given.
 export const getUpcomingOccurrences = (frequency: string, count: number, endDateStr?: string | null): Date[] => {
     const customDays = parseCustomFrequencyDays(frequency);
     const monthDay = parseMonthlyDayFrequency(frequency);
     const end = endDateStr ? new Date(`${endDateStr}T23:59:59`) : null;
 
     const occurrences: Date[] = [];
-    let current = new Date();
-    current.setHours(0, 0, 0, 0);
-    current.setDate(current.getDate() + 1);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    // Both step helpers are strictly-after, so stepping from today yields the
+    // first selected day from tomorrow on.
+    let current = customDays ? stepCustomDay(customDays, today)
+        : monthDay !== null ? stepMonthlyDay(monthDay, today)
+        : new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
     for (let i = 0; i < count; i++) {
         if (i > 0) {
