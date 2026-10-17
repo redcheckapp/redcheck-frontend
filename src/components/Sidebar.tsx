@@ -1,7 +1,7 @@
-import { LogOut, Settings, Bell, Check, Sparkles, Trash2, Eye, Repeat } from "lucide-react";
+import { LogOut, Settings, Bell, Check, Sparkles, Trash2, Eye, Repeat, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect, type TouchEvent } from "react";
-import type { SubjectStat, SubjectWithTasks } from "../types";
+import type { AppNotification, SubjectStat, SubjectWithTasks } from "../types";
 import { SmartCheckButton } from "./SmartCheckButton";
 import { SubjectBalance } from "./SubjectBalance";
 import { useLanguage } from "../context/LanguageContext"; // <-- We import the context
@@ -27,6 +27,10 @@ interface SidebarProps {
     onCloseMobile: () => void;
     onOpenMobile: () => void;
     onMarkNotificationsRead: () => void;
+    // Unread replies from the developer to this user's feedback (backend
+    // Notification type FEEDBACK_REPLY). Clicking one marks it read.
+    feedbackReplies?: AppNotification[];
+    onDismissFeedbackReply?: (id: number) => void;
 }
 
 // Feature flags for sections hidden per product decision — not deleted so
@@ -49,6 +53,7 @@ const translations = {
         aiReadyDesc: "¡Tu plan diario ya está disponible!",
         aiReadySub: "Haz clic para ver tu plan priorizado.",
         noNotifications: "No tienes notificaciones nuevas.",
+        feedbackReplyTitle: "Respuesta a tu feedback",
         analysisEngine: "Motor de análisis",
         dailyAnalysisTitle: "Análisis Diario de Tareas",
         dailyAnalysisSub: "Genera un resumen de tus prioridades para hoy.",
@@ -72,6 +77,7 @@ const translations = {
         aiReadyDesc: "Your daily plan is now available!",
         aiReadySub: "Click to view your prioritized plan.",
         noNotifications: "You have no new notifications.",
+        feedbackReplyTitle: "Reply to your feedback",
         analysisEngine: "Analysis Engine",
         dailyAnalysisTitle: "Daily Task Analysis",
         dailyAnalysisSub: "Generate a summary of your priorities for today.",
@@ -107,7 +113,9 @@ export const Sidebar = ({
     mobileOpen,
     onCloseMobile,
     onOpenMobile,
-    onMarkNotificationsRead
+    onMarkNotificationsRead,
+    feedbackReplies = [],
+    onDismissFeedbackReply
 }: SidebarProps) => {
     const navigate = useNavigate();
     const [showNotifications, setShowNotifications] = useState(false);
@@ -310,7 +318,7 @@ export const Sidebar = ({
                         title={t.notifications}
                     >
                         <Bell size={20} />
-                        {aiNotificationReady && (
+                        {(aiNotificationReady || feedbackReplies.length > 0) && (
                             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-purple-500 rounded-full border border-gray-50 dark:border-gray-900 animate-pulse"></span>
                         )}
                     </button>
@@ -319,7 +327,7 @@ export const Sidebar = ({
                         <div className="absolute right-0 left-auto sm:left-0 sm:right-auto top-12 w-64 sm:w-80 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 origin-top-right sm:origin-top-left z-[60] animate-soft-fade">
                             <div className="p-4 border-b border-gray-50 dark:border-gray-800 flex justify-between items-center">
                                 <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">{t.notifications}</h3>
-                                {aiNotificationReady && (
+                                {(aiNotificationReady || feedbackReplies.length > 0) && (
                                     <button
                                         type="button"
                                         onClick={() => { onMarkNotificationsRead(); setShowNotifications(false); }}
@@ -331,6 +339,23 @@ export const Sidebar = ({
                             </div>
 
                             <div className="max-h-64 overflow-y-auto">
+                                {feedbackReplies.map(reply => (
+                                    <button
+                                        key={reply.id}
+                                        type="button"
+                                        onClick={() => onDismissFeedbackReply?.(reply.id)}
+                                        className="w-full text-left p-4 hover:bg-zinc-50 dark:hover:bg-gray-800/50 active:scale-[0.98] border-b border-zinc-100 dark:border-gray-800 flex flex-col gap-1 transition-all"
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <MessageSquare size={12} className="text-red-500 dark:text-red-400 shrink-0" />
+                                            <span className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">{t.feedbackReplyTitle}</span>
+                                        </span>
+                                        <span className="text-sm text-gray-700 dark:text-gray-200 break-words">{reply.message}</span>
+                                        <span className="text-[11px] text-gray-500 dark:text-gray-500">
+                                            {new Date(reply.creationDate).toLocaleDateString(language === "es" ? "es-ES" : "en-US", { day: "numeric", month: "short" })}
+                                        </span>
+                                    </button>
+                                ))}
                                 {aiNotificationReady ? (
                                     <div
                                         onClick={() => {
@@ -346,7 +371,7 @@ export const Sidebar = ({
                                         <p className="text-sm text-gray-700 dark:text-gray-200 font-semibold">{t.aiReadyDesc}</p>
                                         <p className="text-[11px] text-gray-500 dark:text-gray-500">{t.aiReadySub}</p>
                                     </div>
-                                ) : (
+                                ) : feedbackReplies.length === 0 && (
                                     <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-500">
                                         <Bell size={24} className="mx-auto mb-2 text-gray-300 dark:text-gray-600" />
                                         {t.noNotifications}

@@ -18,6 +18,7 @@ const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const DeveloperPage = lazy(() => import("./pages/DeveloperPage"));
 
 // tsParticles is a heavy dependency, so it's still its own lazy chunk. Its
 // own Suspense boundary (separate from the routes below) means it resolves
@@ -84,6 +85,7 @@ const AppShell = () => {
                     <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                     <Route path="/reset-password" element={<ResetPasswordPage />} />
                     <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route path="/developer" element={<DeveloperPage />} />
                     <Route path="/" element={<LoginPage />} />
                     <Route path="/terms" element={<TermsPage />} />
                     <Route path="/privacy" element={<PrivacyPage />} />
