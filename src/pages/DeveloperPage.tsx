@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast";
 import { isAxiosError } from "axios";
 import { ArrowLeft, Gauge, Bug, Lightbulb, Heart, MoreHorizontal, Mail, Loader2, ShieldOff, Inbox, RefreshCw, BellRing, ChevronUp, StickyNote, Server } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { axisTicks } from "../utils/chartTicks";
 import { getAdminFeedback, getAiUsage, getSystemStatus, getUserStats, notifyFeedbackAuthor, updateAdminFeedback } from "../api/adminApi";
 import type { AdminFeedback, AiUsageStats, FeedbackCategory, FeedbackStatus, SystemStatus, UserStats } from "../types";
 
@@ -232,11 +233,8 @@ const fmtDay = (iso: string, language: string) =>
 // the table view (DataTable) carries every value without hovering.
 const ColumnChart = ({ points, valueLabel, language }: { points: ChartPoint[]; valueLabel: string; language: string }) => {
     const [hovered, setHovered] = useState<number | null>(null);
-    const max = Math.max(1, ...points.map(p => p.value));
-    // Clean top tick: next "nice" integer at or above the max.
-    const step = max <= 5 ? 1 : max <= 10 ? 2 : Math.ceil(max / 5 / 5) * 5;
-    const top = Math.ceil(max / step) * step;
-    const ticks = [top, Math.round(top / 2), 0];
+    const ticks = axisTicks(Math.max(...points.map(p => p.value)));
+    const top = ticks[0];
     const active = hovered !== null ? points[hovered] : null;
 
     return (
